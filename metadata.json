@@ -1,0 +1,8 @@
+{
+    "shell-version": ["3.6"], 
+    "uuid": "appindicatorsupport@rgcjonas.gmail.com", 
+    "name": "AppIndicator Support", 
+    "description": "Adds AppIndicator support to gnome shell",
+    "settings-schema": "org.gnome.shell.extensions.appindicator-support",
+    "gettext-domain": "appindicator-support"
+}
