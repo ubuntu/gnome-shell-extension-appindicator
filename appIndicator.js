@@ -16,9 +16,9 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-const DBus = imports.dbus;
 const Gio = imports.gi.Gio;
 const Gtk = imports.gi.Gtk;
+const GLib = imports.gi.GLib;
 const Lang = imports.lang;
 const Mainloop = imports.mainloop;
 const Signals = imports.signals;
@@ -56,44 +56,89 @@ const SNIStatus = {
     NEEDS_ATTENTION: 'NeedsAttention'
 };
 
-const StatusNotifierItemIface = {
-    name: ITEM_INTERFACE,
-    methods: [
-        // these are all unimplemented (except for Activate)
-        { name : 'ContextMenu', inSignature : 'ii', outSignature : '' }, // not part of libappindicator
-        { name : 'Activate', inSignature : 'ii', outSignature : '' }, // not part of libappindicator
-        { name : 'SecondaryActivate', inSignature : 'ii', outSignature : '' }, // not part of libappindicator
-        { name : 'Scroll', inSignature : 'is', outSignature : '' } // not part of libappindicator
-    ],
-    signals: [
-        { name : 'NewTitle', inSignature : '' }, // not part of libappindicator
-        { name : 'NewIcon', inSignature : '' },
-        { name : 'NewOverlayIcon', inSignature : '' }, // not part of libappindicator
-        { name : 'NewAttentionIcon', inSignature : '' },
-        { name : 'NewToolTip', inSignature : '' }, // not part of libappindicator
-        { name : 'NewStatus', inSignature : 's' },
-        { name : 'XAyatanaNewLabel', inSignature : 'ss' }
-    ],
-    properties: [
-        { name : 'Category', signature : 's', access : 'read' },
-        { name : 'Id', signature : 's', access : 'read' },
-        { name : 'Title', signature : 's', access : 'read' }, // not part of libappindicator
-        { name : 'Status', signature : 's', access : 'read' },
-        { name : 'WindowId', signature : 'u', access : 'read' }, // not part of libappindicator
-        { name : 'IconName', signature : 's', access : 'read' },
-        { name : 'IconPixmap', signature : 'a(iiay)', access : 'read' }, // not part of libappindicator
-        { name : 'OverlayIconName', signature : 's', access : 'read' }, // not part of libappindicator, unimplemented in some cases
-        { name : 'OverlayIconPixmap', signature : 'a(iiay)', access : 'read' }, // not part of libappindicator, unimplemented
-        { name : 'AttentionIconName', signature : 's', access : 'read' },
-        { name : 'AttentionIconPixmap', signature : 'a(iiay)', access : 'read' }, // not part of libappindicator
-        { name : 'AttentionMovieName', signature : 's', access : 'read' }, // not part of libappindicator, unimplemented
-        { name : 'IconThemePath', signature : 's', access : 'read' }, // unimplemented
-        { name : 'ToolTip', signature : 'sa(iiay)ss', access : 'read' }, // not part of libappindicator
-        { name : 'Menu', signature : 'o', access : 'read' },
-        { name : 'XAyatanaLabel', siganture : 's', access : 'read' } //ayatana specific
-    ]
-};
-const StatusNotifierItem = DBus.makeProxyClass(StatusNotifierItemIface);
+//partially taken from the quassel irc sources, partly from libappindicator
+//there seem to be _huge_ inconsistencies between the numerous implementations
+const StatusNotifierItemIface = <interface name="org.kde.StatusNotifierItem">
+	<property name="Category" type="s" access="read"/>
+    <property name="Id" type="s" access="read"/>
+    <property name="Title" type="s" access="read"/>
+    <property name="Status" type="s" access="read"/>
+    <property name="WindowId" type="i" access="read"/>
+    <property name="Menu" type="o" access="read" />
+
+    <!-- main icon -->
+    <!-- names are preferred over pixmaps -->
+    <property name="IconName" type="s" access="read" />
+    <property name="IconThemePath" type="s" access="read" />
+
+    <!-- struct containing width, height and image data-->
+    <!-- implementation has been dropped as of now -->
+    <property name="IconPixmap" type="(iiay)" access="read" />
+    
+    <!-- not used in ayatana code, no test case so far -->
+    <property name="OverlayIconName" type="s" access="read"/>
+    <property name="OverlayIconPixmap" type="(iiay)" access="read" />
+
+    <!-- Requesting attention icon -->
+    <property name="AttentionIconName" type="s" access="read"/>
+
+    <!--same definition as image-->
+    <property name="AttentionIconPixmap" type="(iiay)" access="read" />
+
+    <!-- tooltip data -->
+	<!-- unimplemented as of now -->
+    <!--(iiay) is an image-->
+    <property name="ToolTip" type="(s(iiay)ss)" access="read" />
+
+
+    <!-- interaction: actually, we do not use them. -->
+    <method name="Activate">
+        <arg name="x" type="i" direction="in"/>
+        <arg name="y" type="i" direction="in"/>
+    </method>
+	
+	<!-- Signals: the client wants to change something in the status-->
+    <signal name="NewTitle"></signal>
+	<signal name="NewIcon"></signal>
+	<signal name="NewIconThemePath">
+		<arg type="s" name="icon_theme_path" direction="out" />
+	</signal>
+	<signal name="NewAttentionIcon"></signal>
+	<signal name="NewOverlayIcon"></signal>
+    <signal name="NewToolTip"></signal>
+    <signal name="NewStatus">
+        <arg name="status" type="s" />
+    </signal>
+    
+    <!-- ayatana labels -->
+    <signal name="XAyatanaNewLabel">
+		<arg type="s" name="label" direction="out" />
+		<arg type="s" name="guide" direction="out" />
+	</signal>
+	<property name="XAyatanaLabel" type="s" access="read" />
+	<property name="XAyatanaLabelGuide" type="s" access="read" /> <!-- unimplemented -->
+		
+
+  </interface>;
+const StatusNotifierItem = Gio.DBusProxy.makeProxyWrapper(StatusNotifierItemIface);
+
+const PropertiesIface = <interface name="org.freedesktop.DBus.Properties">
+<method name="Get">
+    <arg type="s" direction="in" />
+    <arg type="s" direction="in" />
+    <arg type="v" direction="out" />
+</method>
+<method name="GetAll">
+    <arg type="s" direction="in" />
+    <arg type="a{sv}" direction="out" />
+</method>
+<signal name="PropertiesChanged">
+    <arg type="s" direction="out" />
+    <arg type="a{sv}" direction="out" />
+    <arg type="as" direction="out" />
+</signal>
+</interface>;
+const PropertiesProxy = Gio.DBusProxy.makeProxyWrapper(PropertiesIface);
 
 const AppIndicator = new Lang.Class({
     Name: 'AppIndicator',
@@ -102,68 +147,102 @@ const AppIndicator = new Lang.Class({
         this.ICON_SIZE = Panel.PANEL_ICON_SIZE;
         
         this.busName = bus_name;
-        this._proxy = new StatusNotifierItem(DBus.session, bus_name, object);
+        this._proxy = new StatusNotifierItem(Gio.DBus.session, bus_name, object);
+        this._props = new PropertiesProxy(Gio.DBus.session, bus_name, object);
+        
+        this._propChangedEmitters = {
+        	"Status": this._getChangedEmitter("status", "status"),
+        	"IconName": this._getChangedEmitter("icon", "iconName"),
+        	"AttentionIconName": this._getChangedEmitter("icon", "iconName"),
+        	"Title": this._getChangedEmitter("title", "title"),
+        	"Tooltip": this._getChangedEmitter("tooltip", "tooltip"),
+        	"XAyatanaLabel": this._getChangedEmitter("label", "label")
+        };
+        
+        this._proxy.connectSignal('NewStatus', this._propertyUpdater("Status"));
+        this._proxy.connectSignal('NewIcon', this._propertyUpdater("IconName"));
+        this._proxy.connectSignal('NewAttentionIcon', this._propertyUpdater("AttentionIconName"));
+        this._proxy.connectSignal('NewTitle', this._propertyUpdater("Title"));
+        this._proxy.connectSignal('NewToolTip', this._propertyUpdater("Tooltip"));
+        this._proxy.connectSignal('XAyatanaNewLabel', this._propertyUpdater("XAyatanaLabel"));
+        
+        this._props.connectSignal("PropertiesChanged", this._propertiesChanged.bind(this));
         
         this.reset(true);
     },
     
-    //load all properties again and recreate the menu
+    //helper function
+    _getChangedEmitter: function(signal, prop) {
+    	return Lang.bind(this, function() {
+    		this.emit(signal, this[prop]);
+    	});
+    },
+    
+    _propertyUpdater: function(propertyName) {
+    	return Lang.bind(this, function() {
+    		this._props.GetRemote("org.kde.StatusNotifierItem", propertyName, (function(variant, error) {
+    				if (error) return;
+    				this._proxy.set_cached_property(propertyName, variant[0]);
+    				if (propertyName in this._propChangedEmitters) this._propChangedEmitters[propertyName]();
+    			}).bind(this)
+    		);
+    	});
+    },
+    
+    //public property getters
+    get title() {
+    	return this._proxy.Title;
+    },
+    get id() {
+    	return this._proxy.Id;
+    },
+    get category() {
+    	return this._proxy.Category;
+    },
+    get status() {
+    	return this._proxy.Status;
+    },
+    get iconName() {
+    	if (this.status == SNIStatus.NEEDS_ATTENTION) {
+    		return this._proxy.AttentionIconName;
+    	} else {
+    		return this._proxy.IconName;
+    	}
+    },
+    get tooltip() {
+    	return this._proxy.Tooltip;
+    },
+    get menuPath() {
+    	return this._proxy.Menu;
+    },
+    get label() {
+    	return this._proxy.XAyatanaLabel;
+    },
+    
+    _propertiesChanged: function(proxy, sender, params) {
+    	log(params);
+    	var [ iface, changed, invalidated ] = params;
+    	if (iface == "org.kde.StatusNotifierItem") {
+    		var props = invalidated.concat(Object.keys(changed));
+    		props.forEach(function(e) {
+    			if (e in this._propChangedEmitters) this._propChangedEmitter[e]();
+    		}, this);
+    	}
+    },
+    
+    //only triggers actions
     reset: function(triggerReady) {
-        this._proxy.GetAllRemote(Lang.bind(this, function(properties) {
-            this._category = properties['Category'];
-            if (this._category == SNICategory.COMMUNICATIONS)
-                this.isChat = true;
-
-            this.status = properties['Status'];
-            this.id = properties['Id'];
-            if (!this.id) {
-                log('Id property in StatusNotifierItem is undefined');
-                this.id = 'unknown-application-' + Math.random() * 1000;
-            }
-            this.title = properties['Title'] || this.id;
-            this._relatedWindow = properties['WindowId'];
-            this._findApp();
-
-            this._normalIconName = properties['IconName'];
-            this._normalIconPixmap = properties['IconPixmap'];
-            this._attentionIconName = properties['AttentionIconName'];
-            this._attentionIconPixmap = properties['AttentionIconPixmap'];
-            this._overlayIconName = properties['OverlayIconName'];
-            if (this.status == SNIStatus.NEEDS_ATTENTION) {
-                this.iconName = this._attentionIconName;
-                this._iconPixmap = this._attentionIconPixmap;
-            } else {
-                this.iconName = this._normalIconName;
-                this._iconPixmap = this._normalIconPixmap;
-            }
-            
-            this._iconThemePath = properties['IconThemePath'];
-
-            this.menuPath = properties['Menu'] || null;
-            this.tooltip = properties['ToolTip'] || null;
-            this.label = properties['XAyatanaLabel'] || null;
-
-            this._proxy.connect('NewStatus', Lang.bind(this, this._onNewStatus));
-            this._proxy.connect('NewIcon', Lang.bind(this, this._onNewIcon, 'normal'));
-            this._proxy.connect('NewAttentionIcon', Lang.bind(this, this._onNewIcon, 'attention'));
-            this._proxy.connect('NewOverlayIcon', Lang.bind(this, this._onNewIcon, 'overlay'));
-            this._proxy.connect('NewTitle', Lang.bind(this, this._onNewTitle));
-            this._proxy.connect('NewToolTip', Lang.bind(this, this._onNewTooltip));
-            this._proxy.connect('XAyatanaNewLabel', Lang.bind(this, this._onNewLabel));
-            
-            this.emit('status', this.status);
-            this.emit('title', this.title);
-            this.emit('tooltip', this.tooltip);
-            this.emit('icon', this.iconName);
-            this.emit('label', this.label);
-            if (triggerReady) {
-            	this.isReady = true;
-            	this.emit('ready');
-            } else {
-            	this.emit('reset');
-            }
-            
-        }));
+        this.emit('status', this.status);
+        this.emit('title', this.title);
+        this.emit('tooltip', this.tooltip);
+        this.emit('icon', this.iconName);
+        this.emit('label', this.label);
+        if (triggerReady) {
+        	this.isReady = true;
+        	this.emit('ready');
+        } else {
+        	this.emit('reset');
+        }
     },
 
     destroy: function() {
@@ -172,34 +251,21 @@ const AppIndicator = new Lang.Class({
     },
 
     createIcon: function(icon_size) {
-        // we can only overlay themed icons over themed icons
-        // (ok, actually with better GJS we could use a GdkPixbuf as a GIcon
-        // but it doesn't work yet)
-        if (this._overlayIconName && this.iconName) {
-            let overlayIcon = new Gio.ThemedIcon({ name: this._overlayIconName });
-            let emblem = new Gio.Emblem({ icon: overlayIcon });
-            let icon = new Gio.EmblemedIcon({ gicon: new Gio.ThemedIcon({ name: this.iconName }) });
-            icon.add_emblem(emblem);
-            return new St.Icon({ gicon: icon, icon_size: icon_size });
-        } else {
-            return this._makeIconTexture(this.iconName, this._iconPixmap, icon_size);
-        }
-    },
-    
-    _makeIconTexture: function(name, pixmap, icon_size) {
-        if (name) {
+        var icon_name = this.iconName;
+        if (icon_name) {
             var iconname, real_icon_size;
-            if (this._iconThemePath) {
+            var theme_path = this._proxy.IconThemePath;
+            if (theme_path) {
                 //if there's a theme path, we'll look up the icon there.
                 var icon_theme = new Gtk.IconTheme();
-                icon_theme.append_search_path(this._iconThemePath);
-                var iconinfo = icon_theme.lookup_icon(name, icon_size, icon_size, 4);
+                icon_theme.append_search_path(theme_path);
+                var iconinfo = icon_theme.lookup_icon(icon_name, icon_size, icon_size, 4);
 	            iconname = iconinfo.get_filename();
 	            //icon size can mismatch with custom theme
 	            real_icon_size = iconinfo.get_base_size();
             } else {
-                //let gicon do the work for us. we just assume that icons without custom theme fit everytime.
-                iconname = name;
+                //let gicon do the work for us. we just assume that icons without custom theme always fit.
+                iconname = icon_name;
                 real_icon_size = icon_size;
             }
             
@@ -207,94 +273,33 @@ const AppIndicator = new Lang.Class({
                                  //icon_type: St.IconType.FULLCOLOR,
                                  icon_size: real_icon_size
                                });
-        } else if (pixmap && pixmap.length) {
-            return Util.createActorFromPixmap(pixmap, icon_size);
-        } else
+        }  else {
             // fallback to a generic icon
             return new St.Icon({ icon_name: 'gtk-dialog-info',
                                  icon_size: icon_size
                                });
+        }
+        
     },
-	
-    _onNewStatus: function(proxy) {
-        this._proxy.GetRemote('Status', Lang.bind(this, function(status) {
-            this.status = status;
-            if (this.status == SNIStatus.NEEDS_ATTENTION)
-                this.iconName = this._attentionIconName;
-            else
-                this.iconName = this._normalIconName;
-            this.emit('status', status);
-        }));
+    
+    _onNewStatus: function() {
+        this.emit('status', this.status);
     },
     
     _onNewLabel: function(proxy) {
-    	this._proxy.GetRemote('XAyatanaLabel', Lang.bind(this, function(label) {
-            this.label = label;
-            this.emit('label', label);
-        }));
+    	this.emit('label', this.label);
     },
 
     _onNewIcon: function(proxy, iconType) {
-        //log("new icon requested for "+this.id);
-        let localProperty, dbusProperty;
-        switch(iconType) {
-        case 'attention':
-            localProperty = '_attentionIconName';
-            dbusProperty = 'AttentionIconName';
-            break;
-        case 'overlay':
-            localProperty = '_overlayIconName';
-            dbusProperty = 'OverlayIconName';
-            break;
-        case 'normal':
-            localProperty = '_normalIconName';
-            dbusProperty = 'IconName';
-            break;
-        default:
-            log ('Invalid iconType in callback for signal NewIcon');
-            return;
-        }
-
-        this._proxy.GetRemote(dbusProperty, Lang.bind(this, function(icon) {
-            this[localProperty] = icon;
-            if (this.status == SNIStatus.NEEDS_ATTENTION)
-                this.iconName = this._attentionIconName;
-            else
-                this.iconName = this._normalIconName;
-            this.emit('icon', icon);
-        }));
+        this.emit('icon', this.iconName);
     },
 
     _onNewTitle: function(proxy) {
-        this._proxy.GetRemote('Title', Lang.bind(this, function(title) {
-            this.title = title || null;
-            this.emit("title", title);
-        }));
+        this.emit("title", this.title);
     },
 
     _onNewTooltip: function(proxy) {
-        this._proxy.GetRemote('ToolTip', Lang.bind(this, function(tooltip) {
-            this.tooltip = tooltip;
-            this.emit("tooltip", tooltip);
-        }));
-    },
-
-    _findApp: function() {
-        /* FIXME: meta_window_get_xwindow is not introspectable
-        let found = null;
-        let windows = global.get_window_actors();
-        for (let i = 0; i < windows.length; i++) {
-            let metaWindow = windows[i].meta_window;
-            if (metaWindow.get_xwindow() == this._relatedWindow) {
-                found = metaWindow;
-                break;
-            }
-        }
-        if (found)
-            this.app = Shell.WindowTracker.get_default().get_window_app(found);
-        else
-            this.app = null;
-            */
+        this.emit("tooltip", this.tooltip);
     },
 
     open: function() {
@@ -306,12 +311,8 @@ const AppIndicator = new Lang.Class({
             // failback to older Activate method
             // parameters are "an hint to the item where to show eventual windows" [sic]
             let primary = global.get_primary_monitor();
-            this._proxy.ActivateRemote(primary.x, primary.y);
+            this._proxy.Activate(primary.x, primary.y);
         }
-    },
-    
-    on: function(event, handler) {
-    	return this.connect(event, handler);
     }
 });
 Signals.addSignalMethods(AppIndicator.prototype);

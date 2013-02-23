@@ -35,7 +35,6 @@ const IndicatorStatusIcon = new Lang.Class({
 		this._iconBox = new St.BoxLayout();
 		this._box.destroy_all_children();
 		this._box.add_actor(this._iconBox);
-		this._iconBox = this._box;
 		
 		this._indicator.connect('icon', Lang.bind(this, this._updateIcon));
 		this._indicator.connect('ready', Lang.bind(this, this._display));
@@ -62,14 +61,16 @@ const IndicatorStatusIcon = new Lang.Class({
 	},
 	
 	_updateLabel: function() {
-		if (this._indicator.label) {
-			if (!this._label) {
+		var label = this._indicator.label;
+		if (label) {
+			if (!this._label || !this._labelBin) {
 				this._labelBin = new St.Bin({ y_align: St.Align.MIDDLE, y_fill: false });
-				this._box.add_actor(this._labelBin);
 				this._label = new St.Label();
 				this._labelBin.add_actor(this._label);
+				this._box.add_actor(this._labelBin);
 			}
-			this._label.set_text(this._indicator.label);
+			this._label.set_text(label);
+			if (!this._box.contains(this._labelBin)) this._box.add_actor(this._labelBin); //FIXME: why is it suddenly necessary?
 		} else {
 			if (this._label) {
 				this._labelBin.destroy_all_children();
@@ -101,7 +102,8 @@ const IndicatorStatusIcon = new Lang.Class({
 		if (this.menu.destroyDbusMenu) {
 			this.menu.destroyDbusMenu();
 		}
-		this._box.remove_all_children(); //save from destroying, icon cache will take care of that
+		this._iconBox.remove_all_children(); //save from destroying, icon cache will take care of that
+		this._box.destroy_all_children();
 		
 		//call parent
 		PanelMenu.SystemStatusButton.prototype.destroy.apply(this);

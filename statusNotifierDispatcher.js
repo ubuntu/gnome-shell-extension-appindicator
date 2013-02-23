@@ -33,7 +33,7 @@ const IndicatorDispatcher = new Lang.Class({
 	},
 	
 	dispatch: function(indicator) {
-		indicator.on('status', Lang.bind(this, this._updatedStatus, indicator));
+		indicator.connect('status', Lang.bind(this, this._updatedStatus, indicator));
 		this._updatedStatus(indicator);
 	},
 	
