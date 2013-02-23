@@ -4,5 +4,6 @@
     "name": "AppIndicator Support", 
     "description": "Adds AppIndicator support to gnome shell",
     "settings-schema": "org.gnome.shell.extensions.appindicator-support",
-    "gettext-domain": "appindicator-support"
+    "gettext-domain": "appindicator-support",
+    "url": "https://github.com/rgcjonas/gnome-shell-extension-appindicator"
 }
