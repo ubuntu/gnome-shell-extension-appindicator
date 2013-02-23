@@ -7,6 +7,7 @@ const Clutter = imports.gi.Clutter;
 const Cogl = imports.gi.Cogl;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
+const byteArray = imports.byteArray;
 
 /*
  * UtilMixin:
@@ -74,7 +75,7 @@ const createActorFromPixmap = function(pixmap, icon_size) {
 
 //FIXME: Wouldn't it be way faster and less memory hungry to just write it to a temporary file and load it afterwards?
 const createActorFromMemoryImage = function(data) {
-	var stream = Gio.MemoryInputStream.new_from_data(byteArrayFromString(data));
+	var stream = Gio.MemoryInputStream.new_from_data(byteArrayFromArray(data));
 	var pixbuf = GdkPixbuf.Pixbuf.new_from_stream(stream, null);
 	pixbuf.savev("/tmp/debugbuf.png", "png", [], []);
 	var img = new Clutter.Image();
@@ -90,13 +91,13 @@ const createActorFromMemoryImage = function(data) {
 	return widget;
 }
 
-//HACK: byteArray.fromString() doesn't accept our strings because of embedded nuls.
+//HACK: byteArray.fromArray() causes a segfault at gc.
 //      This honestly can't be efficient in no way.
-const byteArrayFromString = function(data) {
+const byteArrayFromArray = function(data) {
 	var data_length = data.length;
-	var array = new imports.byteArray.ByteArray(data_length);
+	var array = new byteArray.ByteArray(data_length);
 	for (var i = 0; i < data_length; i++) {
-		array[i] = data.charCodeAt(i);
+		array[i] = data[i];
 	}
 	return array;
 }

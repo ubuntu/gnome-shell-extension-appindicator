@@ -18,7 +18,8 @@
 
 const Lang = imports.lang;
 const Mainloop = imports.mainloop;
-const DBus = imports.dbus;
+const Gio = imports.gi.Gio;
+const GLib = imports.gi.GLib;
 const St = imports.gi.St;
 
 const PopupMenu = imports.ui.popupMenu;
@@ -27,32 +28,88 @@ const Shell = imports.gi.Shell;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Util = Extension.imports.util;
 
-// To be replaced with org.freedesktop if and when approved
-const AYATANA_PREFIX = 'com.canonical';
+//copied from libdbusmenu
+const DBusMenuInterface = <interface name="com.canonical.dbusmenu">
+<!-- Properties -->
+		<property name="Version" type="u" access="read">
+		</property>
+		<property name="TextDirection" type="s" access="read">
+		</property>
+		<property name="Status" type="s" access="read">
+		</property>
+		<property name="IconThemePath" type="as" access="read">
+		</property>
+<!-- Functions -->
+		<method name="GetLayout">
+			<arg type="i" name="parentId" direction="in" />
+			<arg type="i" name="recursionDepth" direction="in" />
+			<arg type="as" name="propertyNames" direction="in"  />
+			<arg type="u(ia{sv}av)" name="layout" direction="out" />
+		</method>
+		<method name="GetGroupProperties">
+			<arg type="ai" name="ids" direction="in" >
+			</arg>
+			<arg type="as" name="propertyNames" direction="in" >
+			</arg>
+			<arg type="a(ia{sv})" name="properties" direction="out" >
+			</arg>
+		</method>
+		<method name="GetProperty">
+			<arg type="i" name="id" direction="in">
+			</arg>
+			<arg type="s" name="name" direction="in">
+			</arg>
+			<arg type="v" name="value" direction="out">
+			</arg>
+		</method>
+		<method name="Event">
+			<arg type="i" name="id" direction="in" >
+			</arg>
+			<arg type="s" name="eventId" direction="in" >
+			</arg>
+			<arg type="v" name="data" direction="in" >
+			</arg>
+			<arg type="u" name="timestamp" direction="in" >
+			</arg>
+		</method>
+		<method name="EventGroup">
+			<arg type="a(isvu)" name="events" direction="in">
+			</arg>
+			<arg type="ai" name="idErrors" direction="out">
+			</arg>
+		</method>
+		<method name="AboutToShow">
+			<arg type="i" name="id" direction="in">
+			</arg>
+			<arg type="b" name="needUpdate" direction="out">
+			</arg>
+		</method>
+		<method name="AboutToShowGroup">
+			<arg type="ai" name="ids" direction="in">
+			</arg>
+			<arg type="ai" name="updatesNeeded" direction="out">
+			</arg>
+			<arg type="ai" name="idErrors" direction="out">
+			</arg>
+		</method>
+<!-- Signals -->
+		<signal name="ItemsPropertiesUpdated">
+			<arg type="a(ia{sv})" name="updatedProps" direction="out" />
+			<arg type="a(ias)" name="removedProps" direction="out" />
+		</signal>
+		<signal name="LayoutUpdated">
+			<arg type="ui" name="parent" direction="out" />
+		</signal>
+		<signal name="ItemActivationRequested">
+			<arg type="i" name="id" direction="out" >
+			</arg>
+			<arg type="u" name="timestamp" direction="out" >
+			</arg>
+		</signal>
+<!-- End of interesting stuff -->
+	</interface>
 
-const DBusMenuInterface = {
-    name: AYATANA_PREFIX + '.dbusmenu',
-    methods: [
-        //{ name: 'version', inSignature: '', outSignature: 's' }, // not in libdbusmenu
-        { name: 'AboutToShow', inSignature: 'i', outSignature: 'b' },
-        { name: 'AboutToShowGroup', inSignature: 'ai', outSignature: '' },
-        { name: 'Event', inSignature: 'isvu', outSignature: 'aiai' },
-        { name: 'EventGroup', inSignature: '(isvu)', outSignature: 'ai'},
-        { name: 'GetChildren', inSignature: 'ias', outSignature: 'a(ia{sv})' }, // XXX: undocumented
-        { name: 'GetGroupProperties', inSignature: 'aias', outSignature: 'a(ia{sv})' }, 
-        { name: 'GetLayout', inSignature: 'iias', outSignature: 'us' }, //XXX: outSignature u(ia{sv}av)
-        //{ name: 'GetProperties', inSignature: 'ias', outSignature: 'a{sv}' }, //not in libdbusmenu
-        { name: 'GetProperty', inSignature: 'is', outSignature: 'v' }
-    ],
-    signals: [
-        { name: 'ItemsPropertiesUpdated', outSignature: 'a(ia{sv})a(ias)' },
-        { name: 'ItemUpdated', outSignature: 'i' }, //XXX: not in libdbusmenu, but some indicators dispatch it (?)
-        { name: 'LayoutUpdated', outSignature: 'ui' },
-        { name: 'ItemActivationRequested', outSignature: 'iu' }
-    ]
-};
-
-const DBusMenuProxy = DBus.makeProxyClass(DBusMenuInterface);
+const DBusMenuProxy = Gio.DBusProxy.makeProxyWrapper(DBusMenuInterface);
 
 /**
  * Menu:
@@ -84,10 +141,10 @@ const Menu = new Lang.Class({
         this._itemProperties = { '0': { } };
         this._items = { };
         
-        this._proxy = new DBusMenuProxy(DBus.session, this.busName, this.path);
-        this._proxy.connect('ItemsPropertiesUpdated', Lang.bind(this, this._itemsPropertiesUpdated));
-        this._proxy.connect('ItemUpdated', Lang.bind(this, this._itemUpdated));
-        this._proxy.connect('LayoutUpdated', Lang.bind(this, this._layoutUpdated));
+        this._proxy = new DBusMenuProxy(Gio.DBus.session, this.busName, this.path);
+        this._proxy.connectSignal('ItemsPropertiesUpdated', Lang.bind(this, this._itemsPropertiesUpdated));
+        this._proxy.connectSignal('ItemUpdated', Lang.bind(this, this._itemUpdated));
+        this._proxy.connectSignal('LayoutUpdated', Lang.bind(this, this._layoutUpdated));
         this._revision = 0;
         
         // HACK: the spec mandates calling AboutToShow when opening the menu, but this
@@ -106,8 +163,11 @@ const Menu = new Lang.Class({
 	    },
 
 	    _readLayout: function(subtree) {
-	         this._proxy.GetLayoutRemote(subtree, -1, ['id'], Lang.bind(this, function(result, error) {
-	            if (error) log(error);
+	         this._proxy.GetLayoutRemote(subtree, -1, ['id'], (function(result, error) {
+	            if (error) {
+	            	log(error);
+	            	error.stack.split("\n").forEach(function(e) { log(e); });
+	            }
 	            let revision = result[0];
 	            let layout = result[1];
 	            if (this._revision >= revision)
@@ -118,34 +178,40 @@ const Menu = new Lang.Class({
 	                this._children[id] = [ ];
 	                let child;
 	                for each (child in element[2]) {
-	                    let childid = child[0];
+	                    let childid = child.deep_unpack()[0];
 	                    this._children[id].push(childid);
 	                    this._parents[childid] = id;
 	                    if (!this._itemProperties[childid])
 	                        this._readItem(childid);
-	                    recurse.call(this, child);
+	                    recurse.call(this, child.deep_unpack());
 	                }
 	            }
 	            recurse.call(this, root);
 	            this._revision = revision;
 	            this._buildMenu(subtree);
 	            this._GCItems();
-	        }));
+	        }).bind(this));
 	    },
 
 	    _readItem: function(id) {
 	        this._proxy.GetGroupPropertiesRemote([id], [], Lang.bind(this, function (result, error) { 
 	            if (error) {
-	                log("While reading item "+id+"on "+this.busName+this.path+": ");
+	                log("While reading item "+id+" on "+this.busName+this.path+": ");
 	                log(error);
-	            } else if (!result[0]) {
+	                error.stack.split("\n").forEach(function(e) { log(e); });
+	            } else if (!result[0][0]) {
 	                //FIXME: how the hell does nm-applet manage to get us here?
 	                //it doesn't seem to have any negative effects, however
 	                log("While reading item "+id+" on "+this.busName+this.path+": ");
 	                log("Empty result set (?)");
 	                log(result);
 	            } else {
-	                this._itemProperties[id] = result[0][1];
+	                //the unpacking algorithm is very strange...
+	                var props = result[0][0][1];
+	                for (var i in props) {
+	                	props[i] = props[i].deep_unpack();
+	                }
+	                this._itemProperties[id] = props;
 	                if(id == 0)
 	                    this._updateRoot();
 	                else
@@ -307,13 +373,13 @@ const Menu = new Lang.Class({
 	        this._readItem(id);
 	    },
 
-	    _itemsPropertiesUpdated: function (proxy, changed, removed) {
+	    _itemsPropertiesUpdated: function (proxy, bus, [changed, removed]) {
 	    	//FIXME: the array structure is weird
 	    	for (var i = 0; i < changed.length; i++) {
 	    		var id = changed[i][0];
 	    		var properties = changed[i][1];
 	    		for (var property in properties) {
-	    			this._itemPropertyUpdated(proxy, id, property, properties[property])
+	    			this._itemPropertyUpdated(proxy, id, property, properties[property].deep_unpack())
 	    		}
 	    	}
 	    },
@@ -366,7 +432,7 @@ const Menu = new Lang.Class({
 	            this._replaceItem(this._parents[id], true);
 	    },
 
-	    _layoutUpdated: function(proxy, revision, subtree) {
+	    _layoutUpdated: function(proxy, bus, [revision, subtree]) {
 	        log(this.busName + this.path + "    Layout updated for node "+subtree);
 	        if (revision <= this._revision)
 	            return;
@@ -392,7 +458,7 @@ const Menu = new Lang.Class({
 	    _itemActivate: function(item, event) {
 	        // we emit clicked also for keyboard activation
 	        // XXX: what is event specific data?
-	        this._proxy.EventRemote(item._dbusId, 'clicked', '', event.get_time());
+	        this._proxy.EventRemote(item._dbusId, 'clicked', GLib.Variant.new("s", ""), event.get_time());
 	    },
 
 	    /* FIXME: apparently this is not correct
