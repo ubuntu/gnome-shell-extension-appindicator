@@ -14,7 +14,6 @@ It's based on patches made by Giovanni Campagna: https://bugzilla.gnome.org/show
 ## Buggy features
 * Icon pixmaps are untested and will probably not work correctly. If we can't find any real world usage they will be removed in near future.
 * Ayatana labels are supported in the panel only.
-* Re-enabling the extension after you disabled it doesn't work as of now - you need to restart the shell.
 * The whole thing eats a bunch of memory. There is no evidence for memory leaks (yet) but the garbage collector seems to have severe problems dealing with changing icons.
 * `nm-applet` is broken: https://bugs.launchpad.net/ubuntu/+source/network-manager-applet/+bug/965895
 

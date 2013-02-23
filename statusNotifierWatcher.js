@@ -70,7 +70,7 @@ StatusNotifierWatcher.prototype = {
         this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(StatusNotifierWatcherIface, this);
         this._dbusImpl.export(Gio.DBus.session, WATCHER_OBJECT);
         this._everAcquiredName = false;
-        Gio.DBus.session.own_name(WATCHER_BUS_NAME,
+        this._ownName = Gio.DBus.session.own_name(WATCHER_BUS_NAME,
                                   Gio.BusNameOwnerFlags.NONE,
                                   Lang.bind(this, this._acquiredName),
                                   Lang.bind(this, this._lostName));
@@ -79,7 +79,6 @@ StatusNotifierWatcher.prototype = {
     },
 
     _acquiredName: function() {
-        log('acquired name: '+WATCHER_BUS_NAME);
         this._everAcquiredName = true;
     },
 
@@ -87,8 +86,7 @@ StatusNotifierWatcher.prototype = {
         if (this._everAcquiredName)
             logError('Lost name' + WATCHER_BUS_NAME);
         else {
-            log('Failed to acquire ' + WATCHER_BUS_NAME + '; trying again');
-            Util.killall('indicator-applet');
+            logError('Failed to acquire ' + WATCHER_BUS_NAME);
         }
     },
     
@@ -184,5 +182,6 @@ StatusNotifierWatcher.prototype = {
     		this._items[i].destroy();
     	}
     	delete this._items;
+    	Gio.DBus.unown_name(this._ownName);
     }
 };
