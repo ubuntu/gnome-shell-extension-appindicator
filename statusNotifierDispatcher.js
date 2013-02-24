@@ -33,6 +33,11 @@ const IndicatorDispatcher = new Lang.Class({
 	},
 	
 	dispatch: function(indicator) {
+		if (indicator.isConstructed) this._doDispatch(indicator);
+		else indicator.connect("constructed", this._doDispatch.bind(this, indicator));
+	},
+	
+	_doDispatch: function(indicator) {
 		indicator.connect('status', Lang.bind(this, this._updatedStatus, indicator));
 		this._updatedStatus(indicator);
 	},

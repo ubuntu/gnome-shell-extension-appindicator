@@ -40,18 +40,19 @@ const IndicatorMessageSource = new Lang.Class({
 		this.showInLockScreen = false;
 		this.isChat = indicator.isChat;
 		
-		this._notification = new IndicatorNotification(this);
+		//notification is async because it carries the menu
+		this._notification = new IndicatorNotification(this, (function() {
+			this._iconBox = new St.BoxLayout();
 		
-		this._iconBox = new St.BoxLayout();
-		
-		this._indicator.connect('icon', Lang.bind(this, this._updateIcon));
-		this._indicator.connect('ready', Lang.bind(this, this._display));
-		this._indicator.connect('reset', Lang.bind(this, this._reset));
-		this.connect('clicked', Lang.bind(this, this._handleClicked));
-		if (this._indicator.isReady) {
-			this._updateIcon();
-			this._display();
-		}
+			this._indicator.connect('icon', Lang.bind(this, this._updateIcon));
+			this._indicator.connect('ready', Lang.bind(this, this._display));
+			this._indicator.connect('reset', Lang.bind(this, this._reset));
+			this.connect('clicked', Lang.bind(this, this._handleClicked));
+			if (this._indicator.isReady) {
+				this._updateIcon();
+				this._display();
+			}
+		}).bind(this));
 	},
 	
 	_handleClicked: function() {
@@ -138,22 +139,31 @@ const IndicatorNotification = new Lang.Class({
     Name: 'IndicatorNotification',
     Extends: MessageTray.Notification,
 
-    _init: function(source) {
+    _init: function(source, cb) {
         this.parent(source, source.title, null, { customContent: true });
-
-        this._box = new St.BoxLayout({ vertical: true });
-        
-        // set the notification as resident
-        this.setResident(true);
 		
-		if (source._indicator.menuPath) {
-			this._menu = new PopupMenuEmbedded();
-			new DBusMenu.Menu(source._indicator.busName, source._indicator.menuPath).attach(this._menu);
-			this._box.add_actor(this._menu.actor);
-		}
+		var init_finish = (function() {
+			this._box = new St.BoxLayout({ vertical: true });
         
-        this.actor.destroy();
-        this.actor = this._box; //HACK: force the whole bubble to be our menu
-        this.enableScrolling(false);
+	        // set the notification as resident
+	        this.setResident(true);
+			
+			if (this._menu) {
+				this._box.add_actor(this._menu.actor);
+			}
+	        
+	        this.actor.destroy();
+	        this.actor = this._box; //HACK: force the whole bubble to be our menu
+	        this.enableScrolling(false);
+	        
+	        cb();
+		}).bind(this);
+		
+        if (source._indicator.menuPath) {
+			this._menu = new PopupMenuEmbedded();
+			new DBusMenu.Menu(source._indicator.busName, source._indicator.menuPath, init_finish).attach(this._menu);
+		} else {
+			init_finish();
+		}
     },
 });

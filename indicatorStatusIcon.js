@@ -110,9 +110,14 @@ const IndicatorStatusIcon = new Lang.Class({
 	},
 	
 	_display: function() {
+		var display_finish = (function(){
+			Main.panel.addToStatusArea("appindicator-"+this._indicator.id, this, 1, 'right');
+		}).bind(this);
+		
 		if (this._indicator.menuPath) {
-			new DBusMenu.Menu(this._indicator.busName, this._indicator.menuPath).attach(this.menu);
+			new DBusMenu.Menu(this._indicator.busName, this._indicator.menuPath, display_finish).attach(this.menu);
+		} else {
+			display_finish();
 		}
-		Main.panel.addToStatusArea("appindicator-"+this._indicator.id, this, 1, 'right');
 	}
 });

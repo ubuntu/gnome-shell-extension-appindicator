@@ -73,22 +73,22 @@ const StatusNotifierItemIface = <interface name="org.kde.StatusNotifierItem">
 
     <!-- struct containing width, height and image data-->
     <!-- implementation has been dropped as of now -->
-    <property name="IconPixmap" type="(iiay)" access="read" />
+    <property name="IconPixmap" type="a(iiay)" access="read" />
     
     <!-- not used in ayatana code, no test case so far -->
     <property name="OverlayIconName" type="s" access="read"/>
-    <property name="OverlayIconPixmap" type="(iiay)" access="read" />
+    <property name="OverlayIconPixmap" type="a(iiay)" access="read" />
 
     <!-- Requesting attention icon -->
     <property name="AttentionIconName" type="s" access="read"/>
 
     <!--same definition as image-->
-    <property name="AttentionIconPixmap" type="(iiay)" access="read" />
+    <property name="AttentionIconPixmap" type="a(iiay)" access="read" />
 
     <!-- tooltip data -->
 	<!-- unimplemented as of now -->
     <!--(iiay) is an image-->
-    <property name="ToolTip" type="(s(iiay)ss)" access="read" />
+    <property name="ToolTip" type="(sa(iiay)ss)" access="read" />
 
 
     <!-- interaction: actually, we do not use them. -->
@@ -147,28 +147,34 @@ const AppIndicator = new Lang.Class({
         this.ICON_SIZE = Panel.PANEL_ICON_SIZE;
         
         this.busName = bus_name;
-        this._proxy = new StatusNotifierItem(Gio.DBus.session, bus_name, object);
-        this._props = new PropertiesProxy(Gio.DBus.session, bus_name, object);
         
-        this._propChangedEmitters = {
-        	"Status": this._getChangedEmitter("status", "status"),
-        	"IconName": this._getChangedEmitter("icon", "iconName"),
-        	"AttentionIconName": this._getChangedEmitter("icon", "iconName"),
-        	"Title": this._getChangedEmitter("title", "title"),
-        	"Tooltip": this._getChangedEmitter("tooltip", "tooltip"),
-        	"XAyatanaLabel": this._getChangedEmitter("label", "label")
-        };
-        
-        this._proxy.connectSignal('NewStatus', this._propertyUpdater("Status"));
-        this._proxy.connectSignal('NewIcon', this._propertyUpdater("IconName"));
-        this._proxy.connectSignal('NewAttentionIcon', this._propertyUpdater("AttentionIconName"));
-        this._proxy.connectSignal('NewTitle', this._propertyUpdater("Title"));
-        this._proxy.connectSignal('NewToolTip', this._propertyUpdater("Tooltip"));
-        this._proxy.connectSignal('XAyatanaNewLabel', this._propertyUpdater("XAyatanaLabel"));
-        
-        this._props.connectSignal("PropertiesChanged", this._propertiesChanged.bind(this));
-        
-        this.reset(true);
+        //construct async because the remote object may be busy and irresponsive (example: quassel irc)
+        this._props = new PropertiesProxy(Gio.DBus.session, bus_name, object, (function(resutl, error) {
+	        this._proxy = new StatusNotifierItem(Gio.DBus.session, bus_name, object, (function(result, error) {
+	        	this.isConstructed = true;
+	        	this.emit("constructed");
+	        	
+	        	this._propChangedEmitters = {
+		        	"Status": this._getChangedEmitter("status", "status"),
+		        	"IconName": this._getChangedEmitter("icon", "iconName"),
+		        	"AttentionIconName": this._getChangedEmitter("icon", "iconName"),
+		        	"Title": this._getChangedEmitter("title", "title"),
+		        	"Tooltip": this._getChangedEmitter("tooltip", "tooltip"),
+		        	"XAyatanaLabel": this._getChangedEmitter("label", "label")
+		        };
+		        
+		        this._proxy.connectSignal('NewStatus', this._propertyUpdater("Status"));
+		        this._proxy.connectSignal('NewIcon', this._propertyUpdater("IconName"));
+		        this._proxy.connectSignal('NewAttentionIcon', this._propertyUpdater("AttentionIconName"));
+		        this._proxy.connectSignal('NewTitle', this._propertyUpdater("Title"));
+		        this._proxy.connectSignal('NewToolTip', this._propertyUpdater("Tooltip"));
+		        this._proxy.connectSignal('XAyatanaNewLabel', this._propertyUpdater("XAyatanaLabel"));
+		        
+		        this._props.connectSignal("PropertiesChanged", this._propertiesChanged.bind(this));
+		        
+		        this.reset(true);
+	        }).bind(this));
+        }).bind(this));
     },
     
     //helper function
@@ -263,6 +269,7 @@ const AppIndicator = new Lang.Class({
 	            iconname = iconinfo.get_filename();
 	            //icon size can mismatch with custom theme
 	            real_icon_size = iconinfo.get_base_size();
+	            if (real_icon_size > icon_size) real_icon_size = icon_size; //we don't want bigger icons
             } else {
                 //let gicon do the work for us. we just assume that icons without custom theme always fit.
                 iconname = icon_name;

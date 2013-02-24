@@ -124,10 +124,11 @@ const Menu = new Lang.Class({
     Name: 'DbusMenu',
     Extends: Util.Mixin,
 
-    _init: function(busName, path) {
+    _init: function(busName, path, asyncInitCb) {
         //bus settings
         this._mixin.busName = busName;
         this._mixin.path = path;
+        this._mixin._initcb = asyncInitCb;
     },
     
     _conserve: [
@@ -141,20 +142,27 @@ const Menu = new Lang.Class({
         this._itemProperties = { '0': { } };
         this._items = { };
         
-        this._proxy = new DBusMenuProxy(Gio.DBus.session, this.busName, this.path);
-        this._proxy.connectSignal('ItemsPropertiesUpdated', Lang.bind(this, this._itemsPropertiesUpdated));
-        this._proxy.connectSignal('ItemUpdated', Lang.bind(this, this._itemUpdated));
-        this._proxy.connectSignal('LayoutUpdated', Lang.bind(this, this._layoutUpdated));
-        this._revision = 0;
+        this._proxy = new DBusMenuProxy(Gio.DBus.session, this.busName, this.path, (function(result, error) {
+        	this._proxy.connectSignal('ItemsPropertiesUpdated', Lang.bind(this, this._itemsPropertiesUpdated));
+	        this._proxy.connectSignal('ItemUpdated', Lang.bind(this, this._itemUpdated));
+	        this._proxy.connectSignal('LayoutUpdated', Lang.bind(this, this._layoutUpdated));
+	        this._revision = 0;
+	        
+	        // HACK: the spec mandates calling AboutToShow when opening the menu, but this
+	        // causes the menu to be updated, recreating the layout, destroying the actors and
+	        // thus immediately closing it
+	        // -> FIXME: rgcjonas: seems to be wrong. re-reading layout in toggle() works as expected.
+	        // Therefore we simulate it here
+	        this._proxy.AboutToShowRemote(0, Lang.bind(this, function() {
+	            this._readLayout(0, false);
+	        }));
+	        
+	        if (this._initcb) {
+	        	this._initcb();
+	        	this._initcb = null;
+	        }
+        }).bind(this));
         
-        // HACK: the spec mandates calling AboutToShow when opening the menu, but this
-        // causes the menu to be updated, recreating the layout, destroying the actors and
-        // thus immediately closing it
-        // -> FIXME: rgcjonas: seems to be wrong. re-reading layout in toggle() works as expected.
-        // Therefore we simulate it here
-        this._proxy.AboutToShowRemote(0, Lang.bind(this, function() {
-            this._readLayout(0, false);
-        }));
     },
     
     _mixin: {
