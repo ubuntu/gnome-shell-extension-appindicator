@@ -22,17 +22,15 @@ const Convenience = Extension.imports.convenience;
 const Gtk = imports.gi.Gtk;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
-const _ = imports.gettext.gettext;
+const _ = imports.gettext.domain(Extension.metadata['gettext-domain']).gettext;
 const Settings = Extension.imports.settings.Settings;
 
-var gsettings;
 var log = function() {
 	print(Array.prototype.join.call(arguments, ","));
 }
 
 function init() {
 	Convenience.initTranslations();
-	gsettings = Convenience.getSettings();
 }
 
 function buildPrefsWidget() {
@@ -47,7 +45,7 @@ function buildPrefsWidget() {
     default_switch.set_active_id(Settings.instance.getDefault());
     default_box.add(default_switch);
     widget.pack_start(default_box, false, false, 10);
-    var overrides_frame = new Gtk.Frame({ label: _("Individual placement settings")})
+    var overrides_frame = new Gtk.Frame({ label: _("Application specific settings")})
     var overrides_scroll = new Gtk.ScrolledWindow(); //jsut in case our list gets _really_ big...
     var overrides_table = new Gtk.Grid({ margin: 10 });
     populateGrid.apply(overrides_table);
