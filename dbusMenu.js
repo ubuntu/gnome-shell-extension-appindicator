@@ -398,6 +398,11 @@ const Menu = new Lang.Class({
 	        	//we couldn't use the property data anyway, so we bail out here
 	        	return;
 	        }
+	        if (!this._items[id]) {
+	        	//property is updated but the item isn't even present.
+	        	//we'll build the item now.
+	        	return this._replaceItem(id, true);
+	        }
 	        this._itemProperties[id][property] = value;
 	        if (id == 0) {
 	            this._updateRoot();
