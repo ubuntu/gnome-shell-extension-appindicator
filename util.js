@@ -18,7 +18,7 @@ const Mixin = new Lang.Class({
 	Name: 'UtilMixin',
 	
 	_init: function() {
-		//actually we do our work in attach()
+		this._lateMixin = {};
 	},
 	
 	_mixin: {},
@@ -41,6 +41,9 @@ const Mixin = new Lang.Class({
 		}
 		for (var i in this._mixin) {
 			o[i] = this._mixin[i];
+		}
+		for (var i in this._lateMixin) {
+			o[i] = this._lateMixin[i]
 		}
 		if (this._mixinInit) {
 			this._mixinInit.apply(o);

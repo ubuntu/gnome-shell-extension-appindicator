@@ -22,14 +22,14 @@ const AppIndicator = Extension.imports.appIndicator;
 const SNIStatus = AppIndicator.SNIStatus;
 const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon;
 const IndicatorMessageSource = Extension.imports.indicatorMessageSource;
-const Settings = Extension.imports.settings;
+const Settings = Extension.imports.settings.Settings;
 
 const IndicatorDispatcher = new Lang.Class({
 	Name: 'IndicatorDispatcher',
 	
 	_init: function() {
 		this._icons = {};
-		Settings.Settings.instance.connect("changed", Lang.bind(this, this._settingsChanged));
+		Settings.instance.connect("changed", Lang.bind(this, this._settingsChanged));
 	},
 	
 	dispatch: function(indicator) {
@@ -61,9 +61,9 @@ const IndicatorDispatcher = new Lang.Class({
 	 
 	_add: function(indicator) {
 		var obj;
-		if (Settings.Settings.instance.get(indicator.id) == "blacklist") {
+		if (Settings.instance.get(indicator.id) == "blacklist") {
 			obj = new NullIcon(indicator);
-		} else if (Settings.Settings.instance.get(indicator.id) == "panel") {
+		} else if (Settings.instance.get(indicator.id) == "panel") {
 			obj = new IndicatorStatusIcon.IndicatorStatusIcon(indicator);
 		} else {
 			obj = new IndicatorMessageSource.IndicatorMessageSource(indicator);	

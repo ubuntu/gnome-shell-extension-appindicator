@@ -35,14 +35,6 @@ const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const DBusMenu = Extension.imports.dbusMenu;
 const IconCache = Extension.imports.iconCache;
 
-// TODO: replace with org.freedesktop and /org/freedesktop when approved
-const KDE_PREFIX = 'org.kde';
-const AYATANA_PREFIX = 'org.ayatana';
-const AYATANA_PATH_PREFIX = '/org/ayatana';
-
-const ITEM_INTERFACE = KDE_PREFIX + '.StatusNotifierItem';
-const ITEM_OBJECT = '/StatusNotifierItem';
-
 const SNICategory = {
     APPLICATION: 'ApplicationStatus',
     COMMUNICATIONS: 'Communications',
@@ -170,7 +162,7 @@ const AppIndicator = new Lang.Class({
 		        this._proxy.connectSignal('NewToolTip', this._propertyUpdater("Tooltip"));
 		        this._proxy.connectSignal('XAyatanaNewLabel', this._propertyUpdater("XAyatanaLabel"));
 		        
-		        this._props.connectSignal("PropertiesChanged", this._propertiesChanged.bind(this));
+		        this._proxy.connect("g-properties-changed", this._propertiesChanged.bind(this));
 		        
 		        this.reset(true);
 	        }).bind(this));
@@ -218,22 +210,52 @@ const AppIndicator = new Lang.Class({
     get tooltip() {
     	return this._proxy.Tooltip;
     },
-    get menuPath() {
-    	return this._proxy.Menu;
-    },
     get label() {
     	return this._proxy.XAyatanaLabel;
     },
     
-    _propertiesChanged: function(proxy, sender, params) {
-    	log(params);
-    	var [ iface, changed, invalidated ] = params;
-    	if (iface == "org.kde.StatusNotifierItem") {
-    		var props = invalidated.concat(Object.keys(changed));
-    		props.forEach(function(e) {
-    			if (e in this._propChangedEmitters) this._propChangedEmitter[e]();
-    		}, this);
-    	}
+    //common menu handling
+    //async because we may need to check the presence of a menubar object as well as the creation is async.
+    getMenu: function(clb) {
+    	var path = this._proxy.Menu || "/MenuBar";
+    	this._validateMenu(this.busName, path, function(r, name, path) {
+    		if (r) {
+    			log("creating menu on "+[name, path]);
+    			new DBusMenu.Menu(name, path, clb);
+    		} else {
+    			clb(null);
+    		}
+    	});
+    },
+    
+    _validateMenu: function(bus, path, callback) {
+    	Gio.DBus.session.call(
+			bus, path, "org.freedesktop.DBus.Properties", "Get", 
+			GLib.Variant.new("(ss)", ["com.canonical.dbusmenu", "Version"]), 
+			GLib.VariantType.new("(v)"), Gio.DBusCallFlags.NONE, -1, null, function(conn, result) {
+				try {
+					var val = conn.call_finish(result);
+				} catch (e) {
+					log("Invalid menu: "+e);
+					return callback(false);
+				}
+				var version = val.deep_unpack()[0].deep_unpack();
+				//fixme: what do we implement?
+				if (version >= 2) {
+					return callback(true, bus, path);
+				} else {
+					log("Incompatible dbusmenu version: "+version);
+					return callback(false);
+				}
+			}, null
+		);
+    },
+    
+    _propertiesChanged: function(proxy, changed, invalidated) {
+    	var props = invalidated.concat(Object.keys(changed.deep_unpack()));
+		props.forEach(function(e) {
+			if (e in this._propChangedEmitters) this._propChangedEmitters[e]();
+		}, this);
     },
     
     //only triggers actions
@@ -287,6 +309,18 @@ const AppIndicator = new Lang.Class({
                                });
         }
         
+    },
+    
+    //in contrast to createIcon, this function manages caching.
+    //if you don't use the icon anymore, set .inUse to false.
+    getIcon: function(icon_size) {
+    	var icon = IconCache.IconCache.instance.get(this.iconName + "@" + icon_size);
+		if (!icon) {
+			icon = this.createIcon(icon_size);
+			IconCache.IconCache.instance.add(this.iconName + "@" + icon_size, icon);
+		}
+		icon.inUse = true;
+		return icon;
     },
     
     _onNewStatus: function() {

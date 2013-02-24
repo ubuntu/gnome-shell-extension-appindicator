@@ -94,12 +94,7 @@ const IndicatorMessageSource = new Lang.Class({
 	_updateIcon: function() {
 		if (this._iconBox.firstChild && this._iconBox.firstChild.inUse) this._iconBox.firstChild.inUse = false;
 		this._iconBox.remove_all_children();
-		var icon = IconCache.IconCache.instance.get(this._indicator.iconName + "@" + this.SOURCE_ICON_SIZE);
-		if (!icon) {
-			icon = this._indicator.createIcon(this.SOURCE_ICON_SIZE);
-			IconCache.IconCache.instance.add(this._indicator.iconName + "@" + this.SOURCE_ICON_SIZE, icon);
-		}
-		icon.inUse = true;
+		var icon = this._indicator.getIcon(this.SOURCE_ICON_SIZE);
 		this._iconBox.add_actor(icon);
 	},
 	
@@ -142,13 +137,15 @@ const IndicatorNotification = new Lang.Class({
     _init: function(source, cb) {
         this.parent(source, source.title, null, { customContent: true });
 		
-		var init_finish = (function() {
+		var init_finish = (function(menu) {
 			this._box = new St.BoxLayout({ vertical: true });
         
 	        // set the notification as resident
 	        this.setResident(true);
 			
-			if (this._menu) {
+			if (menu) {
+				this._menu = new PopupMenuEmbedded();
+				menu.attach(this._menu);
 				this._box.add_actor(this._menu.actor);
 			}
 	        
@@ -159,11 +156,6 @@ const IndicatorNotification = new Lang.Class({
 	        cb();
 		}).bind(this);
 		
-        if (source._indicator.menuPath) {
-			this._menu = new PopupMenuEmbedded();
-			new DBusMenu.Menu(source._indicator.busName, source._indicator.menuPath, init_finish).attach(this._menu);
-		} else {
-			init_finish();
-		}
+        source._indicator.getMenu(init_finish);
     },
 });

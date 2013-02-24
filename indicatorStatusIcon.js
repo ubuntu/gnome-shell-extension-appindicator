@@ -51,12 +51,7 @@ const IndicatorStatusIcon = new Lang.Class({
 	_updateIcon: function() {
 		if (this._iconBox.firstChild && this._iconBox.firstChild.inUse) this._iconBox.firstChild.inUse = false;
 		this._iconBox.remove_all_children();
-		var icon = IconCache.IconCache.instance.get(this._indicator.iconName + "@" + Panel.PANEL_ICON_SIZE);
-		if (!icon) {
-			icon = this._indicator.createIcon(Panel.PANEL_ICON_SIZE);
-			IconCache.IconCache.instance.add(this._indicator.iconName + "@" + Panel.PANEL_ICON_SIZE, icon);
-		}
-		icon.inUse = true;
+		var icon = this._indicator.getIcon(Panel.PANEL_ICON_SIZE);
 		this._iconBox.add_actor(icon);
 	},
 	
@@ -110,14 +105,13 @@ const IndicatorStatusIcon = new Lang.Class({
 	},
 	
 	_display: function() {
-		var display_finish = (function(){
+		var display_finish = (function(menu){
+			if (menu != null) {
+				menu.attach(this.menu);
+			}
 			Main.panel.addToStatusArea("appindicator-"+this._indicator.id, this, 1, 'right');
 		}).bind(this);
 		
-		if (this._indicator.menuPath) {
-			new DBusMenu.Menu(this._indicator.busName, this._indicator.menuPath, display_finish).attach(this.menu);
-		} else {
-			display_finish();
-		}
+		this._indicator.getMenu(display_finish);
 	}
 });
