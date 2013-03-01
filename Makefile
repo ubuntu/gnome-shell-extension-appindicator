@@ -22,7 +22,7 @@ schemas/gschemas.compiled: $(wildcard schemas/*.gschema.xml)
 	
 schema: schemas/gschemas.compiled
 
-zip-file: $(ZIP)
+zip-file: $(ZIP) mo schema
 	mkdir -p build
 	rm -f build/appindicator-support.zip
 	zip build/appindicator-support.zip $(ZIP)
