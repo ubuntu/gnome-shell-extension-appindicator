@@ -21,6 +21,7 @@ const Mainloop = imports.mainloop;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
 const St = imports.gi.St;
+const Signals = imports.signals;
 
 const PopupMenu = imports.ui.popupMenu;
 const Shell = imports.gi.Shell;
@@ -493,6 +494,7 @@ const Menu = new Lang.Class({
 	    
 	    destroyDbusMenu: function() {
 	    	this._GCItems();
+	    	Signals._disconnectAll.apply(this._proxy);
 	    	delete this._proxy;
 	    },
 	    

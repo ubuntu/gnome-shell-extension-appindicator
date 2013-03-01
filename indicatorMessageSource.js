@@ -44,9 +44,10 @@ const IndicatorMessageSource = new Lang.Class({
 		this._notification = new IndicatorNotification(this, (function() {
 			this._iconBox = new St.BoxLayout();
 		
-			this._indicator.connect('icon', Lang.bind(this, this._updateIcon));
-			this._indicator.connect('ready', Lang.bind(this, this._display));
-			this._indicator.connect('reset', Lang.bind(this, this._reset));
+			var h = this._indicatorHandlerIds = [];
+			h.push(this._indicator.connect('icon', Lang.bind(this, this._updateIcon)));
+			h.push(this._indicator.connect('ready', Lang.bind(this, this._display)));
+			h.push(this._indicator.connect('reset', Lang.bind(this, this._reset)));
 			this.connect('clicked', Lang.bind(this, this._handleClicked));
 			if (this._indicator.isReady) {
 				this._updateIcon();
@@ -101,7 +102,8 @@ const IndicatorMessageSource = new Lang.Class({
 	destroy: function() {
 		//if (Main.messageTray.contains(this)) Main.messageTray.remove(this);
 		log("Destroying "+this._indicator.id);
-		if (this._indicator.menuPath) this._notification._menu.destroyDbusMenu();
+		this._indicatorHandlerIds.forEach(this._indicator.disconnect.bind(this._indicator));
+		if (this._notification._menu) this._notification._menu.destroyDbusMenu();
 		this._iconBox.remove_all_children();
 		MessageTray.Source.prototype.destroy.apply(this);
 	}
@@ -115,6 +117,7 @@ const PopupMenuEmbedded = new Lang.Class({
 		//HACK: we subclass PopupMenu but call the constructor of PopupMenuBase only. PopupMenu does too much for us.
 		PopupMenu.PopupMenuBase.prototype._init.apply(this, null, 'popup-menu');
 		this._boxWrapper = new Shell.GenericContainer();
+        //looking at popupMenu.js from gnome shell, it seems like we don't need to disconnect them
         this._boxWrapper.connect('get-preferred-width', Lang.bind(this, this._boxGetPreferredWidth));
         this._boxWrapper.connect('get-preferred-height', Lang.bind(this, this._boxGetPreferredHeight));
         this._boxWrapper.connect('allocate', Lang.bind(this, this._boxAllocate));

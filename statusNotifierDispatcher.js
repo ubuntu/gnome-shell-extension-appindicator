@@ -29,7 +29,7 @@ const IndicatorDispatcher = new Lang.Class({
 	
 	_init: function() {
 		this._icons = {};
-		Settings.instance.connect("changed", Lang.bind(this, this._settingsChanged));
+		this._settingsChangedId = Settings.instance.connect("changed", Lang.bind(this, this._settingsChanged));
 	},
 	
 	dispatch: function(indicator) {
@@ -38,6 +38,7 @@ const IndicatorDispatcher = new Lang.Class({
 	},
 	
 	_doDispatch: function(indicator) {
+		//this is actually needed for the whole lifetime of indicator. It will be disconnected automatically on destroy.
 		indicator.connect('status', Lang.bind(this, this._updatedStatus, indicator));
 		this._updatedStatus(indicator);
 	},
@@ -97,6 +98,11 @@ const IndicatorDispatcher = new Lang.Class({
 	
 	getIconIds: function() {
 		return Object.keys(this._icons);
+	},
+	
+	destroy: function() {
+		//FIXME: this is actually never called because the only global instance is never freed
+		Settings.instance.disconnect(this._settingsChangedId);
 	}
 });
 IndicatorDispatcher.instance = new IndicatorDispatcher();

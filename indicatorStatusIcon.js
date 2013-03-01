@@ -36,10 +36,12 @@ const IndicatorStatusIcon = new Lang.Class({
 		this._box.destroy_all_children();
 		this._box.add_actor(this._iconBox);
 		
-		this._indicator.connect('icon', Lang.bind(this, this._updateIcon));
-		this._indicator.connect('ready', Lang.bind(this, this._display));
-		this._indicator.connect('reset', Lang.bind(this, this._reset));
-		this._indicator.connect('label', Lang.bind(this, this._updateLabel));
+		//stuff would keep us alive forever if icon changes places
+		var h = this._indicatorHandlerIds = []; 
+		h.push(this._indicator.connect('icon', Lang.bind(this, this._updateIcon)));
+		h.push(this._indicator.connect('ready', Lang.bind(this, this._display)));
+		h.push(this._indicator.connect('reset', Lang.bind(this, this._reset)));
+		h.push(this._indicator.connect('label', Lang.bind(this, this._updateLabel)));
 		if (this._indicator.isReady) {
 			//indicator already ready when adding? unheard of, but we still handle it.
 			this._updateIcon();
@@ -94,6 +96,7 @@ const IndicatorStatusIcon = new Lang.Class({
 		}
 		
 		//destroy stuff owned by us
+		this._indicatorHandlerIds.forEach(this._indicator.disconnect.bind(this._indicator));
 		if (this.menu.destroyDbusMenu) {
 			this.menu.destroyDbusMenu();
 		}

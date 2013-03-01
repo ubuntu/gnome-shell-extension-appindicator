@@ -155,6 +155,7 @@ const AppIndicator = new Lang.Class({
 		        	"XAyatanaLabel": this._getChangedEmitter("label", "label")
 		        };
 		        
+		        //this is really just Signals._connect, so we can disconnect them all at once
 		        this._proxy.connectSignal('NewStatus', this._propertyUpdater("Status"));
 		        this._proxy.connectSignal('NewIcon', this._propertyUpdater("IconName"));
 		        this._proxy.connectSignal('NewAttentionIcon', this._propertyUpdater("AttentionIconName"));
@@ -162,7 +163,7 @@ const AppIndicator = new Lang.Class({
 		        this._proxy.connectSignal('NewToolTip', this._propertyUpdater("Tooltip"));
 		        this._proxy.connectSignal('XAyatanaNewLabel', this._propertyUpdater("XAyatanaLabel"));
 		        
-		        this._proxy.connect("g-properties-changed", this._propertiesChanged.bind(this));
+		        this._propChangedHandle = this._proxy.connect("g-properties-changed", this._propertiesChanged.bind(this));
 		        
 		        this.reset(true);
 	        }).bind(this));
@@ -276,6 +277,9 @@ const AppIndicator = new Lang.Class({
     destroy: function() {
         this.emit('destroy', this);
         this.disconnectAll();
+        Signals._disconnectAll.apply(this._proxy);
+        this._proxy.disconnect(this._propChangedHandle);
+        this._proxy = null; //in case we still have circular references...
     },
 
     createIcon: function(icon_size) {
