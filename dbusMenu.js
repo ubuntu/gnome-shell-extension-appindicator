@@ -134,7 +134,6 @@ const Menu = new Lang.Class({
         
         this._lateMixin._proxy = new DBusMenuProxy(Gio.DBus.session, name, path, (function(result, error) {
         	if (callback) {
-	        	log("calling callback on "+name+path);
 	        	callback(this);
 	        }
         }).bind(this));
@@ -155,15 +154,6 @@ const Menu = new Lang.Class({
         this._proxy.connectSignal('ItemUpdated', Lang.bind(this, this._itemUpdated));
         this._proxy.connectSignal('LayoutUpdated', Lang.bind(this, this._layoutUpdated));
         this._revision = 0;
-        
-        // HACK: the spec mandates calling AboutToShow when opening the menu, but this
-        // causes the menu to be updated, recreating the layout, destroying the actors and
-        // thus immediately closing it
-        // -> FIXME: rgcjonas: seems to be wrong. re-reading layout in toggle() works as expected.
-        // Therefore we simulate it here
-        this._proxy.AboutToShowRemote(0, Lang.bind(this, function() {
-            this._readLayout(0, false);
-        }));
     },
     
     _mixin: {
@@ -171,18 +161,19 @@ const Menu = new Lang.Class({
 	        this._readLayout(0);        
 	    },
 
-	    _readLayout: function(subtree) {
+	    _readLayout: function(subtree, callback) {
 	         this._proxy.GetLayoutRemote(subtree, -1, ['id'], (function(result, error) {
 	            if (error) {
 	            	log(error);
-	            	error.stack.split("\n").forEach(function(e) { log(e); });
 	            }
 	            let revision = result[0];
 	            let layout = result[1];
 	            if (this._revision >= revision)
-	                return;
+	                return callback();
 	            let root = layout;
-	            function recurse(element) {
+	            
+	            let toFinish = 1; //we need to keep track of finished recurse operations since they're all async
+	            function recurse(element, finished) {
 	                let id = element[0];
 	                this._children[id] = [ ];
 	                let child;
@@ -190,19 +181,28 @@ const Menu = new Lang.Class({
 	                    let childid = child.deep_unpack()[0];
 	                    this._children[id].push(childid);
 	                    this._parents[childid] = id;
-	                    if (!this._itemProperties[childid])
-	                        this._readItem(childid);
-	                    recurse.call(this, child.deep_unpack());
+	                    if (!this._itemProperties[childid]) {
+	                        toFinish += 1;
+	                        this._readItem(childid, recurse.bind(this, child.deep_unpack(), finished));
+	                    } else {
+	                    	recurse.call(this, child.deep_unpack(), finished);
+	                    }
+	                }
+	                if ((--toFinish) == 0) {
+	                	if (finished) finished();
 	                }
 	            }
-	            recurse.call(this, root);
-	            this._revision = revision;
-	            this._buildMenu(subtree);
-	            this._GCItems();
+	            recurse.call(this, root, (function() {
+	            	this._revision = revision;
+		            this._buildMenu(subtree);
+		            this._GCItems();
+		            if (callback) callback();
+	            }).bind(this));
+	            
 	        }).bind(this));
 	    },
 
-	    _readItem: function(id) {
+	    _readItem: function(id, callback) {
 	        this._proxy.GetGroupPropertiesRemote([id], [], Lang.bind(this, function (result, error) { 
 	            if (error) {
 	                log("While reading item "+id+" on "+this.busName+this.path+": ");
@@ -226,6 +226,7 @@ const Menu = new Lang.Class({
 	                else
 	                    this._replaceItem(id, true);
 	            }
+	            if (callback) callback();
 	        }));        
 	    },
 
@@ -501,9 +502,10 @@ const Menu = new Lang.Class({
 	    preOpen: function(callback) {
 	    	this._proxy.AboutToShowRemote(0, Lang.bind(this, function(needUpdate) {
 	            if (needUpdate) {
-	            	this._readLayout(0);
+	            	this._readLayout(0, callback);
+	            } else {
+	            	if (callback) callback();
 	            }
-	            if (callback) callback();
 	        }));
 	    },
 	    
