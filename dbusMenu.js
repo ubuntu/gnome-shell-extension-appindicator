@@ -283,9 +283,10 @@ const Menu = new Lang.Class({
 	    },
 
 	    _replaceItem: function(id, recurse) {
+	        if (typeof(id) == "undefined") throw new Error("called _replaceItem with undefined id");
 	        let position = 0;
 	        let parent = this._parents[id];
-	        if(parent != 0 && (!this._items[parent] || !this._items[parent].menu)) {
+	        if (parent != 0 && (!this._items[parent] || !this._items[parent].menu)) {
 	            // parent is not ready, rebuild it
 	            this._replaceItem(parent);
 	        }
@@ -400,7 +401,7 @@ const Menu = new Lang.Class({
 	        	//we couldn't use the property data anyway, so we bail out here
 	        	return;
 	        }
-	        if (!this._items[id]) {
+	        if (id != 0 && !this._items[id]) {
 	        	//property is updated but the item isn't even present.
 	        	//we'll build the item now.
 	        	return this._replaceItem(id, true);
