@@ -84,9 +84,9 @@ StatusNotifierWatcher.prototype = {
 
     _lostName: function() {
         if (this._everAcquiredName)
-            logError('Lost name' + WATCHER_BUS_NAME);
+            log('appindicator: Lost name' + WATCHER_BUS_NAME);
         else {
-            logError('Failed to acquire ' + WATCHER_BUS_NAME);
+            log('appindicator: Failed to acquire ' + WATCHER_BUS_NAME);
         }
     },
     
@@ -173,15 +173,18 @@ StatusNotifierWatcher.prototype = {
     },
     
     destroy: function() {
-    	this._dbusImpl.unexport();
-    	for (var i in this._nameWatcher) {
-    		Gio.DBus.session.unwatch_name(this._nameWatcher[i]);
+    	if (!this._isDestroyed) {
+	    	Gio.DBus.session.unown_name(this._ownName);
+	    	this._dbusImpl.unexport();
+	    	for (var i in this._nameWatcher) {
+	    		Gio.DBus.session.unwatch_name(this._nameWatcher[i]);
+	    	}
+	    	delete this._nameWatcher;
+	    	for (var i in this._items) {
+	    		this._items[i].destroy();
+	    	}
+	    	delete this._items;
+	    	this._isDestroyed = true;
     	}
-    	delete this._nameWatcher;
-    	for (var i in this._items) {
-    		this._items[i].destroy();
-    	}
-    	delete this._items;
-    	Gio.DBus.unown_name(this._ownName);
     }
 };
