@@ -16,5 +16,9 @@ It's based on patches made by Giovanni Campagna: https://bugzilla.gnome.org/show
 ## Incomplete features
 * Ayatana labels are supported in the panel only.
 
+## Known issues
+* ClassicMenu Indicator takes ages to load and has been reported to freeze the shell forever. This is probably caused by the insane amount of embedded PNG icons. Sadly, this seems to be unfixable.
+* Embedded PNG icon data in menus (as used by Skype, ClassicMenu Indicator and others) cannot be handled efficiently, they will eat memory and can cause lags.
+
 ## TODO
-* Add Localization.
+* Add Localization (You can help there!).
