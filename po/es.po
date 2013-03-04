@@ -1,0 +1,43 @@
+# Spanish translations for gnome-shell-extension-appindicator package.
+# Copyright (C) 2013 Damián Nohales
+# This file is distributed under the same license as the
+# gnome-shell-extension-appindicator package.
+# Damián Nohales <damiannohales@gmail.com>, 2013.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: gnome-shell-extension-appindicator\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2013-02-24 16:47+0100\n"
+"PO-Revision-Date: 2013-03-04 09:36-0300\n"
+"Last-Translator: Damián Nohales <damiannohales@gmail.com>\n"
+"Language-Team: Damián Nohales <damiannohales@gmail.com>\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: prefs.js:39
+msgid "Default placement for indicator icons: "
+msgstr "Ubicación predeterminada de los iconos: "
+
+#: prefs.js:41 prefs.js:95
+msgid "Show in message tray"
+msgstr "Mostrar en la bandeja de mensajes"
+
+#: prefs.js:42 prefs.js:96
+msgid "Show in panel"
+msgstr "Mostrar en el panel"
+
+#: prefs.js:43 prefs.js:97
+msgid "Do not show"
+msgstr "Ocultar"
+
+#: prefs.js:48
+msgid "Application specific settings"
+msgstr "Configuración específica por aplicación"
+
+#: prefs.js:94
+msgid "Show at default location"
+msgstr "Mostrar en la ubicación predeterminada"
