@@ -501,12 +501,10 @@ const Menu = new Lang.Class({
 	    },
 	    
 	    preOpen: function(callback) {
-	    	this._proxy.AboutToShowRemote(0, Lang.bind(this, function(needUpdate) {
-	            if (needUpdate) {
-	            	this._readLayout(0, callback);
-	            } else {
-	            	if (callback) callback();
-	            }
+	    	if (this._openedOnce) callback();
+	    	else this._proxy.AboutToShowRemote(0, Lang.bind(this, function(needUpdate) {
+	            this._readLayout(0, callback);
+	         	this._openedOnce = true;
 	        }));
 	    },
 	    
