@@ -19,7 +19,7 @@ It's based on patches made by Giovanni Campagna: https://bugzilla.gnome.org/show
 ## Known issues
 * ClassicMenu Indicator takes ages to load and has been reported to freeze the shell forever. This is probably caused by the insane amount of embedded PNG icons. Sadly, this seems to be unfixable.
 * Embedded PNG icon data in menus (as used by Skype, ClassicMenu Indicator and others) cannot be handled efficiently, they will eat memory and can cause lags.
-* Using a sni-qt based indicator (e.g. Clementine) together with the MediaPlayer extension creates a deadlock that freezes the shell. This can only be fixed in sni-qt or the MediaPlayer extension.
+* Using a sni-qt based indicator (e.g. Clementine) together with the MediaPlayer extension creates a deadlock that freezes the shell. **Update:** This is fixed in the `devel` branch of the MediaPlayer extension and is expected to appear in master and on extensions.gnome.org soon. 
 
 ## TODO
 * Add Localization (You can help there!).
