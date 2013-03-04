@@ -4,6 +4,8 @@
 
 ZIP= $(wildcard *.js) metadata.json $(wildcard schemas/*) $(wildcard locale/*/LC_MESSAGES/*)
 
+all: pot mo schema
+
 po/messages.pot: prefs.js
 	xgettext -k_ -o po/messages.pot prefs.js
 	
@@ -26,5 +28,3 @@ zip-file: $(ZIP) mo schema
 	mkdir -p build
 	rm -f build/appindicator-support.zip
 	zip build/appindicator-support.zip $(ZIP)
-
-all: pot mo schema
