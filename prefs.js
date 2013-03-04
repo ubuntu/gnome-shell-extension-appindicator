@@ -70,7 +70,11 @@ function populateGrid() {
     			overrides[e] = "auto";
     		}
     	});
-    	var override_keys = Object.keys(overrides).sort();
+    	var override_keys = Object.keys(overrides).sort(function(a, b){
+    		var c = a.toLowerCase();
+    		var d = b.toLowerCase();
+    		return ((c < d) ? -1 : ((c > d) ? 1 : 0));
+    	});
     	override_keys.forEach(function(e, i){
     		attachToGrid(grid, e, i, overrides[e], Lang.bind(null, overrideChangedCallback, e));	
     	});
@@ -89,7 +93,7 @@ function overrideChangedCallback(select, name) {
 }
 
 function attachToGrid(grid, name, index, value, changedClb) {
-	grid.attach(new Gtk.Label({label: name, xalign: 0}), 0, index, 1, 1);
+	grid.attach(new Gtk.Label({label: name, xalign: 0, 'margin-right': 10 }), 0, index, 1, 1);
     var select = new Gtk.ComboBoxText();
     select.append("auto", _("Show at default location"));
     select.append("message-tray", _("Show in message tray"));

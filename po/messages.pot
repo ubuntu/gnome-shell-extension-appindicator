@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-02-24 16:47+0100\n"
+"POT-Creation-Date: 2013-03-04 18:39+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -21,15 +21,15 @@ msgstr ""
 msgid "Default placement for indicator icons: "
 msgstr ""
 
-#: prefs.js:41 prefs.js:95
+#: prefs.js:41 prefs.js:99
 msgid "Show in message tray"
 msgstr ""
 
-#: prefs.js:42 prefs.js:96
+#: prefs.js:42 prefs.js:100
 msgid "Show in panel"
 msgstr ""
 
-#: prefs.js:43 prefs.js:97
+#: prefs.js:43 prefs.js:101
 msgid "Do not show"
 msgstr ""
 
@@ -37,6 +37,6 @@ msgstr ""
 msgid "Application specific settings"
 msgstr ""
 
-#: prefs.js:94
+#: prefs.js:98
 msgid "Show at default location"
 msgstr ""
