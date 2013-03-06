@@ -122,7 +122,7 @@ StatusNotifierWatcher.prototype = {
         } else {
             log("registering "+id+" for the first time.");
             this._items[id] = new AppIndicator.AppIndicator(bus_name, obj_path);
-            this._dbusImpl.emit_signal('ServiceRegistered', GLib.Variant.new('s', service));
+            this._dbusImpl.emit_signal('ServiceRegistered', GLib.Variant.new('(s)', service));
             this._nameWatcher[id] = Gio.DBus.session.watch_name(bus_name, Gio.BusNameWatcherFlags.NONE, null,
                                         Lang.bind(this, this._itemVanished));
             StatusNotifierDispatcher.IndicatorDispatcher.instance.dispatch(this._items[id]);
@@ -145,7 +145,7 @@ StatusNotifierWatcher.prototype = {
         delete this._items[id];
         Gio.DBus.session.unwatch_name(this._nameWatcher[id]);
         delete this._nameWatcher[id];
-        this._dbusImpl.emit_signal('ServiceUnregistered', GLib.Variant.new('s', id));
+        this._dbusImpl.emit_signal('ServiceUnregistered', GLib.Variant.new('(s)', id));
         this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems', null);
     },
     
