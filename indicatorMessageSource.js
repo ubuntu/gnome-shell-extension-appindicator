@@ -150,6 +150,7 @@ const IndicatorNotification = new Lang.Class({
 				this._menu = new PopupMenuEmbedded();
 				menu.attach(this._menu);
 				this._box.add_actor(this._menu.actor);
+				this._menu.preOpen(); //menu will always be opened
 			}
 	        
 	        this.actor.destroy();
