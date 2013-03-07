@@ -21,5 +21,15 @@ It's based on patches made by Giovanni Campagna: https://bugzilla.gnome.org/show
 * Embedded PNG icon data in menus (as used by Skype, ClassicMenu Indicator and others) cannot be handled efficiently, they will eat memory and can cause lags.
 * Using a sni-qt based indicator (e.g. Clementine) together with the MediaPlayer extension creates a deadlock that freezes the shell. **Update:** This is fixed in the `devel` branch of the MediaPlayer extension and is expected to appear in master and on extensions.gnome.org soon. 
 
+## Guidelines for bug reports
+Since I'm tired of useless reports, you need to provide:
+* Your distribution (e.g. "Ubuntu 13.04")
+* Your version of GNOME Shell (e.g. "3.6.3")
+* The version of the extension (e.g. "v1 from extensions.gnome.org" or "latest git")
+* The involved indicator applets (e.g. "My Weather Indicator 0.6.1")
+* Detailed description of the bug with instructions how to reproduce it
+
+Bugs which don't provide the necessary information may be closed as "invalid" without prior notice.
+
 ## TODO
 * Add Localization (You can help there!).
