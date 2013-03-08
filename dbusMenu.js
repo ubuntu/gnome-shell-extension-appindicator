@@ -324,7 +324,6 @@ const Menu = new Lang.Class({
 	        if (label)
 	            label = label.replace(/_([^_])/, '$1');
 	        let icon = properties['icon-name'];
-	        // FIXME: icon-data is not supported
 	        let icon_data = properties['icon-data'];
 	        let toggle_type = properties['toggle-type'];
 	        let has_children = properties['children-display'] == 'submenu';
@@ -412,7 +411,7 @@ const Menu = new Lang.Class({
 	            return;
 	        }
 	        if (property == 'label')
-	            this._items[id].label.text = value;
+	            this._items[id].label.text = value.replace(/_([^_])/, '$1');
 	        else if (property == 'visible') {
 	            if (value)
 	                this._items[id].actor.show();
