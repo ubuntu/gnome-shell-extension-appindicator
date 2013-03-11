@@ -392,6 +392,11 @@ const Menu = new Lang.Class({
 	    			this._itemPropertyUpdated(proxy, id, property, properties[property].deep_unpack())
 	    		}
 	    	}
+	    	removed.forEach(function([id, properties]) {
+	    		properties.forEach(function(i) {
+	    			this._itemPropertyUpdated(proxy, id, i /*, undefined */);
+	    		}, this);
+	    	}, this);
 	    },
 	    
 	    _itemPropertyUpdated: function (proxy, id, property, value) {
@@ -413,17 +418,18 @@ const Menu = new Lang.Class({
 	        if (property == 'label')
 	            this._items[id].label.text = value.replace(/_([^_])/, '$1');
 	        else if (property == 'visible') {
+	            if (typeof(value) == "undefined") value = true; //in case the property was deleted
 	            if (value)
 	                this._items[id].actor.show();
 	            else
 	                this._items[id].actor.hide();
-	        } else if (property == 'sensitive')
-	            this._items[id].actor.reactive = this._items[id].actor.track_hover = value;
-	        else if (property == 'enabled') {
+	        } else if (property == 'enabled') {
+	            if (typeof(value) == "undefined") value = true; //in case the property was deleted, default = true
 	            let item = this._items[id];
+	            item.setSensitive(value);
 	            if (value) {
 	                if(!item._dbusActivateId)
-	                    item._dbusActivateId = item.connect('activate', Lang.bind(this, this._itemActivated));
+	                    item._dbusActivateId = item.connect('activate', Lang.bind(this, this._itemActivate));
 	                //if(!item._dbusHoverId)
 	                //    item._dbusHoverId = item.connect('active-changed', Lang.bind(this, this._itemHovered));
 	            } else {
