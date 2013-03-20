@@ -76,9 +76,9 @@ const createActorFromPixmap = function(pixmap, icon_size) {
                                                        icon_size);
 };
 
-//FIXME: Wouldn't it be way faster and less memory hungry to just write it to a temporary file and load it afterwards?
+//data: GBytes
 const createActorFromMemoryImage = function(data) {
-	var stream = Gio.MemoryInputStream.new_from_data(byteArrayFromArray(data));
+	var stream = Gio.MemoryInputStream.new_from_bytes(data);
 	var pixbuf = GdkPixbuf.Pixbuf.new_from_stream(stream, null);
 	var img = new Clutter.Image();
 	img.set_data(pixbuf.get_pixels(), pixbuf.get_has_alpha() ? Cogl.PixelFormat.RGBA_8888 : Cogl.PixelFormat.RGB_888,
@@ -93,13 +93,18 @@ const createActorFromMemoryImage = function(data) {
 	return widget;
 }
 
-//HACK: byteArray.fromArray() causes a segfault at gc.
-//      This honestly can't be efficient in no way.
-const byteArrayFromArray = function(data) {
-	var data_length = data.length;
-	var array = new byteArray.ByteArray(data_length);
-	for (var i = 0; i < data_length; i++) {
-		array[i] = data[i];
+//HACK: GLib.Variant.prototype.get_data_as_bytes only exists in recent gjs versions
+const variantToGBytes = function(variant) {
+	if (typeof(GLib.Variant.prototype.get_data_as_bytes) != "undefined") {
+		return variant.get_data_as_bytes();
+	} else {
+		//FIXME: this is very very inefficient. we're sorry.
+		var data = variant.deep_unpack(); //will create an array of doubles...
+		var data_length = data.length;
+		var array = new imports.byteArray.ByteArray(data_length);
+		for (var i = 0; i < data_length; i++) {
+			array[i] = data[i];
+		}
+		return GLib.ByteArray.free_to_bytes(array); //this can't be correct but it suprisingly works like a charm.
 	}
-	return array;
 }

@@ -17,9 +17,8 @@ It's based on patches made by Giovanni Campagna: https://bugzilla.gnome.org/show
 * Ayatana labels are supported in the panel only.
 
 ## Known issues
-* ClassicMenu Indicator takes ages to load and has been reported to freeze the shell forever. This is probably caused by the insane amount of embedded PNG icons. Sadly, this seems to be unfixable.
-* Embedded PNG icon data in menus (as used by Skype, ClassicMenu Indicator and others) cannot be handled efficiently, they will eat memory and can cause lags.
-* Using a sni-qt based indicator (e.g. Clementine) together with the MediaPlayer extension creates a deadlock that freezes the shell. **Update:** This is fixed in the `devel` branch of the MediaPlayer extension and is expected to appear in master and on extensions.gnome.org soon. 
+* ClassicMenu Indicator takes ages to load and has been reported to freeze the shell forever. This is probably caused by the insane amount of embedded PNG icons. Try at your own risk.
+* Embedded PNG icon data in menus (as used by Skype, ClassicMenu Indicator and others) can only be handled efficiently in recent gjs versions. Older versions (notably Ubuntu 12.10) will have to use a very ugly and inefficient method.
 
 ## Guidelines for bug reports
 Since I'm tired of useless reports, you need to provide:

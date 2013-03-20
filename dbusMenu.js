@@ -218,7 +218,13 @@ const Menu = new Lang.Class({
 	                //the unpacking algorithm is very strange...
 	                var props = result[0][0][1];
 	                for (var i in props) {
-	                	props[i] = props[i].deep_unpack();
+	                	if (i == 'icon-data') { 
+	                		//HACK: newer gjs can transform byte arrays in GBytes automatically, but the versions 
+	                		//      commonly found bundled with GS 3.6 (Ubuntu 12.10, 13.04) don't do that :(
+	                		props[i] = Util.variantToGBytes(props[i]);
+	                	} else {
+	                		props[i] = props[i].deep_unpack();
+	                	} 
 	                }
 	                this._itemProperties[id] = props;
 	                if(id == 0)
