@@ -6,6 +6,7 @@ It's based on patches made by Giovanni Campagna: https://bugzilla.gnome.org/show
 ## Features
 * Show indicator icons in the message tray or in the panel (can be configured even per indicator!)
 * Reveal indicator menus upon click.
+* Double clicking an icon will activate the application window (if implemented by the indicator).
 
 ## Missing features
 * Tooltips: Not implemented in `libappindicator` nor in Unity and I've yet to see any indicator using it for anything relevant (KDE ones maybe?). Also, the GNOME designers decided not to have tooltips in the shell and I'd like to honor that decision.

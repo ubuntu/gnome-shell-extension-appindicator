@@ -348,16 +348,11 @@ const AppIndicator = new Lang.Class({
     },
 
     open: function() {
-        if (this.app) {
-            let windows = this.app.get_windows();
-            if (windows.length > 0)
-                Main.activateWindow(windows[0]);
-        } else {
-            // failback to older Activate method
-            // parameters are "an hint to the item where to show eventual windows" [sic]
-            let primary = global.get_primary_monitor();
-            this._proxy.Activate(primary.x, primary.y);
-        }
+        // we can't use WindowID because we're not able to get the x11 window id from a MetaWindow
+        // nor can we call any X11 functions. Luckily, the Activate method usually works fine.
+        // parameters are "an hint to the item where to show eventual windows" [sic]
+        // ... and don't seem to have any effect.
+        this._proxy.ActivateRemote(0, 0);
     }
 });
 Signals.addSignalMethods(AppIndicator.prototype);

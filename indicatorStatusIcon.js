@@ -22,6 +22,7 @@ const IconCache = Extension.imports.iconCache;
 const DBusMenu = Extension.imports.dbusMenu;
 const Main = imports.ui.main;
 const Panel = imports.ui.panel;
+const Clutter = imports.gi.Clutter;
 
 const IndicatorStatusIcon = new Lang.Class({
     Name: 'IndicatorStatusIcon',
@@ -35,6 +36,7 @@ const IndicatorStatusIcon = new Lang.Class({
         this._iconBox = new St.BoxLayout();
         this._box.destroy_all_children();
         this._box.add_actor(this._iconBox);
+        this._boxClickDisconnectHandler = this.actor.connect("button-press-event", this._boxClicked.bind(this));
         
         //stuff would keep us alive forever if icon changes places
         var h = this._indicatorHandlerIds = []; 
@@ -102,6 +104,7 @@ const IndicatorStatusIcon = new Lang.Class({
         }
         this._iconBox.remove_all_children(); //save from destroying, icon cache will take care of that
         this._box.destroy_all_children();
+        this.actor.disconnect(this._boxClickDisconnectHandler);
         
         //call parent
         PanelMenu.SystemStatusButton.prototype.destroy.apply(this);
@@ -111,10 +114,24 @@ const IndicatorStatusIcon = new Lang.Class({
         var display_finish = (function(menu){
             if (menu != null) {
                 menu.attach(this.menu);
+                this.menu.preOpen(); //FIXME: why the hell have we implemented on demand loading when we never use it?
             }
             Main.panel.addToStatusArea("appindicator-"+this._indicator.id, this, 1, 'right');
         }).bind(this);
         
         this._indicator.getMenu(display_finish);
+    },
+    
+    _boxClicked: function(actor, event) {
+        //HACK: event should be a ClutterButtonEvent but we get only a ClutterEvent (why?)
+        //      because we can't access click_count, we'll create our own double click detector.
+        var treshold = Clutter.Settings.get_default().double_click_time;
+        var now = new Date().getTime();
+        if (this._lastClicked && (now - this._lastClicked) < treshold) {
+            this._lastClicked = null; //reset double click detector
+            this._indicator.open();
+        } else {
+            this._lastClicked = now;
+        }
     }
 });

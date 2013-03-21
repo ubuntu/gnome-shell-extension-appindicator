@@ -27,6 +27,7 @@ const DBusMenu = Extension.imports.dbusMenu;
 const Main = imports.ui.main;
 const Shell = imports.gi.Shell;
 const Gtk = imports.gi.Gtk;
+const Clutter = imports.gi.Clutter;
 
 const IndicatorMessageSource = new Lang.Class({
     Name: 'IndicatorMessageSource',
@@ -43,7 +44,7 @@ const IndicatorMessageSource = new Lang.Class({
         //notification is async because it carries the menu
         this._notification = new IndicatorNotification(this, (function() {
             this._iconBox = new St.BoxLayout();
-        
+            
             var h = this._indicatorHandlerIds = [];
             h.push(this._indicator.connect('icon', Lang.bind(this, this._updateIcon)));
             h.push(this._indicator.connect('ready', Lang.bind(this, this._display)));
@@ -106,6 +107,20 @@ const IndicatorMessageSource = new Lang.Class({
         if (this._notification._menu) this._notification._menu.destroyDbusMenu();
         this._iconBox.remove_all_children();
         MessageTray.Source.prototype.destroy.apply(this);
+    },
+    
+    handleSummaryClick: function() {
+        //HACK: event should be a ClutterButtonEvent but we get only a ClutterEvent (why?)
+        //      because we can't access click_count, we'll create our own double click detector.
+        var treshold = Clutter.Settings.get_default().double_click_time;
+        var now = new Date().getTime();
+        if (this._lastClicked && (now - this._lastClicked) < treshold) {
+            this._lastClicked = null; //reset double click detector
+            this._indicator.open();
+        } else {
+            this._lastClicked = now;
+        }
+        return false;
     }
 });
 
