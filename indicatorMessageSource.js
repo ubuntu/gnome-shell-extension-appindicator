@@ -29,94 +29,94 @@ const Shell = imports.gi.Shell;
 const Gtk = imports.gi.Gtk;
 
 const IndicatorMessageSource = new Lang.Class({
-	Name: 'IndicatorMessageSource',
-	Extends: MessageTray.Source,
-	
-	_init: function(indicator) {
-		this.parent("FIXME", null);
-		
-		this._indicator = indicator;
-		this.keepTrayOnSummaryClick = true;
-		this.showInLockScreen = false;
-		this.isChat = indicator.isChat;
-		
-		//notification is async because it carries the menu
-		this._notification = new IndicatorNotification(this, (function() {
-			this._iconBox = new St.BoxLayout();
-		
-			var h = this._indicatorHandlerIds = [];
-			h.push(this._indicator.connect('icon', Lang.bind(this, this._updateIcon)));
-			h.push(this._indicator.connect('ready', Lang.bind(this, this._display)));
-			h.push(this._indicator.connect('reset', Lang.bind(this, this._reset)));
-			this.connect('clicked', Lang.bind(this, this._handleClicked));
-			if (this._indicator.isReady) {
-				this._updateIcon();
-				this._display();
-			}
-		}).bind(this));
-	},
-	
-	_handleClicked: function() {
-		if (this._notification._menu) {
-			this._notification._menu.preOpen();
-		}
-	},
-	
-	_display: function() {
-		if (!Main.messageTray.contains(this)) {
-			Main.messageTray.add(this);
-			this.pushNotification(this._notification);
-			//HACK: disable menu scrolling //FIXME: menu might becom higher than screen
-			var item = Main.messageTray.getSummaryItems()[Main.messageTray._getIndexOfSummaryItemForSource(this)];
-			item.notificationStackView.vscrollbar_policy = Gtk.PolicyType.NEVER;
-		}
-	},
-	
-	get title() {
-		return this._indicator.title;
-	},
-	
-	set title(val) {
-		//ignore
-	}, 
-	
-	_reset: function() {
-	
-	},
-	
-	buildRightClickMenu: function() {
-		return null;
-	},
-	
-	getSummaryIcon: function() {
-		return this._iconBox;
-	},
-	
-	_updateIcon: function() {
-		if (this._iconBox.firstChild && this._iconBox.firstChild.inUse) this._iconBox.firstChild.inUse = false;
-		this._iconBox.remove_all_children();
-		var icon = this._indicator.getIcon(this.SOURCE_ICON_SIZE);
-		this._iconBox.add_actor(icon);
-	},
-	
-	destroy: function() {
-		//if (Main.messageTray.contains(this)) Main.messageTray.remove(this);
-		log("Destroying "+this._indicator.id);
-		this._indicatorHandlerIds.forEach(this._indicator.disconnect.bind(this._indicator));
-		if (this._notification._menu) this._notification._menu.destroyDbusMenu();
-		this._iconBox.remove_all_children();
-		MessageTray.Source.prototype.destroy.apply(this);
-	}
+    Name: 'IndicatorMessageSource',
+    Extends: MessageTray.Source,
+    
+    _init: function(indicator) {
+        this.parent("FIXME", null);
+        
+        this._indicator = indicator;
+        this.keepTrayOnSummaryClick = true;
+        this.showInLockScreen = false;
+        this.isChat = indicator.isChat;
+        
+        //notification is async because it carries the menu
+        this._notification = new IndicatorNotification(this, (function() {
+            this._iconBox = new St.BoxLayout();
+        
+            var h = this._indicatorHandlerIds = [];
+            h.push(this._indicator.connect('icon', Lang.bind(this, this._updateIcon)));
+            h.push(this._indicator.connect('ready', Lang.bind(this, this._display)));
+            h.push(this._indicator.connect('reset', Lang.bind(this, this._reset)));
+            this.connect('clicked', Lang.bind(this, this._handleClicked));
+            if (this._indicator.isReady) {
+                this._updateIcon();
+                this._display();
+            }
+        }).bind(this));
+    },
+    
+    _handleClicked: function() {
+        if (this._notification._menu) {
+            this._notification._menu.preOpen();
+        }
+    },
+    
+    _display: function() {
+        if (!Main.messageTray.contains(this)) {
+            Main.messageTray.add(this);
+            this.pushNotification(this._notification);
+            //HACK: disable menu scrolling //FIXME: menu might becom higher than screen
+            var item = Main.messageTray.getSummaryItems()[Main.messageTray._getIndexOfSummaryItemForSource(this)];
+            item.notificationStackView.vscrollbar_policy = Gtk.PolicyType.NEVER;
+        }
+    },
+    
+    get title() {
+        return this._indicator.title;
+    },
+    
+    set title(val) {
+        //ignore
+    }, 
+    
+    _reset: function() {
+    
+    },
+    
+    buildRightClickMenu: function() {
+        return null;
+    },
+    
+    getSummaryIcon: function() {
+        return this._iconBox;
+    },
+    
+    _updateIcon: function() {
+        if (this._iconBox.firstChild && this._iconBox.firstChild.inUse) this._iconBox.firstChild.inUse = false;
+        this._iconBox.remove_all_children();
+        var icon = this._indicator.getIcon(this.SOURCE_ICON_SIZE);
+        this._iconBox.add_actor(icon);
+    },
+    
+    destroy: function() {
+        //if (Main.messageTray.contains(this)) Main.messageTray.remove(this);
+        log("Destroying "+this._indicator.id);
+        this._indicatorHandlerIds.forEach(this._indicator.disconnect.bind(this._indicator));
+        if (this._notification._menu) this._notification._menu.destroyDbusMenu();
+        this._iconBox.remove_all_children();
+        MessageTray.Source.prototype.destroy.apply(this);
+    }
 });
 
 const PopupMenuEmbedded = new Lang.Class({
-	Name: 'PopupMenuEmbedded',
-	Extends: PopupMenu.PopupMenu,
-	
-	_init: function() {
-		//HACK: we subclass PopupMenu but call the constructor of PopupMenuBase only. PopupMenu does too much for us.
-		PopupMenu.PopupMenuBase.prototype._init.apply(this, null, 'popup-menu');
-		this._boxWrapper = new Shell.GenericContainer();
+    Name: 'PopupMenuEmbedded',
+    Extends: PopupMenu.PopupMenu,
+    
+    _init: function() {
+        //HACK: we subclass PopupMenu but call the constructor of PopupMenuBase only. PopupMenu does too much for us.
+        PopupMenu.PopupMenuBase.prototype._init.apply(this, null, 'popup-menu');
+        this._boxWrapper = new Shell.GenericContainer();
         //looking at popupMenu.js from gnome shell, it seems like we don't need to disconnect them
         this._boxWrapper.connect('get-preferred-width', Lang.bind(this, this._boxGetPreferredWidth));
         this._boxWrapper.connect('get-preferred-height', Lang.bind(this, this._boxGetPreferredHeight));
@@ -126,9 +126,9 @@ const PopupMenuEmbedded = new Lang.Class({
         this.actor = this._boxWrapper;
         this.actor._delegate = this;
         this.isOpen = true;
-	},
-	
-	//ignore.
+    },
+    
+    //ignore.
     open: function() { },
     close: function() { }
 })
@@ -139,27 +139,27 @@ const IndicatorNotification = new Lang.Class({
 
     _init: function(source, cb) {
         this.parent(source, source.title, null, { customContent: true });
-		
-		var init_finish = (function(menu) {
-			this._box = new St.BoxLayout({ vertical: true });
         
-	        // set the notification as resident
-	        this.setResident(true);
-			
-			if (menu) {
-				this._menu = new PopupMenuEmbedded();
-				menu.attach(this._menu);
-				this._box.add_actor(this._menu.actor);
-				this._menu.preOpen(); //menu will always be opened
-			}
-	        
-	        this.actor.destroy();
-	        this.actor = this._box; //HACK: force the whole bubble to be our menu
-	        this.enableScrolling(false);
-	        
-	        cb();
-		}).bind(this);
-		
+        var init_finish = (function(menu) {
+            this._box = new St.BoxLayout({ vertical: true });
+        
+            // set the notification as resident
+            this.setResident(true);
+            
+            if (menu) {
+                this._menu = new PopupMenuEmbedded();
+                menu.attach(this._menu);
+                this._box.add_actor(this._menu.actor);
+                this._menu.preOpen(); //menu will always be opened
+            }
+            
+            this.actor.destroy();
+            this.actor = this._box; //HACK: force the whole bubble to be our menu
+            this.enableScrolling(false);
+            
+            cb();
+        }).bind(this);
+        
         source._indicator.getMenu(init_finish);
     },
 });

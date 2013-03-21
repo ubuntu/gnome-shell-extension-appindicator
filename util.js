@@ -15,45 +15,45 @@ const byteArray = imports.byteArray;
  *
  */
 const Mixin = new Lang.Class({
-	Name: 'UtilMixin',
-	
-	_init: function() {
-		this._lateMixin = {};
-	},
-	
-	_mixin: {},
-	
-	_conserve: [],
-	
-	attach: function(o) {
-		if (!this._mixin) return;
-		if (this._conserve && this._conserve.forEach) {
-			o._conserved = {};
-			this._conserve.forEach(function(e) {
-					if (e in o) {
-						o._conserved[e] = o[e];
-					} else if (o.prototype && e in o.prototype) {
-						o._conserved[e] = o.prototype[e];
-					} else {
-						log("WARNING: attempted to conserve property '"+e+"' but not found.");
-					}
-			});
-		}
-		for (var i in this._mixin) {
-			o[i] = this._mixin[i];
-		}
-		for (var i in this._lateMixin) {
-			o[i] = this._lateMixin[i]
-		}
-		if (this._mixinInit) {
-			this._mixinInit.apply(o);
-		}
-	}
+    Name: 'UtilMixin',
+    
+    _init: function() {
+        this._lateMixin = {};
+    },
+    
+    _mixin: {},
+    
+    _conserve: [],
+    
+    attach: function(o) {
+        if (!this._mixin) return;
+        if (this._conserve && this._conserve.forEach) {
+            o._conserved = {};
+            this._conserve.forEach(function(e) {
+                    if (e in o) {
+                        o._conserved[e] = o[e];
+                    } else if (o.prototype && e in o.prototype) {
+                        o._conserved[e] = o.prototype[e];
+                    } else {
+                        log("WARNING: attempted to conserve property '"+e+"' but not found.");
+                    }
+            });
+        }
+        for (var i in this._mixin) {
+            o[i] = this._mixin[i];
+        }
+        for (var i in this._lateMixin) {
+            o[i] = this._lateMixin[i]
+        }
+        if (this._mixinInit) {
+            this._mixinInit.apply(o);
+        }
+    }
 });
 
 const createActorFromPixmap = function(pixmap, icon_size) {
-	if (!(pixmap && pixmap.length)) return null;
-	// pixmap is actually an array of icons, so that hosts can pick the
+    if (!(pixmap && pixmap.length)) return null;
+    // pixmap is actually an array of icons, so that hosts can pick the
     // best size (here considered as the area covered by the icon)
     // XXX: should we use sum of width and height instead? or consider
     // only one dimension?
@@ -78,33 +78,33 @@ const createActorFromPixmap = function(pixmap, icon_size) {
 
 //data: GBytes
 const createActorFromMemoryImage = function(data) {
-	var stream = Gio.MemoryInputStream.new_from_bytes(data);
-	var pixbuf = GdkPixbuf.Pixbuf.new_from_stream(stream, null);
-	var img = new Clutter.Image();
-	img.set_data(pixbuf.get_pixels(), pixbuf.get_has_alpha() ? Cogl.PixelFormat.RGBA_8888 : Cogl.PixelFormat.RGB_888,
-				 pixbuf.get_width(), pixbuf.get_height(), pixbuf.get_rowstride());
-	var actor = new Clutter.Actor();
-	actor.set_content_scaling_filters(Clutter.ScalingFilter.TRILINEAR, Clutter.ScalingFilter.LINEAR);
-	actor.set_content_gravity(Clutter.Gravity.NORTH_WEST);
-	actor.set_content(img);
-	actor.set_size(pixbuf.get_width(), pixbuf.get_height());
-	var widget = new St.Widget();
-	widget.add_actor(actor);
-	return widget;
+    var stream = Gio.MemoryInputStream.new_from_bytes(data);
+    var pixbuf = GdkPixbuf.Pixbuf.new_from_stream(stream, null);
+    var img = new Clutter.Image();
+    img.set_data(pixbuf.get_pixels(), pixbuf.get_has_alpha() ? Cogl.PixelFormat.RGBA_8888 : Cogl.PixelFormat.RGB_888,
+                 pixbuf.get_width(), pixbuf.get_height(), pixbuf.get_rowstride());
+    var actor = new Clutter.Actor();
+    actor.set_content_scaling_filters(Clutter.ScalingFilter.TRILINEAR, Clutter.ScalingFilter.LINEAR);
+    actor.set_content_gravity(Clutter.Gravity.NORTH_WEST);
+    actor.set_content(img);
+    actor.set_size(pixbuf.get_width(), pixbuf.get_height());
+    var widget = new St.Widget();
+    widget.add_actor(actor);
+    return widget;
 }
 
 //HACK: GLib.Variant.prototype.get_data_as_bytes only exists in recent gjs versions
 const variantToGBytes = function(variant) {
-	if (typeof(GLib.Variant.prototype.get_data_as_bytes) != "undefined") {
-		return variant.get_data_as_bytes();
-	} else {
-		//FIXME: this is very very inefficient. we're sorry.
-		var data = variant.deep_unpack(); //will create an array of doubles...
-		var data_length = data.length;
-		var array = new imports.byteArray.ByteArray(data_length);
-		for (var i = 0; i < data_length; i++) {
-			array[i] = data[i];
-		}
-		return GLib.ByteArray.free_to_bytes(array); //this can't be correct but it suprisingly works like a charm.
-	}
+    if (typeof(GLib.Variant.prototype.get_data_as_bytes) != "undefined") {
+        return variant.get_data_as_bytes();
+    } else {
+        //FIXME: this is very very inefficient. we're sorry.
+        var data = variant.deep_unpack(); //will create an array of doubles...
+        var data_length = data.length;
+        var array = new imports.byteArray.ByteArray(data_length);
+        for (var i = 0; i < data_length; i++) {
+            array[i] = data[i];
+        }
+        return GLib.ByteArray.free_to_bytes(array); //this can't be correct but it suprisingly works like a charm.
+    }
 }

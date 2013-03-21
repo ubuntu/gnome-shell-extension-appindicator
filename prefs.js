@@ -26,11 +26,11 @@ const _ = imports.gettext.domain(Extension.metadata['gettext-domain']).gettext;
 const Settings = Extension.imports.settings.Settings;
 
 var log = function() {
-	print(Array.prototype.join.call(arguments, ","));
+    print(Array.prototype.join.call(arguments, ","));
 }
 
 function init() {
-	Convenience.initTranslations();
+    Convenience.initTranslations();
 }
 
 function buildPrefsWidget() {
@@ -61,39 +61,39 @@ function buildPrefsWidget() {
 }
 
 function populateGrid() {
-	var grid = this;
-	getActives(function(actives) {
-    	var overrides = cloneObject(Settings.instance.getOverrides());
-    	grid.foreach(Lang.bind(grid, Gtk.Grid.prototype.remove));
-    	actives.forEach(function(e){
-    		if (!(e in overrides)) {
-    			overrides[e] = "auto";
-    		}
-    	});
-    	var override_keys = Object.keys(overrides).sort(function(a, b){
-    		var c = a.toLowerCase();
-    		var d = b.toLowerCase();
-    		return ((c < d) ? -1 : ((c > d) ? 1 : 0));
-    	});
-    	override_keys.forEach(function(e, i){
-    		attachToGrid(grid, e, i, overrides[e], Lang.bind(null, overrideChangedCallback, e));	
-    	});
-    	grid.show_all();
+    var grid = this;
+    getActives(function(actives) {
+        var overrides = cloneObject(Settings.instance.getOverrides());
+        grid.foreach(Lang.bind(grid, Gtk.Grid.prototype.remove));
+        actives.forEach(function(e){
+            if (!(e in overrides)) {
+                overrides[e] = "auto";
+            }
+        });
+        var override_keys = Object.keys(overrides).sort(function(a, b){
+            var c = a.toLowerCase();
+            var d = b.toLowerCase();
+            return ((c < d) ? -1 : ((c > d) ? 1 : 0));
+        });
+        override_keys.forEach(function(e, i){
+            attachToGrid(grid, e, i, overrides[e], Lang.bind(null, overrideChangedCallback, e));    
+        });
+        grid.show_all();
     })
 }
 
 function defaultChangedCallback() {
-	log("changed default to: "+this.get_active_id());
-	Settings.instance.setDefault(this.get_active_id());
+    log("changed default to: "+this.get_active_id());
+    Settings.instance.setDefault(this.get_active_id());
 }
 
 function overrideChangedCallback(select, name) {
-	log("changed '"+name+"' to: "+select.get_active_id());
-	Settings.instance.set(name, select.get_active_id());
+    log("changed '"+name+"' to: "+select.get_active_id());
+    Settings.instance.set(name, select.get_active_id());
 }
 
 function attachToGrid(grid, name, index, value, changedClb) {
-	grid.attach(new Gtk.Label({label: name, xalign: 0, 'margin-right': 10 }), 0, index, 1, 1);
+    grid.attach(new Gtk.Label({label: name, xalign: 0, 'margin-right': 10 }), 0, index, 1, 1);
     var select = new Gtk.ComboBoxText();
     select.append("auto", _("Show at default location"));
     select.append("message-tray", _("Show in message tray"));
@@ -106,48 +106,48 @@ function attachToGrid(grid, name, index, value, changedClb) {
 
 //of course it would be easier to access our own internal data structures but this piece of codes works even in unity
 function getActives(clb) {
-	var wait_for_items_count;
-	var results = [];
-			
-	Gio.DBus.session.call(
-		"org.kde.StatusNotifierWatcher", "/StatusNotifierWatcher", "org.freedesktop.DBus.Properties",
-		"Get", GLib.Variant.new("(ss)", ["org.kde.StatusNotifierWatcher", "RegisteredStatusNotifierItems"]), 
-		GLib.VariantType.new("(v)"), Gio.DBusCallFlags.NONE, -1, null, function(conn, result) {
-			var items = conn.call_finish(result);
-			items = items.deep_unpack()[0].deep_unpack();
-			wait_for_items_count = items.length;
-			items.forEach(function(e) {
-				//split in bus name and path
-				var bus = e.substr(0, e.indexOf("/"));
-				var path = e.substr(e.indexOf("/"));
-				//get the id property
-				Gio.DBus.session.call(
-					bus, path, "org.freedesktop.DBus.Properties", "Get", 
-					GLib.Variant.new("(ss)", ["org.kde.StatusNotifierItem", "Id"]), GLib.VariantType.new("(v)"),
-					Gio.DBusCallFlags.NONE, -1, null, function(conn, result) {
-						var id = conn.call_finish(result);
-						id = id.deep_unpack()[0].deep_unpack();
-						results.push(id);
-						if (--wait_for_items_count == 0) {
-							clb(results);
-						}
-					}, null
-				);
-			})
-		}, null
-	);
+    var wait_for_items_count;
+    var results = [];
+            
+    Gio.DBus.session.call(
+        "org.kde.StatusNotifierWatcher", "/StatusNotifierWatcher", "org.freedesktop.DBus.Properties",
+        "Get", GLib.Variant.new("(ss)", ["org.kde.StatusNotifierWatcher", "RegisteredStatusNotifierItems"]), 
+        GLib.VariantType.new("(v)"), Gio.DBusCallFlags.NONE, -1, null, function(conn, result) {
+            var items = conn.call_finish(result);
+            items = items.deep_unpack()[0].deep_unpack();
+            wait_for_items_count = items.length;
+            items.forEach(function(e) {
+                //split in bus name and path
+                var bus = e.substr(0, e.indexOf("/"));
+                var path = e.substr(e.indexOf("/"));
+                //get the id property
+                Gio.DBus.session.call(
+                    bus, path, "org.freedesktop.DBus.Properties", "Get", 
+                    GLib.Variant.new("(ss)", ["org.kde.StatusNotifierItem", "Id"]), GLib.VariantType.new("(v)"),
+                    Gio.DBusCallFlags.NONE, -1, null, function(conn, result) {
+                        var id = conn.call_finish(result);
+                        id = id.deep_unpack()[0].deep_unpack();
+                        results.push(id);
+                        if (--wait_for_items_count == 0) {
+                            clb(results);
+                        }
+                    }, null
+                );
+            })
+        }, null
+    );
 }
 
 function listenForChangedActives(clb) {
-	Gio.DBus.session.signal_subscribe(
-		"org.kde.StatusNotifierWatcher", "org.freedesktop.DBus.Properties", "PropertiesChanged", "/StatusNotifierWatcher",
-		"org.kde.StatusNotifierWatcher", 0, function(conn, sender, path, iface, signal, params) {
-			var [ , changed, invalidated ] = params.deep_unpack();
-			if ("RegisteredStatusNotifierItems" in changed || invalidated.indexOf("RegisteredStatusNotifierItems") > -1) {
-				clb();
-			}
-		}, null
-	);
+    Gio.DBus.session.signal_subscribe(
+        "org.kde.StatusNotifierWatcher", "org.freedesktop.DBus.Properties", "PropertiesChanged", "/StatusNotifierWatcher",
+        "org.kde.StatusNotifierWatcher", 0, function(conn, sender, path, iface, signal, params) {
+            var [ , changed, invalidated ] = params.deep_unpack();
+            if ("RegisteredStatusNotifierItems" in changed || invalidated.indexOf("RegisteredStatusNotifierItems") > -1) {
+                clb();
+            }
+        }, null
+    );
 }
 
 function cloneObject(obj) {

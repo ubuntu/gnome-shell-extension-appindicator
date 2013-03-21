@@ -39,26 +39,26 @@ const WATCHER_OBJECT = '/StatusNotifierWatcher';
 const ITEM_OBJECT = '/StatusNotifierItem';
 
 const StatusNotifierWatcherIface = <interface name="org.kde.StatusNotifierWatcher">
-	<method name="RegisterStatusNotifierItem">
-		<arg type="s" direction="in" />
-	</method>
-	<method name="RegisterNotificationHost">
-		<arg type="s" direction="in" />
-	</method>
-	<property name="RegisteredStatusNotifierItems" type="as" access="read" />
-	<method name="ProtocolVersion">
-		<arg type="s" direction="out" />
-	</method>
-	<method name="IsNotificationHostRegistered">
-		<arg type="b" direction="out" />
-	</method>
-	<signal name="ServiceRegistered">
-		<arg type="s" direction="out" />
-	</signal>
-	<signal name="ServiceUnregistered">
-		<arg type="s" direction="out" />
-	</signal>
-	<property name="IsStatusNotifierHostRegistered" type="b" access="read" />
+    <method name="RegisterStatusNotifierItem">
+        <arg type="s" direction="in" />
+    </method>
+    <method name="RegisterNotificationHost">
+        <arg type="s" direction="in" />
+    </method>
+    <property name="RegisteredStatusNotifierItems" type="as" access="read" />
+    <method name="ProtocolVersion">
+        <arg type="s" direction="out" />
+    </method>
+    <method name="IsNotificationHostRegistered">
+        <arg type="b" direction="out" />
+    </method>
+    <signal name="ServiceRegistered">
+        <arg type="s" direction="out" />
+    </signal>
+    <signal name="ServiceUnregistered">
+        <arg type="s" direction="out" />
+    </signal>
+    <property name="IsStatusNotifierHostRegistered" type="b" access="read" />
 </interface>;
 
 function StatusNotifierWatcher() {
@@ -141,7 +141,7 @@ StatusNotifierWatcher.prototype = {
     },
     
     _remove: function(id) {
-    	this._items[id].destroy();
+        this._items[id].destroy();
         delete this._items[id];
         Gio.DBus.session.unwatch_name(this._nameWatcher[id]);
         delete this._nameWatcher[id];
@@ -173,18 +173,18 @@ StatusNotifierWatcher.prototype = {
     },
     
     destroy: function() {
-    	if (!this._isDestroyed) {
-	    	Gio.DBus.session.unown_name(this._ownName);
-	    	this._dbusImpl.unexport();
-	    	for (var i in this._nameWatcher) {
-	    		Gio.DBus.session.unwatch_name(this._nameWatcher[i]);
-	    	}
-	    	delete this._nameWatcher;
-	    	for (var i in this._items) {
-	    		this._items[i].destroy();
-	    	}
-	    	delete this._items;
-	    	this._isDestroyed = true;
-    	}
+        if (!this._isDestroyed) {
+            Gio.DBus.session.unown_name(this._ownName);
+            this._dbusImpl.unexport();
+            for (var i in this._nameWatcher) {
+                Gio.DBus.session.unwatch_name(this._nameWatcher[i]);
+            }
+            delete this._nameWatcher;
+            for (var i in this._items) {
+                this._items[i].destroy();
+            }
+            delete this._items;
+            this._isDestroyed = true;
+        }
     }
 };

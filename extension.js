@@ -24,40 +24,40 @@ function do_disable() {
 // this causes the own_name stuff to disintegrate, so we need to make sure we do not toggle the extension too often.
 // however, this will cause a slight delay at initialization.
 var debounced_executor = debounce_func(function(func) {
-	func();	
+    func();    
 });
 
 function enable() {
-	if (wasEverEnabled) {
-		debounced_executor(do_enable);
-	} else {
-		wasEverEnabled = true;
-		do_enable();
-	}
+    if (wasEverEnabled) {
+        debounced_executor(do_enable);
+    } else {
+        wasEverEnabled = true;
+        do_enable();
+    }
 }
 
 function disable() {
-	debounced_executor(do_disable);
+    debounced_executor(do_disable);
 }
 
 function debounce_func(func) {
-	var timeout;
-	
-	return function() {
-		var self = this;
-		var args = arguments;
-		if (timeout) clearTimeout(timeout);
-		timeout = setTimeout(function() {
-			timeout = null;
-			func.apply(self, args);
-		}, 500);
-	}
+    var timeout;
+    
+    return function() {
+        var self = this;
+        var args = arguments;
+        if (timeout) clearTimeout(timeout);
+        timeout = setTimeout(function() {
+            timeout = null;
+            func.apply(self, args);
+        }, 500);
+    }
 }
 
 var setTimeout = function(cb, time) {
- 	  return GLib.timeout_add(GLib.PRIORITY_DEFAULT, time, function() {
- 	 	cb();
- 	 	return false;
- 	 }, null, null);
+       return GLib.timeout_add(GLib.PRIORITY_DEFAULT, time, function() {
+          cb();
+          return false;
+      }, null, null);
 }
 var clearTimeout = GLib.source_remove;

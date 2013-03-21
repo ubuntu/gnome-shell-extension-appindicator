@@ -51,7 +51,7 @@ const SNIStatus = {
 //partially taken from the quassel irc sources, partly from libappindicator
 //there seem to be _huge_ inconsistencies between the numerous implementations
 const StatusNotifierItemIface = <interface name="org.kde.StatusNotifierItem">
-	<property name="Category" type="s" access="read"/>
+    <property name="Category" type="s" access="read"/>
     <property name="Id" type="s" access="read"/>
     <property name="Title" type="s" access="read"/>
     <property name="Status" type="s" access="read"/>
@@ -78,7 +78,7 @@ const StatusNotifierItemIface = <interface name="org.kde.StatusNotifierItem">
     <property name="AttentionIconPixmap" type="a(iiay)" access="read" />
 
     <!-- tooltip data -->
-	<!-- unimplemented as of now -->
+    <!-- unimplemented as of now -->
     <!--(iiay) is an image-->
     <property name="ToolTip" type="(sa(iiay)ss)" access="read" />
 
@@ -88,15 +88,15 @@ const StatusNotifierItemIface = <interface name="org.kde.StatusNotifierItem">
         <arg name="x" type="i" direction="in"/>
         <arg name="y" type="i" direction="in"/>
     </method>
-	
-	<!-- Signals: the client wants to change something in the status-->
+    
+    <!-- Signals: the client wants to change something in the status-->
     <signal name="NewTitle"></signal>
-	<signal name="NewIcon"></signal>
-	<signal name="NewIconThemePath">
-		<arg type="s" name="icon_theme_path" direction="out" />
-	</signal>
-	<signal name="NewAttentionIcon"></signal>
-	<signal name="NewOverlayIcon"></signal>
+    <signal name="NewIcon"></signal>
+    <signal name="NewIconThemePath">
+        <arg type="s" name="icon_theme_path" direction="out" />
+    </signal>
+    <signal name="NewAttentionIcon"></signal>
+    <signal name="NewOverlayIcon"></signal>
     <signal name="NewToolTip"></signal>
     <signal name="NewStatus">
         <arg name="status" type="s" />
@@ -104,12 +104,12 @@ const StatusNotifierItemIface = <interface name="org.kde.StatusNotifierItem">
     
     <!-- ayatana labels -->
     <signal name="XAyatanaNewLabel">
-		<arg type="s" name="label" direction="out" />
-		<arg type="s" name="guide" direction="out" />
-	</signal>
-	<property name="XAyatanaLabel" type="s" access="read" />
-	<property name="XAyatanaLabelGuide" type="s" access="read" /> <!-- unimplemented -->
-		
+        <arg type="s" name="label" direction="out" />
+        <arg type="s" name="guide" direction="out" />
+    </signal>
+    <property name="XAyatanaLabel" type="s" access="read" />
+    <property name="XAyatanaLabelGuide" type="s" access="read" /> <!-- unimplemented -->
+        
 
   </interface>;
 const StatusNotifierItem = Gio.DBusProxy.makeProxyWrapper(StatusNotifierItemIface);
@@ -142,121 +142,121 @@ const AppIndicator = new Lang.Class({
         
         //construct async because the remote object may be busy and irresponsive (example: quassel irc)
         this._props = new PropertiesProxy(Gio.DBus.session, bus_name, object, (function(resutl, error) {
-	        this._proxy = new StatusNotifierItem(Gio.DBus.session, bus_name, object, (function(result, error) {
-	        	this.isConstructed = true;
-	        	this.emit("constructed");
-	        	
-	        	this._propChangedEmitters = {
-		        	"Status": this._getChangedEmitter("status", "status"),
-		        	"IconName": this._getChangedEmitter("icon", "iconName"),
-		        	"AttentionIconName": this._getChangedEmitter("icon", "iconName"),
-		        	"Title": this._getChangedEmitter("title", "title"),
-		        	"Tooltip": this._getChangedEmitter("tooltip", "tooltip"),
-		        	"XAyatanaLabel": this._getChangedEmitter("label", "label")
-		        };
-		        
-		        //this is really just Signals._connect, so we can disconnect them all at once
-		        this._proxy.connectSignal('NewStatus', this._propertyUpdater("Status"));
-		        this._proxy.connectSignal('NewIcon', this._propertyUpdater("IconName"));
-		        this._proxy.connectSignal('NewAttentionIcon', this._propertyUpdater("AttentionIconName"));
-		        this._proxy.connectSignal('NewTitle', this._propertyUpdater("Title"));
-		        this._proxy.connectSignal('NewToolTip', this._propertyUpdater("Tooltip"));
-		        this._proxy.connectSignal('XAyatanaNewLabel', this._propertyUpdater("XAyatanaLabel"));
-		        
-		        this._propChangedHandle = this._proxy.connect("g-properties-changed", this._propertiesChanged.bind(this));
-		        
-		        this.reset(true);
-	        }).bind(this));
+            this._proxy = new StatusNotifierItem(Gio.DBus.session, bus_name, object, (function(result, error) {
+                this.isConstructed = true;
+                this.emit("constructed");
+                
+                this._propChangedEmitters = {
+                    "Status": this._getChangedEmitter("status", "status"),
+                    "IconName": this._getChangedEmitter("icon", "iconName"),
+                    "AttentionIconName": this._getChangedEmitter("icon", "iconName"),
+                    "Title": this._getChangedEmitter("title", "title"),
+                    "Tooltip": this._getChangedEmitter("tooltip", "tooltip"),
+                    "XAyatanaLabel": this._getChangedEmitter("label", "label")
+                };
+                
+                //this is really just Signals._connect, so we can disconnect them all at once
+                this._proxy.connectSignal('NewStatus', this._propertyUpdater("Status"));
+                this._proxy.connectSignal('NewIcon', this._propertyUpdater("IconName"));
+                this._proxy.connectSignal('NewAttentionIcon', this._propertyUpdater("AttentionIconName"));
+                this._proxy.connectSignal('NewTitle', this._propertyUpdater("Title"));
+                this._proxy.connectSignal('NewToolTip', this._propertyUpdater("Tooltip"));
+                this._proxy.connectSignal('XAyatanaNewLabel', this._propertyUpdater("XAyatanaLabel"));
+                
+                this._propChangedHandle = this._proxy.connect("g-properties-changed", this._propertiesChanged.bind(this));
+                
+                this.reset(true);
+            }).bind(this));
         }).bind(this));
     },
     
     //helper function
     _getChangedEmitter: function(signal, prop) {
-    	return Lang.bind(this, function() {
-    		this.emit(signal, this[prop]);
-    	});
+        return Lang.bind(this, function() {
+            this.emit(signal, this[prop]);
+        });
     },
     
     _propertyUpdater: function(propertyName) {
-    	return Lang.bind(this, function() {
-    		this._props.GetRemote("org.kde.StatusNotifierItem", propertyName, (function(variant, error) {
-    				if (error) return;
-    				this._proxy.set_cached_property(propertyName, variant[0]);
-    				if (propertyName in this._propChangedEmitters) this._propChangedEmitters[propertyName]();
-    			}).bind(this)
-    		);
-    	});
+        return Lang.bind(this, function() {
+            this._props.GetRemote("org.kde.StatusNotifierItem", propertyName, (function(variant, error) {
+                    if (error) return;
+                    this._proxy.set_cached_property(propertyName, variant[0]);
+                    if (propertyName in this._propChangedEmitters) this._propChangedEmitters[propertyName]();
+                }).bind(this)
+            );
+        });
     },
     
     //public property getters
     get title() {
-    	return this._proxy.Title;
+        return this._proxy.Title;
     },
     get id() {
-    	return this._proxy.Id;
+        return this._proxy.Id;
     },
     get category() {
-    	return this._proxy.Category;
+        return this._proxy.Category;
     },
     get status() {
-    	return this._proxy.Status;
+        return this._proxy.Status;
     },
     get iconName() {
-    	if (this.status == SNIStatus.NEEDS_ATTENTION) {
-    		return this._proxy.AttentionIconName;
-    	} else {
-    		return this._proxy.IconName;
-    	}
+        if (this.status == SNIStatus.NEEDS_ATTENTION) {
+            return this._proxy.AttentionIconName;
+        } else {
+            return this._proxy.IconName;
+        }
     },
     get tooltip() {
-    	return this._proxy.Tooltip;
+        return this._proxy.Tooltip;
     },
     get label() {
-    	return this._proxy.XAyatanaLabel;
+        return this._proxy.XAyatanaLabel;
     },
     
     //common menu handling
     //async because we may need to check the presence of a menubar object as well as the creation is async.
     getMenu: function(clb) {
-    	var path = this._proxy.Menu || "/MenuBar";
-    	this._validateMenu(this.busName, path, function(r, name, path) {
-    		if (r) {
-    			log("creating menu on "+[name, path]);
-    			new DBusMenu.Menu(name, path, clb);
-    		} else {
-    			clb(null);
-    		}
-    	});
+        var path = this._proxy.Menu || "/MenuBar";
+        this._validateMenu(this.busName, path, function(r, name, path) {
+            if (r) {
+                log("creating menu on "+[name, path]);
+                new DBusMenu.Menu(name, path, clb);
+            } else {
+                clb(null);
+            }
+        });
     },
     
     _validateMenu: function(bus, path, callback) {
-    	Gio.DBus.session.call(
-			bus, path, "org.freedesktop.DBus.Properties", "Get", 
-			GLib.Variant.new("(ss)", ["com.canonical.dbusmenu", "Version"]), 
-			GLib.VariantType.new("(v)"), Gio.DBusCallFlags.NONE, -1, null, function(conn, result) {
-				try {
-					var val = conn.call_finish(result);
-				} catch (e) {
-					log("Invalid menu: "+e);
-					return callback(false);
-				}
-				var version = val.deep_unpack()[0].deep_unpack();
-				//fixme: what do we implement?
-				if (version >= 2) {
-					return callback(true, bus, path);
-				} else {
-					log("Incompatible dbusmenu version: "+version);
-					return callback(false);
-				}
-			}, null
-		);
+        Gio.DBus.session.call(
+            bus, path, "org.freedesktop.DBus.Properties", "Get", 
+            GLib.Variant.new("(ss)", ["com.canonical.dbusmenu", "Version"]), 
+            GLib.VariantType.new("(v)"), Gio.DBusCallFlags.NONE, -1, null, function(conn, result) {
+                try {
+                    var val = conn.call_finish(result);
+                } catch (e) {
+                    log("Invalid menu: "+e);
+                    return callback(false);
+                }
+                var version = val.deep_unpack()[0].deep_unpack();
+                //fixme: what do we implement?
+                if (version >= 2) {
+                    return callback(true, bus, path);
+                } else {
+                    log("Incompatible dbusmenu version: "+version);
+                    return callback(false);
+                }
+            }, null
+        );
     },
     
     _propertiesChanged: function(proxy, changed, invalidated) {
-    	var props = invalidated.concat(Object.keys(changed.deep_unpack()));
-		props.forEach(function(e) {
-			if (e in this._propChangedEmitters) this._propChangedEmitters[e]();
-		}, this);
+        var props = invalidated.concat(Object.keys(changed.deep_unpack()));
+        props.forEach(function(e) {
+            if (e in this._propChangedEmitters) this._propChangedEmitters[e]();
+        }, this);
     },
     
     //only triggers actions
@@ -267,10 +267,10 @@ const AppIndicator = new Lang.Class({
         this.emit('icon', this.iconName);
         this.emit('label', this.label);
         if (triggerReady) {
-        	this.isReady = true;
-        	this.emit('ready');
+            this.isReady = true;
+            this.emit('ready');
         } else {
-        	this.emit('reset');
+            this.emit('reset');
         }
     },
 
@@ -292,10 +292,10 @@ const AppIndicator = new Lang.Class({
                 var icon_theme = new Gtk.IconTheme();
                 icon_theme.append_search_path(theme_path);
                 var iconinfo = icon_theme.lookup_icon(icon_name, icon_size, icon_size, 4);
-	            iconname = iconinfo.get_filename();
-	            //icon size can mismatch with custom theme
-	            real_icon_size = iconinfo.get_base_size();
-	            if (real_icon_size > icon_size) real_icon_size = icon_size; //we don't want bigger icons
+                iconname = iconinfo.get_filename();
+                //icon size can mismatch with custom theme
+                real_icon_size = iconinfo.get_base_size();
+                if (real_icon_size > icon_size) real_icon_size = icon_size; //we don't want bigger icons
             } else {
                 //let gicon do the work for us. we just assume that icons without custom theme always fit.
                 iconname = icon_name;
@@ -318,13 +318,13 @@ const AppIndicator = new Lang.Class({
     //in contrast to createIcon, this function manages caching.
     //if you don't use the icon anymore, set .inUse to false.
     getIcon: function(icon_size) {
-    	var icon = IconCache.IconCache.instance.get(this.iconName + "@" + icon_size);
-		if (!icon) {
-			icon = this.createIcon(icon_size);
-			IconCache.IconCache.instance.add(this.iconName + "@" + icon_size, icon);
-		}
-		icon.inUse = true;
-		return icon;
+        var icon = IconCache.IconCache.instance.get(this.iconName + "@" + icon_size);
+        if (!icon) {
+            icon = this.createIcon(icon_size);
+            IconCache.IconCache.instance.add(this.iconName + "@" + icon_size, icon);
+        }
+        icon.inUse = true;
+        return icon;
     },
     
     _onNewStatus: function() {
@@ -332,7 +332,7 @@ const AppIndicator = new Lang.Class({
     },
     
     _onNewLabel: function(proxy) {
-    	this.emit('label', this.label);
+        this.emit('label', this.label);
     },
 
     _onNewIcon: function(proxy, iconType) {

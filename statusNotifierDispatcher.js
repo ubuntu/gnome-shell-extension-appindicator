@@ -25,94 +25,94 @@ const IndicatorMessageSource = Extension.imports.indicatorMessageSource;
 const Settings = Extension.imports.settings.Settings;
 
 const IndicatorDispatcher = new Lang.Class({
-	Name: 'IndicatorDispatcher',
-	
-	_init: function() {
-		this._icons = {};
-		this._settingsChangedId = Settings.instance.connect("changed", Lang.bind(this, this._settingsChanged));
-	},
-	
-	dispatch: function(indicator) {
-		if (indicator.isConstructed) this._doDispatch(indicator);
-		else indicator.connect("constructed", this._doDispatch.bind(this, indicator));
-	},
-	
-	_doDispatch: function(indicator) {
-		//this is actually needed for the whole lifetime of indicator. It will be disconnected automatically on destroy.
-		indicator.connect('status', Lang.bind(this, this._updatedStatus, indicator));
-		this._updatedStatus(indicator);
-	},
-	
-	_updatedStatus: function(indicator) {
-	 	if (!indicator) return;
-	 	var status = indicator.status;
-	 	if (status == SNIStatus.PASSIVE) {
-	 		//remove it 
-	 		if (indicator.id in this._icons) {
-	 			this._remove(indicator);
-	 		}
-	 	} else if (status == SNIStatus.ACTIVE || status == SNIStatus.NEEDS_ATTENTION) {
-	 		if (!(indicator.id in this._icons)) {
-	 			this._add(indicator);
-	 		}
-	 	} else {
-	 		log("unknown status on "+indicator.id+": "+status)
-	 	}
-	 },
-	 
-	_add: function(indicator) {
-		var obj;
-		if (Settings.instance.get(indicator.id) == "blacklist") {
-			obj = new NullIcon(indicator);
-		} else if (Settings.instance.get(indicator.id) == "panel") {
-			obj = new IndicatorStatusIcon.IndicatorStatusIcon(indicator);
-		} else {
-			obj = new IndicatorMessageSource.IndicatorMessageSource(indicator);	
-		}
-		this._icons[indicator.id] = obj;
-		indicator.connect('destroy', this._remove.bind(this, indicator));
-	},
-	
-	_remove: function(indicator) {
-		this._icons[indicator.id].destroy();
-	 	delete this._icons[indicator.id];
-	},
-	
-	_readd: function(id) {
-		if (!(id in this._icons)) return;
-		var indicator = this._icons[id]._indicator;
-		this._remove(indicator);
-		this.dispatch(indicator)
-	},
-	
-	_settingsChanged: function(obj, name) {
-		if (name) {
-			this._readd(name);
-		} else {
-			//readd every item
-			for (var i in this._icons) {
-				this._readd(i);
-			}
-		}
-	},
-	
-	getIconIds: function() {
-		return Object.keys(this._icons);
-	},
-	
-	destroy: function() {
-		//FIXME: this is actually never called because the only global instance is never freed
-		Settings.instance.disconnect(this._settingsChangedId);
-	}
+    Name: 'IndicatorDispatcher',
+    
+    _init: function() {
+        this._icons = {};
+        this._settingsChangedId = Settings.instance.connect("changed", Lang.bind(this, this._settingsChanged));
+    },
+    
+    dispatch: function(indicator) {
+        if (indicator.isConstructed) this._doDispatch(indicator);
+        else indicator.connect("constructed", this._doDispatch.bind(this, indicator));
+    },
+    
+    _doDispatch: function(indicator) {
+        //this is actually needed for the whole lifetime of indicator. It will be disconnected automatically on destroy.
+        indicator.connect('status', Lang.bind(this, this._updatedStatus, indicator));
+        this._updatedStatus(indicator);
+    },
+    
+    _updatedStatus: function(indicator) {
+         if (!indicator) return;
+         var status = indicator.status;
+         if (status == SNIStatus.PASSIVE) {
+             //remove it 
+             if (indicator.id in this._icons) {
+                 this._remove(indicator);
+             }
+         } else if (status == SNIStatus.ACTIVE || status == SNIStatus.NEEDS_ATTENTION) {
+             if (!(indicator.id in this._icons)) {
+                 this._add(indicator);
+             }
+         } else {
+             log("unknown status on "+indicator.id+": "+status)
+         }
+     },
+     
+    _add: function(indicator) {
+        var obj;
+        if (Settings.instance.get(indicator.id) == "blacklist") {
+            obj = new NullIcon(indicator);
+        } else if (Settings.instance.get(indicator.id) == "panel") {
+            obj = new IndicatorStatusIcon.IndicatorStatusIcon(indicator);
+        } else {
+            obj = new IndicatorMessageSource.IndicatorMessageSource(indicator);    
+        }
+        this._icons[indicator.id] = obj;
+        indicator.connect('destroy', this._remove.bind(this, indicator));
+    },
+    
+    _remove: function(indicator) {
+        this._icons[indicator.id].destroy();
+         delete this._icons[indicator.id];
+    },
+    
+    _readd: function(id) {
+        if (!(id in this._icons)) return;
+        var indicator = this._icons[id]._indicator;
+        this._remove(indicator);
+        this.dispatch(indicator)
+    },
+    
+    _settingsChanged: function(obj, name) {
+        if (name) {
+            this._readd(name);
+        } else {
+            //readd every item
+            for (var i in this._icons) {
+                this._readd(i);
+            }
+        }
+    },
+    
+    getIconIds: function() {
+        return Object.keys(this._icons);
+    },
+    
+    destroy: function() {
+        //FIXME: this is actually never called because the only global instance is never freed
+        Settings.instance.disconnect(this._settingsChangedId);
+    }
 });
 IndicatorDispatcher.instance = new IndicatorDispatcher();
 
 //used by IndicatorDispatcher for blacklisted indicators
 const NullIcon = new Lang.Class({
-	Name: 'IndicatorNullIcon',
-	
-	_init: function(indicator) {
-		this._indicator = indicator;
-	},
-	destroy: function() {}
+    Name: 'IndicatorNullIcon',
+    
+    _init: function(indicator) {
+        this._indicator = indicator;
+    },
+    destroy: function() {}
 });
