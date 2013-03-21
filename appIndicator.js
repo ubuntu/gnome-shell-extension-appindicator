@@ -24,6 +24,7 @@ const Mainloop = imports.mainloop;
 const Signals = imports.signals;
 const St = imports.gi.St;
 const Shell = imports.gi.Shell;
+const GdkPixbuf = imports.gi.GdkPixbuf;
 
 const Panel = imports.ui.panel;
 const Util = imports.misc.util;
@@ -284,35 +285,46 @@ const AppIndicator = new Lang.Class({
 
     createIcon: function(icon_size) {
         var icon_name = this.iconName;
-        if (icon_name) {
+        var gicon = Gio.icon_new_for_string("dialog-info");
+        var real_icon_size = icon_size;
+        
+        if (icon_name && icon_name.indexOf("/") == 0) {
+            //HACK: icon is a path name. this is not specified by the api but at least inidcato-sensors uses it.
+            var [ format, width, height ] = GdkPixbuf.Pixbuf.get_file_info(icon_name);
+            if (!format) {
+                log("FATAL: invalid image format: "+icon_name);
+            } else {
+                if (Math.max(width, height) < icon_size) real_icon_size = Math.max(width, height);
+                gicon = Gio.icon_new_for_string(icon_name);
+            }
+        } else if (icon_name) {
+            icon_name = icon_name; //should load the symbolic variant.
             var iconname, real_icon_size;
             var theme_path = this._proxy.IconThemePath;
+            var icon_theme;
             if (theme_path) {
                 //if there's a theme path, we'll look up the icon there.
-                var icon_theme = new Gtk.IconTheme();
+                icon_theme = new Gtk.IconTheme();
                 icon_theme.append_search_path(theme_path);
-                var iconinfo = icon_theme.lookup_icon(icon_name, icon_size, icon_size, 4);
-                iconname = iconinfo.get_filename();
-                //icon size can mismatch with custom theme
-                real_icon_size = iconinfo.get_base_size();
-                if (real_icon_size > icon_size) real_icon_size = icon_size; //we don't want bigger icons
             } else {
-                //let gicon do the work for us. we just assume that icons without custom theme always fit.
-                iconname = icon_name;
-                real_icon_size = icon_size;
+                icon_theme = Gtk.IconTheme.get_default();
+            }
+            //prefer symbolic icons
+            var iconinfo = icon_theme.choose_icon([ icon_name + "-symbolic", icon_name ], icon_size, 0);
+            if (iconinfo == null) {
+                log("FATAL: unable to lookup icon for "+icon_name);
+            } else {
+                //icon size can mismatch with custom theme
+                if (iconinfo.get_base_size() < icon_size) {
+                    //small icons look ugly if stretched, we'll just display a smaller icon in that case.
+                    real_icon_size = iconinfo.get_base_size();
+                }
+                
+                gicon = Gio.icon_new_for_string(iconinfo.get_filename());
             }
             
-            return new St.Icon({ gicon: Gio.icon_new_for_string(iconname),
-                                 //icon_type: St.IconType.FULLCOLOR,
-                                 icon_size: real_icon_size
-                               });
-        }  else {
-            // fallback to a generic icon
-            return new St.Icon({ icon_name: 'gtk-dialog-info',
-                                 icon_size: icon_size
-                               });
         }
-        
+        return new St.Icon({ gicon: gicon, icon_size: real_icon_size });
     },
     
     //in contrast to createIcon, this function manages caching.
