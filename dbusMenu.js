@@ -494,6 +494,7 @@ const Menu = new Lang.Class({
         },
 
         _layoutUpdated: function(proxy, bus, [revision, subtree]) {
+            log("layout updated for node "+subtree);
             if (revision <= this._revision)
                 return;
             this._readLayout(subtree);
@@ -542,6 +543,15 @@ const Menu = new Lang.Class({
             this._GCItems();
             Signals._disconnectAll.apply(this._proxy);
             delete this._proxy;
+        },
+        
+        open: function() {
+            //HACK: We already opened the menu once and called AboutToShow, but Skype doesn't seem to be interested
+            //      in exposing the whole menu at construction time, so we need to send AboutToShow again.
+            this._conserved.open.apply(this);
+            this._proxy.AboutToShowRemote(0, (function(result, error) {
+                if (result) this._readLayout(0);
+            }).bind(this));
         }
     }
 });
