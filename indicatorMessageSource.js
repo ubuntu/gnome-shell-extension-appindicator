@@ -155,26 +155,20 @@ const IndicatorNotification = new Lang.Class({
     _init: function(source, cb) {
         this.parent(source, source.title, null, { customContent: true });
         
-        var init_finish = (function(menu) {
-            this._box = new St.BoxLayout({ vertical: true });
+        this._box = new St.BoxLayout({ vertical: true });
+        this.setResident(true);
+        this.enableScrolling(false);
+        this.actor.destroy();
+        this.actor = this._box; //HACK: force the whole bubble to be our menu
         
-            // set the notification as resident
-            this.setResident(true);
-            
+        source._indicator.getMenu((function(menu) {
             if (menu) {
                 this._menu = new PopupMenuEmbedded();
-                menu.attach(this._menu);
                 this._box.add_actor(this._menu.actor);
-                this._menu.preOpen(); //menu will always be opened
+                menu.attach(this._menu, cb);
+            } else {
+                cb();
             }
-            
-            this.actor.destroy();
-            this.actor = this._box; //HACK: force the whole bubble to be our menu
-            this.enableScrolling(false);
-            
-            cb();
-        }).bind(this);
-        
-        source._indicator.getMenu(init_finish);
+        }).bind(this));
     },
 });

@@ -111,15 +111,17 @@ const IndicatorStatusIcon = new Lang.Class({
     },
     
     _display: function() {
-        var display_finish = (function(menu){
-            if (menu != null) {
-                menu.attach(this.menu);
-                this.menu.preOpen(); //FIXME: why the hell have we implemented on demand loading when we never use it?
-            }
+        var display_finish = (function(){
             Main.panel.addToStatusArea("appindicator-"+this._indicator.id, this, 1, 'right');
         }).bind(this);
         
-        this._indicator.getMenu(display_finish);
+        this._indicator.getMenu((function(menu){
+            if (menu != null) {
+                menu.attach(this.menu, display_finish);
+            } else {
+                display_finish();
+            }
+        }).bind(this));
     },
     
     _boxClicked: function(actor, event) {

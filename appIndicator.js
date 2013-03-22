@@ -223,7 +223,7 @@ const AppIndicator = new Lang.Class({
         this._validateMenu(this.busName, path, function(r, name, path) {
             if (r) {
                 log("creating menu on "+[name, path]);
-                new DBusMenu.Menu(name, path, clb);
+                clb(new DBusMenu.Menu(name, path));
             } else {
                 clb(null);
             }

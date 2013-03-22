@@ -46,8 +46,37 @@ const Mixin = new Lang.Class({
             o[i] = this._lateMixin[i]
         }
         if (this._mixinInit) {
-            this._mixinInit.apply(o);
+            this._mixinInit.apply(o, Array.prototype.slice.call(arguments, 1));
         }
+    }
+});
+
+/*
+ * AsyncTaskQueue:
+ * Shedules asynchrouns tasks which may not overlap during execution
+ *
+ * The scheduled functions are required to take a callback as their last arguments, and all other arguments
+ * need to be bound using Function.prototype.bind
+ */
+const AsyncTaskQueue = new Lang.Class({
+    Name: 'AsyncTaskQueue',
+    
+    _init: function() {
+        this._taskList = [];
+    },
+    
+    // shedule the async task for execution or execute right away if there's no current task
+    add: function(task, callback, context) {
+        this._taskList.push({task: task, callback: callback, context: context});
+        if (this._taskList.length == 1) this._executeNext();
+    },
+    
+    _executeNext: function() {
+        this._taskList[0].task.call(null, (function() {
+            if (this._taskList[0].callback) this._taskList[0].callback.apply(this._taskList[0].context, arguments);
+            this._taskList.shift();
+            if (this._taskList.length) this._executeNext();
+        }).bind(this));
     }
 });
 

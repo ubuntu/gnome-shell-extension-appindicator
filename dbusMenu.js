@@ -99,7 +99,8 @@ const DBusMenuInterface = <interface name="com.canonical.dbusmenu">
             <arg type="a(ias)" name="removedProps" direction="out" />
         </signal>
         <signal name="LayoutUpdated">
-            <arg type="ui" name="parent" direction="out" />
+            <arg type="u" name="revision" direction="out" />
+            <arg type="i" name="parent" direction="out" />
         </signal>
         <signal name="ItemActivationRequested">
             <arg type="i" name="id" direction="out" >
@@ -125,35 +126,41 @@ const Menu = new Lang.Class({
     Name: 'DbusMenu',
     Extends: Util.Mixin,
 
-    _init: function(name, path, callback) {
+    _init: function(name, path) {
         this.parent();
         
         //bus settings
         this._lateMixin.busName = name;
         this._lateMixin.path = path;
-        
-        this._lateMixin._proxy = new DBusMenuProxy(Gio.DBus.session, name, path, (function(result, error) {
-            if (callback) {
-                callback(this);
-            }
-        }).bind(this));
     },
     
     _conserve: [
         'open'
     ],
     
-    _mixinInit: function() {
-        // compact representation of a tree
-        this._children = { };
-        this._parents = { '0': null };
-        this._itemProperties = { '0': { } };
-        this._items = { };
-        
-        this._proxy.connectSignal('ItemsPropertiesUpdated', Lang.bind(this, this._itemsPropertiesUpdated));
-        this._proxy.connectSignal('ItemUpdated', Lang.bind(this, this._itemUpdated));
-        this._proxy.connectSignal('LayoutUpdated', Lang.bind(this, this._layoutUpdated));
-        this._revision = 0;
+    _mixinInit: function(callback) {
+        this._proxy = new DBusMenuProxy(Gio.DBus.session,this.busName, this.path, (function(result, error) {
+            
+            // compact representation of a tree
+            this._children = [ ];
+            this._parents = { '0': null };
+            this._itemProperties = { '0': { } };
+            this._items = [ ];
+            
+            this._proxy.connectSignal('ItemsPropertiesUpdated', Lang.bind(this, this._itemsPropertiesUpdated));
+            this._proxy.connectSignal('ItemUpdated', Lang.bind(this, this._itemUpdated));
+            this._proxy.connectSignal('LayoutUpdated', Lang.bind(this, this._layoutUpdated));
+            this._revision = 0;
+            
+            this._readLayoutQueue = new Util.AsyncTaskQueue();
+            
+            // AboutToShow should be called when the menu is opened. Because that would notably slow down displaying it,
+            // we'll fake the call here and read the layout afterwards, no matter if we needed to.
+            // FIXME: this is async, do we need a callback here?
+            this._proxy.AboutToShowRemote(0, (function(result, error) {
+                this._readLayout(0, callback);
+            }).bind(this));
+        }).bind(this));
     },
     
     _mixin: {
@@ -162,22 +169,32 @@ const Menu = new Lang.Class({
         },
 
         _readLayout: function(subtree, callback) {
+            //HACK: readLayout calls can intefere with each other, therefore we need to make sure they're serialized.
+            this._readLayoutQueue.add(this._doReadLayout.bind(this, subtree), callback);
+        },
+        
+        _doReadLayout: function(subtree, callback) {
              this._proxy.GetLayoutRemote(subtree, -1, ['id'], (function(result, error) {
                 if (error) {
                     log(error);
-                }
-                let revision = result[0];
-                let layout = result[1];
-                if (this._revision >= revision)
-                    return callback();
-                let root = layout;
+                    log(error.stack);
+                } 
+                var revision = result[0];
+                var root = result[1];
                 
-                let toFinish = 1; //we need to keep track of finished recurse operations since they're all async
+                if (revision < this._revision) {
+                    // this happens when skype sends LayoutUpdated events for non-existent menu items.
+                    log("WARNING: trying to update layout with revision "+revision+" while we're at "+this._revision);
+                    if (callback) callback();
+                    return;
+                }
+                
+                var toFinish = 1; //we need to keep track of finished recurse operations since they're all async
                 function recurse(element, finished) {
                     let id = element[0];
                     this._children[id] = [ ];
                     let child;
-                    for each (child in element[2]) {
+                    element[2].forEach(function(child) {
                         let childid = child.deep_unpack()[0];
                         this._children[id].push(childid);
                         this._parents[childid] = id;
@@ -185,19 +202,28 @@ const Menu = new Lang.Class({
                             toFinish += 1;
                             this._readItem(childid, recurse.bind(this, child.deep_unpack(), finished));
                         } else {
+                            toFinish += 1;
                             recurse.call(this, child.deep_unpack(), finished);
                         }
-                    }
+                    }, this);
                     if ((--toFinish) == 0) {
                         if (finished) finished();
                     }
                 }
-                recurse.call(this, root, (function() {
+                
+                var recurse_finish = (function() {
                     this._revision = revision;
-                    this._buildMenu(subtree);
+                    if (this._items[subtree]) this._buildMenu(subtree);
                     this._GCItems();
                     if (callback) callback();
-                }).bind(this));
+                }).bind(this);
+                
+                if (subtree == 0) {
+                    recurse.call(this, root, recurse_finish);
+                } else {
+                    this._readItem(subtree, recurse.bind(this, root, recurse_finish));
+                }
+                
                 
             }).bind(this));
         },
@@ -239,26 +265,28 @@ const Menu = new Lang.Class({
         _GCItems: function() {
             // normally, a GC employs BFS, but this is a tree
             // so DFS is easier and faster
-            let item;
-            for each (item in this._items)
+            this._items.forEach(function(item) {
                 item._collect = true;
+            });
             function reach(id) {
                 if (this._items[id])
                     this._items[id]._collect = false;
-                for each (let child in this._children[id])
+                this._children[id].forEach(function(child) {
                     reach.call(this, child);
+                }, this);
             }
-            for each (child in this._children[0])
+            this._children[0].forEach(function(child) {
                 reach.call(this, child);
-            for each (item in this._items) {
+            }, this);
+            this._items.forEach(function(item) {
                 if (item._collect) {
                     let id = item._dbusId;
                     item.destroy();
                     delete this._itemProperties[id];
                     delete this._children[id];
-                    delete this._parent[id];
+                    delete this._parents[id];
                 }
-            }
+            }, this);
         },
 
         _buildMenu: function(subtree) {
@@ -292,6 +320,12 @@ const Menu = new Lang.Class({
             if (typeof(id) == "undefined") throw new Error("called _replaceItem with undefined id");
             let position = 0;
             let parent = this._parents[id];
+            
+            if (typeof(parent) == "undefined") {
+                log("WARNING: _replaceItem: parent of "+id+" is undefined!");
+                return;
+            }
+            
             if (parent != 0 && (!this._items[parent] || !this._items[parent].menu)) {
                 // parent is not ready, rebuild it
                 this._replaceItem(parent);
@@ -460,7 +494,6 @@ const Menu = new Lang.Class({
         },
 
         _layoutUpdated: function(proxy, bus, [revision, subtree]) {
-            log(this.busName + this.path + "    Layout updated for node "+subtree);
             if (revision <= this._revision)
                 return;
             this._readLayout(subtree);
@@ -509,20 +542,6 @@ const Menu = new Lang.Class({
             this._GCItems();
             Signals._disconnectAll.apply(this._proxy);
             delete this._proxy;
-        },
-        
-        preOpen: function(callback) {
-            if (this._openedOnce) callback();
-            else this._proxy.AboutToShowRemote(0, Lang.bind(this, function(needUpdate) {
-                this._readLayout(0, callback);
-                 this._openedOnce = true;
-            }));
-        },
-        
-        open: function(animation) {
-            this.preOpen(Lang.bind(this, function(){
-                this._conserved.open.call(this, animation);
-            }));
         }
     }
 });
