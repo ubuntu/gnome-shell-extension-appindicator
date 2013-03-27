@@ -1,5 +1,5 @@
 {
-    "shell-version": ["3.6"], 
+    "shell-version": ["3.6", "3.7.92", "3.8"], 
     "uuid": "appindicatorsupport@rgcjonas.gmail.com", 
     "name": "AppIndicator Support", 
     "description": "Adds AppIndicator support to gnome shell",
