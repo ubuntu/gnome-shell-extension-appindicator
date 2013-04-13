@@ -276,11 +276,15 @@ const AppIndicator = new Lang.Class({
     },
 
     destroy: function() {
-        this.emit('destroy', this);
-        this.disconnectAll();
-        Signals._disconnectAll.apply(this._proxy);
-        this._proxy.disconnect(this._propChangedHandle);
-        this._proxy = null; //in case we still have circular references...
+        if (this.isConstructed) {
+            Signals._disconnectAll.apply(this._proxy);
+            this._proxy.disconnect(this._propChangedHandle);
+            this.emit('destroy', this);
+            this.disconnectAll();
+            this._proxy = null; //in case we still have circular references...
+        } else {
+            this.connect("constructed", this.destroy.bind(this));
+        }
     },
 
     createIcon: function(icon_size) {

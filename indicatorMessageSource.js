@@ -68,7 +68,11 @@ const IndicatorMessageSource = new Lang.Class({
             Main.messageTray.add(this);
             this.pushNotification(this._notification);
             //HACK: disable menu scrolling //FIXME: menu might becom higher than screen
-            var item = Main.messageTray.getSummaryItems()[Main.messageTray._getIndexOfSummaryItemForSource(this)];
+            if (typeof(Main.messageTray.getSummaryItems) != 'undefined') {
+                var item = Main.messageTray.getSummaryItems()[Main.messageTray._getIndexOfSummaryItemForSource(this)];
+            } else {
+                var item = Main.messageTray._sources.get(this).summaryItem;
+            }
             item.notificationStackView.vscrollbar_policy = Gtk.PolicyType.NEVER;
         }
     },
