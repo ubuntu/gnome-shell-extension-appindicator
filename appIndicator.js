@@ -140,13 +140,11 @@ const AppIndicator = new Lang.Class({
         this.ICON_SIZE = Panel.PANEL_ICON_SIZE;
         
         this.busName = bus_name;
+        this._iconThemeChangedHandle = Gtk.IconTheme.get_default().connect('changed', this._invalidateIcon.bind(this));
         
         //construct async because the remote object may be busy and irresponsive (example: quassel irc)
         this._props = new PropertiesProxy(Gio.DBus.session, bus_name, object, (function(resutl, error) {
             this._proxy = new StatusNotifierItem(Gio.DBus.session, bus_name, object, (function(result, error) {
-                this.isConstructed = true;
-                this.emit("constructed");
-                
                 this._propChangedEmitters = {
                     "Status": this._getChangedEmitter("status", "status"),
                     "IconName": this._getChangedEmitter("icon", "iconName"),
@@ -165,6 +163,9 @@ const AppIndicator = new Lang.Class({
                 this._proxy.connectSignal('XAyatanaNewLabel', this._propertyUpdater("XAyatanaLabel"));
                 
                 this._propChangedHandle = this._proxy.connect("g-properties-changed", this._propertiesChanged.bind(this));
+                
+                this.isConstructed = true;
+                this.emit("constructed");
                 
                 this.reset(true);
             }).bind(this));
@@ -279,6 +280,7 @@ const AppIndicator = new Lang.Class({
         if (this.isConstructed) {
             Signals._disconnectAll.apply(this._proxy);
             this._proxy.disconnect(this._propChangedHandle);
+            Gtk.IconTheme.get_default().disconnect(this._iconThemeChangedHandle);
             this.emit('destroy', this);
             this.disconnectAll();
             this._proxy = null; //in case we still have circular references...
@@ -293,7 +295,7 @@ const AppIndicator = new Lang.Class({
         var real_icon_size = icon_size;
         
         if (icon_name && icon_name.indexOf("/") == 0) {
-            //HACK: icon is a path name. this is not specified by the api but at least inidcato-sensors uses it.
+            //HACK: icon is a path name. This is not specified by the api but at least inidcator-sensors uses it.
             var [ format, width, height ] = GdkPixbuf.Pixbuf.get_file_info(icon_name);
             if (!format) {
                 log("FATAL: invalid image format: "+icon_name);
@@ -309,12 +311,13 @@ const AppIndicator = new Lang.Class({
             if (theme_path) {
                 //if there's a theme path, we'll look up the icon there.
                 icon_theme = new Gtk.IconTheme();
+                icon_theme.set_search_path(Gtk.IconTheme.get_default().get_search_path());
                 icon_theme.append_search_path(theme_path);
             } else {
                 icon_theme = Gtk.IconTheme.get_default();
             }
             //prefer symbolic icons
-            var iconinfo = icon_theme.choose_icon([ icon_name + "-symbolic", icon_name ], icon_size, 0);
+            var iconinfo = icon_theme.lookup_icon(icon_name + "-panel", icon_size, Gtk.IconLookupFlags.GENERIC_FALLBACK);
             if (iconinfo == null) {
                 log("FATAL: unable to lookup icon for "+icon_name);
             } else {
@@ -334,13 +337,25 @@ const AppIndicator = new Lang.Class({
     //in contrast to createIcon, this function manages caching.
     //if you don't use the icon anymore, set .inUse to false.
     getIcon: function(icon_size) {
-        var icon = IconCache.IconCache.instance.get(this.iconName + "@" + icon_size);
+        var icon_id = this.iconName + "@" + icon_size;
+        var icon = IconCache.IconCache.instance.get(icon_id);
+        if (icon && this._forceIconRedraw) {
+            IconCache.IconCache.instance.forceDestroy(icon_id);
+            this._forceIconRedraw = false;
+            icon = null;
+        }
         if (!icon) {
             icon = this.createIcon(icon_size);
-            IconCache.IconCache.instance.add(this.iconName + "@" + icon_size, icon);
+            IconCache.IconCache.instance.add(icon_id, icon);
         }
         icon.inUse = true;
         return icon;
+    },
+    
+    //called when the icon theme changes
+    _invalidateIcon: function() {
+        this._forceIconRedraw = true;
+        this._onNewIcon();
     },
     
     _onNewStatus: function() {
