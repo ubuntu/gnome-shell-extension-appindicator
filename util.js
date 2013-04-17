@@ -109,24 +109,7 @@ const createActorFromPixmap = function(pixmap, icon_size) {
 const createActorFromMemoryImage = function(data) {
     var stream = Gio.MemoryInputStream.new_from_bytes(data);
     var pixbuf = GdkPixbuf.Pixbuf.new_from_stream(stream, null);
-    var img = new Clutter.Image();
-    //FIXME: newer gjs fails miserably with set_data, while set_bytes strangely works fine.
-    //       older gjs however will complain with set_bytes but work fine with set_data
-    try {
-        img.set_bytes(pixbuf.get_pixels(), pixbuf.get_has_alpha() ? Cogl.PixelFormat.RGBA_8888 : Cogl.PixelFormat.RGB_888,
-                      pixbuf.get_width(), pixbuf.get_height(), pixbuf.get_rowstride());
-    } catch (e) {
-        img.set_data(pixbuf.get_pixels(), pixbuf.get_has_alpha() ? Cogl.PixelFormat.RGBA_8888 : Cogl.PixelFormat.RGB_888,
-                     pixbuf.get_width(), pixbuf.get_height(), pixbuf.get_rowstride());
-    }
-    var actor = new Clutter.Actor();
-    actor.set_content_scaling_filters(Clutter.ScalingFilter.TRILINEAR, Clutter.ScalingFilter.LINEAR);
-    actor.set_content_gravity(Clutter.Gravity.NORTH_WEST);
-    actor.set_content(img);
-    actor.set_size(pixbuf.get_width(), pixbuf.get_height());
-    var widget = new St.Widget();
-    widget.add_actor(actor);
-    return widget;
+    return new St.Icon({ gicon: pixbuf, icon_size: pixbuf.get_width() });
 }
 
 //HACK: GLib.Variant.prototype.get_data_as_bytes only exists in recent gjs versions
