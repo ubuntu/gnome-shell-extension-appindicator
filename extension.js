@@ -1,64 +1,69 @@
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const StatusNotifierWatcher = Extension.imports.statusNotifierWatcher;
 const GLib = imports.gi.GLib;
+const Gio = imports.gi.Gio;
 
 let statusNotifierWatcher = null;
-let wasEverEnabled = false;
+let isEnabled = false;
 
 function init() {
-    
+    NameWatchdog.init();
+    NameWatchdog.onVanished = maybe_enable_after_name_available;
 }
 
-function do_enable() {
-    log("appindicator: enabling extension");
-    statusNotifierWatcher = new StatusNotifierWatcher.StatusNotifierWatcher();
+//FIXME: when entering/leaving the lock screen, the extension might be enabled/disabled rapidly.
+// This will create very bad side effects in case we were not done unowning the name whil trying
+// to own it again. Since g_bus_unown_name doesn't fire any callbakc when it's done, we need to 
+// monitor the bus manually to find out when the name vanished so we can reclaim it again.
+function maybe_enable_after_name_available() {
+    // by the time we get called whe might not be enabled
+    if (isEnabled && !NameWatchdog.isPresent && statusNotifierWatcher === null) {
+        statusNotifierWatcher = new StatusNotifierWatcher.StatusNotifierWatcher();
+    }
 }
-
-function do_disable() {
-    log("appindicator: disabling extension");
-    statusNotifierWatcher.destroy();
-    statusNotifierWatcher = null;    
-}
-
-//HACK: while entering the lock screen, the extension will be enabled and disabled multiple times rapidly (why?).
-// this causes the own_name stuff to disintegrate, so we need to make sure we do not toggle the extension too often.
-// however, this will cause a slight delay at initialization. It is also a very ugly hack since we rely on guessed
-// timers instead of waiting for async calls to finish
-var debounced_executor = debounce_func(function(func) {
-    func();    
-});
 
 function enable() {
-    if (wasEverEnabled) {
-        debounced_executor(do_enable);
-    } else {
-        wasEverEnabled = true;
-        do_enable();
-    }
+    isEnabled = true;
+    maybe_enable_after_name_available();
 }
 
 function disable() {
-    debounced_executor(do_disable);
-}
-
-function debounce_func(func) {
-    var timeout;
-    
-    return function() {
-        var self = this;
-        var args = arguments;
-        if (timeout) clearTimeout(timeout);
-        timeout = setTimeout(function() {
-            timeout = null;
-            func.apply(self, args);
-        }, 500);
+    isEnabled = false;
+    if (statusNotifierWatcher !== null) {
+        statusNotifierWatcher.destroy();
+        statusNotifierWatcher = null;
     }
 }
 
-var setTimeout = function(cb, time) {
-       return GLib.timeout_add(GLib.PRIORITY_DEFAULT, time, function() {
-          cb();
-          return false;
-      }, null, null);
+/**
+ * NameWatchdog will monitor the ork.kde.StatusNotifierWatcher bus name for us
+ */
+const NameWatchdog = {
+    onAppeared: null,
+    onVanished: null,
+    
+    _watcher_id: null,
+    
+    isPresent: false, //will be set in the handlers which are guaranteed to be called at least once
+    
+    init: function() {
+        this._watcher_id = Gio.DBus.session.watch_name("org.kde.StatusNotifierWatcher", 0,
+            this._appeared_handler.bind(this), this._vanished_handler.bind(this));
+    },
+    
+    destroy: function() {
+        Gio.DBus.session.unwatch_name(this._watcher_id);
+    },
+    
+    _appeared_handler: function() {
+        log("appindicator: bus name appeared");
+        this.isPresent = true;
+        if (this.onAppeared) this.onAppeared();
+    },
+    
+    _vanished_handler: function() {
+        log("appindicator: bus name vanished");
+        this.isPresent = false;
+        if (this.onVanished) this.onVanished();
+    }
 }
-var clearTimeout = GLib.source_remove;
