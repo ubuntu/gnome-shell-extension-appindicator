@@ -1,0 +1,43 @@
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+#
+# Davide Depau <david.dep.1996@gmail.com>, 2013.
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2013-03-04 18:39+0100\n"
+"PO-Revision-Date: 2013-04-19 19:22+0200\n"
+"Last-Translator: Davide Depau <david.dep.1996@gmail.com>\n"
+"Language-Team: Italian <>\n"
+"Language: it\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Lokalize 1.5\n"
+
+#: prefs.js:39
+msgid "Default placement for indicator icons: "
+msgstr "Posizione predefinita per gli indicatori:"
+
+#: prefs.js:41 prefs.js:99
+msgid "Show in message tray"
+msgstr "Mostra nella barra delle notifiche"
+
+#: prefs.js:42 prefs.js:100
+msgid "Show in panel"
+msgstr "Mostra nel pannello"
+
+#: prefs.js:43 prefs.js:101
+msgid "Do not show"
+msgstr "Non mostrare"
+
+#: prefs.js:48
+msgid "Application specific settings"
+msgstr "Impostazioni specifiche delle applicazioni"
+
+#: prefs.js:98
+msgid "Show at default location"
+msgstr "Mostra nella posizione predefinita"
+
