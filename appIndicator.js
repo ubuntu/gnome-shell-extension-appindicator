@@ -290,47 +290,63 @@ const AppIndicator = new Lang.Class({
     },
 
     createIcon: function(icon_size) {
+        // shortcut variable
         var icon_name = this.iconName;
+        // fallback icon
         var gicon = Gio.icon_new_for_string("dialog-info");
+        // real_icon_size will contain the actual icon size in contrast to the requested icon size
         var real_icon_size = icon_size;
         
-        if (icon_name && icon_name.indexOf("/") == 0) {
+        if (icon_name && icon_name[0] == "/") {
             //HACK: icon is a path name. This is not specified by the api but at least inidcator-sensors uses it.
             var [ format, width, height ] = GdkPixbuf.Pixbuf.get_file_info(icon_name);
             if (!format) {
                 log("FATAL: invalid image format: "+icon_name);
             } else {
+                // if the actual icon size is smaller, save that for later.
+                // scaled icons look ugly.
                 if (Math.max(width, height) < icon_size) real_icon_size = Math.max(width, height);
                 gicon = Gio.icon_new_for_string(icon_name);
             }
         } else if (icon_name) {
-            icon_name = icon_name; //should load the symbolic variant.
-            var iconname, real_icon_size;
-            var theme_path = this._proxy.IconThemePath;
-            var icon_theme;
-            if (theme_path) {
-                //if there's a theme path, we'll look up the icon there.
-                icon_theme = new Gtk.IconTheme();
-                icon_theme.set_search_path(Gtk.IconTheme.get_default().get_search_path());
-                icon_theme.append_search_path(theme_path);
-            } else {
-                icon_theme = Gtk.IconTheme.get_default();
-            }
-            //prefer symbolic icons
-            var iconinfo = icon_theme.lookup_icon(icon_name + "-panel", icon_size, Gtk.IconLookupFlags.GENERIC_FALLBACK);
-            if (iconinfo == null) {
-                log("FATAL: unable to lookup icon for "+icon_name);
-            } else {
-                //icon size can mismatch with custom theme
-                if (iconinfo.get_base_size() < icon_size) {
-                    //small icons look ugly if stretched, we'll just display a smaller icon in that case.
-                    real_icon_size = iconinfo.get_base_size();
-                }
+            // we manually look up the icon instead of letting st.icon do it for us
+            // this allows us to sneak in an indicator provided search path and to avoid ugly upscaled icons
+            
+            // indicator-application looks up a special "panel" variant, we just replicate that here
+            icon_name = icon_name + "-panel";
+            
+            // icon info as returned by the lookup
+            var icon_info = null;
+            
+            // first, try to look up the icon in the default icon theme
+            icon_info = Gtk.IconTheme.get_default().lookup_icon(icon_name, icon_size,
+                Gtk.IconLookupFlags.GENERIC_FALLBACK);
+            
+            // if that failed, search in the theme path
+            if (icon_info === null && this._proxy.IconThemePath) {
+                // construct GtkIconTheme
+                let icon_theme = new Gtk.IconTheme();
+                icon_theme.icon_theme.append_search_path(this._proxy.IconThemePath);
                 
-                gicon = Gio.icon_new_for_string(iconinfo.get_filename());
+                // lookup icon
+                icon_info = icon_theme.lookup_icon(icon_name, icon_size, Gtk.IconLookupFlags.GENERIC_FALLBACK);
             }
             
+            // still no icon? that's bad!
+            if (icon_info === null) {
+                log("FATAL: unable to lookup icon for "+icon_name);
+            } else { // we have an icon
+                // the icon size may not match the requested size, especially with custom themes
+                if (icon_info.get_base_size() < icon_size) {
+                    // stretched icons look very ugly, we avoid that and just show the smaller icon
+                    real_icon_size = icon_info.get_base_size();
+                }
+                
+               // create a gicon for the icon
+               gicon = Gio.icon_new_for_string(icon_info.get_filename());
+            }
         }
+        
         return new St.Icon({ gicon: gicon, icon_size: real_icon_size });
     },
     
