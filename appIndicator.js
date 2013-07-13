@@ -133,6 +133,10 @@ const PropertiesIface = <interface name="org.freedesktop.DBus.Properties">
 </interface>;
 const PropertiesProxy = Gio.DBusProxy.makeProxyWrapper(PropertiesIface);
 
+/**
+ * the AppIndicator class serves as a generic container for indicator information and functions common
+ * for every displaying implementation (IndicatorMessageSource and IndicatorStatusIcon)
+ */
 const AppIndicator = new Lang.Class({
     Name: 'AppIndicator',
     

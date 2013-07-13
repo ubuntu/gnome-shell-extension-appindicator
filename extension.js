@@ -20,9 +20,10 @@ function do_disable() {
     statusNotifierWatcher = null;    
 }
 
-//HACK: while entering the lock screen, the extension will be enabled and disabled multiple times rapidly.
+//HACK: while entering the lock screen, the extension will be enabled and disabled multiple times rapidly (why?).
 // this causes the own_name stuff to disintegrate, so we need to make sure we do not toggle the extension too often.
-// however, this will cause a slight delay at initialization.
+// however, this will cause a slight delay at initialization. It is also a very ugly hack since we rely on guessed
+// timers instead of waiting for async calls to finish
 var debounced_executor = debounce_func(function(func) {
     func();    
 });

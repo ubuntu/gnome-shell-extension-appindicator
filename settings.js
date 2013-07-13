@@ -20,6 +20,10 @@ const Signals = imports.signals;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Convenience = Extension.imports.convenience;
 
+/*
+ * The Settings class manages the settings requested for each indicator.
+ * It listens to gsettings changes and emits changed events for each single changed override
+ */
 const Settings = new Lang.Class({
     Name: 'Settings',
     
@@ -28,7 +32,7 @@ const Settings = new Lang.Class({
         this._overrides = {};
         this._gsettings = Convenience.getSettings();
         this._gsettings.connect("changed", Lang.bind(this, this._gsettingsChanged));
-        this._gsettingsChanged(); //initial read
+        this._gsettingsChanged(); // initial read
     },
     
     get: function(id) {
@@ -64,9 +68,9 @@ const Settings = new Lang.Class({
         var def = this._gsettings.get_string("default");
         if (def != this._default) {
             this._default = def;
-            this.emit("changed", null); //null should tell the listeners to revalidate every item
+            this.emit("changed", null); // null should tell the listeners to revalidate every item
         }
-        //sync overrides with local copy
+        // sync overrides with local copy
         var overrides = JSON.parse(this._gsettings.get_string("overrides"));
         var changed = [];
         for (var i in overrides) {
@@ -75,20 +79,16 @@ const Settings = new Lang.Class({
             }
             delete this._overrides[i];
         }
-        //any old overrides left?
+        // any old overrides left?
         for (var i in this._overrides) {
             changed.push(i);
         }
-        //save new overrides
+        // save new overrides
         this._overrides = overrides;
-        //emit events
+        // emit events
         changed.forEach(this.emit.bind(this, 'changed'));
     }
 });
 Signals.addSignalMethods(Settings.prototype);
-Object.defineProperty(Settings, "instance", {
-    get: function() {
-        if (Settings._instance) return Settings._instance;
-        else return Settings._instance = new Settings();
-    }
-});
+// lazy singleton implementation
+Settings.instance = new Settings();

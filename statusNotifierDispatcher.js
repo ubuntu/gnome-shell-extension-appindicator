@@ -24,6 +24,11 @@ const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon;
 const IndicatorMessageSource = Extension.imports.indicatorMessageSource;
 const Settings = Extension.imports.settings.Settings;
 
+/*
+ * The IndicatorDispatcher class will get all newly added or changed indicators
+ * and delegate them to IndicatorStatusIcon or IndicatorMessageSource or discard them
+ * depending on the settings and indicator state
+ */
 const IndicatorDispatcher = new Lang.Class({
     Name: 'IndicatorDispatcher',
     
@@ -38,7 +43,7 @@ const IndicatorDispatcher = new Lang.Class({
     },
     
     _doDispatch: function(indicator) {
-        //this is actually needed for the whole lifetime of indicator. It will be disconnected automatically on destroy.
+        // this is actually needed for the whole lifetime of indicator. It will be disconnected automatically on destroy.
         indicator.connect('status', Lang.bind(this, this._updatedStatus, indicator));
         this._updatedStatus(indicator);
     },
@@ -47,7 +52,7 @@ const IndicatorDispatcher = new Lang.Class({
          if (!indicator) return;
          var status = indicator.status;
          if (status == SNIStatus.PASSIVE) {
-             //remove it 
+             // remove it 
              if (indicator.id in this._icons) {
                  this._remove(indicator);
              }
@@ -89,7 +94,7 @@ const IndicatorDispatcher = new Lang.Class({
         if (name) {
             this._readd(name);
         } else {
-            //readd every item
+            // readd every item
             for (var i in this._icons) {
                 this._readd(i);
             }
@@ -107,7 +112,7 @@ const IndicatorDispatcher = new Lang.Class({
 });
 IndicatorDispatcher.instance = new IndicatorDispatcher();
 
-//used by IndicatorDispatcher for blacklisted indicators
+// used by IndicatorDispatcher for blacklisted indicators
 const NullIcon = new Lang.Class({
     Name: 'IndicatorNullIcon',
     

@@ -26,7 +26,7 @@ const Mainloop = imports.mainloop;
 // The presence of an inUse property set to true on the icon will extend the lifetime.
 
 // how to use: see IconCache.add, IconCache.get
-// make sure the cached icon has a property inUse se to true if you don't want icon cache to destroy it for you.
+// make sure the cached icon has a property inUse set to true if you don't want icon cache to destroy it for you.
 const IconCache = new Lang.Class({
     Name: 'IconCache',
     

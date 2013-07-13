@@ -46,7 +46,7 @@ function buildPrefsWidget() {
     default_box.add(default_switch);
     widget.pack_start(default_box, false, false, 10);
     var overrides_frame = new Gtk.Frame({ label: _("Application specific settings")})
-    var overrides_scroll = new Gtk.ScrolledWindow(); //jsut in case our list gets _really_ big...
+    var overrides_scroll = new Gtk.ScrolledWindow(); // just in case our list gets _really_ big...
     var overrides_table = new Gtk.Grid({ margin: 10 });
     populateGrid.apply(overrides_table);
     overrides_frame.add(overrides_scroll);

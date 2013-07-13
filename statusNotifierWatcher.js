@@ -61,11 +61,12 @@ const StatusNotifierWatcherIface = <interface name="org.kde.StatusNotifierWatche
     <property name="IsStatusNotifierHostRegistered" type="b" access="read" />
 </interface>;
 
-function StatusNotifierWatcher() {
-    this._init.apply(this, arguments);
-}
-
-StatusNotifierWatcher.prototype = {
+/*
+ * The StatusNotifierWatcher class implements the StatusNotifierWatcher dbus object
+ */
+const StatusNotifierWatcher = new Lang.Class({
+    Name: 'StatusNotifierWatcher',
+    
     _init: function() {
         this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(StatusNotifierWatcherIface, this);
         this._dbusImpl.export(Gio.DBus.session, WATCHER_OBJECT);
@@ -91,7 +92,7 @@ StatusNotifierWatcher.prototype = {
     },
     
     
-    //create a unique index for the _items dictionary
+    // create a unique index for the _items dictionary
     _getItemId: function(bus_name, obj_path) {
         return bus_name + obj_path; 
     },
@@ -102,7 +103,7 @@ StatusNotifierWatcher.prototype = {
         // while kde apps send a bus name
         let service = params[0];
         let bus_name, obj_path;
-        if (service.charAt(0)=='/') { // looks like a path
+        if (service.charAt(0) == '/') { // looks like a path
             bus_name = invocation.get_sender();
             obj_path = service;
         } else { // we hope it is a bus name
@@ -113,9 +114,6 @@ StatusNotifierWatcher.prototype = {
         let id = this._getItemId(bus_name, obj_path);
         
         if(this._items[id]) {
-            /*throw new DBus.DBusError('org.gnome.Shell.UnsupportedMethod',
-                                     'Registering more than one application indicator for the same connection and same path is not supported (how the hell did you expect that to work?)  '+id);*/
-            
             //delete the old one and add the new indicator
             log("WARNING: Attempting to re-register "+id+"; resetting instead");
             this._items[id].reset();
@@ -174,6 +172,8 @@ StatusNotifierWatcher.prototype = {
     
     destroy: function() {
         if (!this._isDestroyed) {
+            // this doesn't do any sync operation and doesn't allow us to hook up the event of being finished
+            // which results in our unholy debounce hack (see extension.js)
             Gio.DBus.session.unown_name(this._ownName);
             this._dbusImpl.unexport();
             for (var i in this._nameWatcher) {
@@ -187,4 +187,4 @@ StatusNotifierWatcher.prototype = {
             this._isDestroyed = true;
         }
     }
-};
+});

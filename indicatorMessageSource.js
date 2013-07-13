@@ -29,6 +29,9 @@ const Shell = imports.gi.Shell;
 const Gtk = imports.gi.Gtk;
 const Clutter = imports.gi.Clutter;
 
+/*
+ * A MessageTray.Source subclass that implements an indicator icon in the message tray
+ */
 const IndicatorMessageSource = new Lang.Class({
     Name: 'IndicatorMessageSource',
     Extends: MessageTray.Source,
@@ -128,6 +131,11 @@ const IndicatorMessageSource = new Lang.Class({
     }
 });
 
+/*
+ * Standard popup menus can't be embedded in other widgets, but DbusMenu needs an instance of 
+ * PopupMenu.PopupMenu to work correctly. Instead of mocking the popup menu api, we subclass it
+ * and apply some ugly hacks. This is extremely dependant of the internal implementation of PopupMenu.PopupMenu
+ */
 const PopupMenuEmbedded = new Lang.Class({
     Name: 'PopupMenuEmbedded',
     Extends: PopupMenu.PopupMenu,
@@ -152,6 +160,9 @@ const PopupMenuEmbedded = new Lang.Class({
     close: function() { }
 })
 
+/*
+ * we also need a custom notification widget which carries the menu
+ */
 const IndicatorNotification = new Lang.Class({
     Name: 'IndicatorNotification',
     Extends: MessageTray.Notification,

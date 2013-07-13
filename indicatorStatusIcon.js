@@ -24,6 +24,9 @@ const Main = imports.ui.main;
 const Panel = imports.ui.panel;
 const Clutter = imports.gi.Clutter;
 
+/*
+ * IndicatorStatusIcon implements an icon in the system status area
+ */
 const IndicatorStatusIcon = new Lang.Class({
     Name: 'IndicatorStatusIcon',
     Extends: PanelMenu.SystemStatusButton,

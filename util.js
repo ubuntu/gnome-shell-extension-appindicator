@@ -53,7 +53,7 @@ const Mixin = new Lang.Class({
 
 /*
  * AsyncTaskQueue:
- * Shedules asynchrouns tasks which may not overlap during execution
+ * Schedules asynchrouns tasks which may not overlap during execution
  *
  * The scheduled functions are required to take a callback as their last arguments, and all other arguments
  * need to be bound using Function.prototype.bind
