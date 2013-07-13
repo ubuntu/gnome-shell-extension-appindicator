@@ -318,6 +318,11 @@ const AppIndicator = new Lang.Class({
             }
             //prefer symbolic icons
             var iconinfo = icon_theme.lookup_icon(icon_name + "-panel", icon_size, Gtk.IconLookupFlags.GENERIC_FALLBACK);
+            if (iconinfo == null && theme_path) {
+                icon_theme = Gtk.IconTheme.get_default();
+                var iconinfo = icon_theme.lookup_icon(icon_name + "-panel", icon_size, Gtk.IconLookupFlags.GENERIC_FALLBACK);
+	    }
+
             if (iconinfo == null) {
                 log("FATAL: unable to lookup icon for "+icon_name);
             } else {
