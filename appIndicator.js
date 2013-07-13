@@ -326,7 +326,7 @@ const AppIndicator = new Lang.Class({
             if (icon_info === null && this._proxy.IconThemePath) {
                 // construct GtkIconTheme
                 let icon_theme = new Gtk.IconTheme();
-                icon_theme.icon_theme.append_search_path(this._proxy.IconThemePath);
+                icon_theme.append_search_path(this._proxy.IconThemePath);
                 
                 // lookup icon
                 icon_info = icon_theme.lookup_icon(icon_name, icon_size, Gtk.IconLookupFlags.GENERIC_FALLBACK);
