@@ -29,7 +29,7 @@ const Clutter = imports.gi.Clutter;
  */
 const IndicatorStatusIcon = new Lang.Class({
     Name: 'IndicatorStatusIcon',
-    Extends: PanelMenu.SystemStatusButton,
+    Extends: PanelMenu.Button,
     
     _init: function(indicator) {
         this.parent(null, 'FIXME'); //no name yet (?)
@@ -37,9 +37,15 @@ const IndicatorStatusIcon = new Lang.Class({
         this._indicator = indicator;
         
         this._iconBox = new St.BoxLayout();
+        if (!this._box) { // Gnome Shell 3.10
+            this._box = new St.BoxLayout();
+            this.actor.add_actor(this._box);
+        }
         this._box.destroy_all_children();
         this._box.add_actor(this._iconBox);
         this._boxClickDisconnectHandler = this.actor.connect("button-press-event", this._boxClicked.bind(this));
+        
+        log("Adding indicator as status menu");
         
         //stuff would keep us alive forever if icon changes places
         var h = this._indicatorHandlerIds = []; 
@@ -110,7 +116,7 @@ const IndicatorStatusIcon = new Lang.Class({
         this.actor.disconnect(this._boxClickDisconnectHandler);
         
         //call parent
-        PanelMenu.SystemStatusButton.prototype.destroy.apply(this);
+        this.parent();
     },
     
     _display: function() {

@@ -79,7 +79,7 @@ const IndicatorDispatcher = new Lang.Class({
     },
     
     _remove: function(indicator) {
-        this._icons[indicator.id].destroy();
+        this._icons[indicator.id].destroy(true);
         delete this._icons[indicator.id];
     },
     

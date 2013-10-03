@@ -52,6 +52,7 @@ const IndicatorMessageSource = new Lang.Class({
             h.push(this._indicator.connect('icon', Lang.bind(this, this._updateIcon)));
             h.push(this._indicator.connect('ready', Lang.bind(this, this._display)));
             h.push(this._indicator.connect('reset', Lang.bind(this, this._reset)));
+            
             this.connect('clicked', Lang.bind(this, this._handleClicked));
             if (this._indicator.isReady) {
                 this._updateIcon();
@@ -107,13 +108,17 @@ const IndicatorMessageSource = new Lang.Class({
         this._iconBox.add_actor(icon);
     },
     
-    destroy: function() {
-        //if (Main.messageTray.contains(this)) Main.messageTray.remove(this);
-        log("Destroying "+this._indicator.id);
-        this._indicatorHandlerIds.forEach(this._indicator.disconnect.bind(this._indicator));
-        if (this._notification._menu) this._notification._menu.destroyDbusMenu();
-        this._iconBox.remove_all_children();
-        MessageTray.Source.prototype.destroy.apply(this);
+    destroy: function(fromDispatcher) {
+        //HACK: In 3.10, the message tray just destroys the source whenever someone clicks the close button
+        //      even though the notification is resident. StatusNotificationDispatcher will signal us
+        //      if we need to comply with the request. Ignoring it thankfully doesn't cause any problems.
+        if (fromDispatcher) {
+            log("Destroying "+this._indicator.id);
+            this._indicatorHandlerIds.forEach(this._indicator.disconnect.bind(this._indicator));
+            if (this._notification._menu) this._notification._menu.destroyDbusMenu();
+            this._iconBox.remove_all_children();
+            MessageTray.Source.prototype.destroy.apply(this);
+        }
     },
     
     handleSummaryClick: function() {
@@ -141,16 +146,18 @@ const PopupMenuEmbedded = new Lang.Class({
     Extends: PopupMenu.PopupMenu,
     
     _init: function() {
-        //HACK: we subclass PopupMenu but call the constructor of PopupMenuBase only. PopupMenu does too much for us.
-        PopupMenu.PopupMenuBase.prototype._init.apply(this, null, 'popup-menu');
-        this._boxWrapper = new Shell.GenericContainer();
-        //looking at popupMenu.js from gnome shell, it seems like we don't need to disconnect them
-        this._boxWrapper.connect('get-preferred-width', Lang.bind(this, this._boxGetPreferredWidth));
-        this._boxWrapper.connect('get-preferred-height', Lang.bind(this, this._boxGetPreferredHeight));
-        this._boxWrapper.connect('allocate', Lang.bind(this, this._boxAllocate));
-        this._boxWrapper.add_actor(this.box);
+        this.parent(null, 'popup-menu');
         
-        this.actor = this._boxWrapper;
+        var box;
+        if (this._boxWrapper) { // GS 3.8
+            box = this._boxWrapper;
+        } else { // GS 3.10
+            box = this.box;
+        }
+        
+        box.get_parent().remove_child(box);
+        
+        this.actor = box;
         this.actor._delegate = this;
         this.isOpen = true;
     },

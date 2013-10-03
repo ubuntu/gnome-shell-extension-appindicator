@@ -392,7 +392,11 @@ const Menu = new Lang.Class({
                     stitem = new PopupMenu.PopupSwitchMenuItem(label, toggle_state, { reactive: reactive });
                 else if (toggle_type == 'radio') {
                     stitem = new PopupMenu.PopupMenuItem(label, { reactive: reactive });
-                    stitem.setShowDot(toggle_state);
+                    if (stitem.setShowDot) { // GS 3.8
+                        stitem.setShowDot(toggle_state);
+                    } else { // GS 3.10
+                        stitem.setOrnament(toggle_state ? PopupMenu.Ornament.DOT : PopupMenu.Ornament.NONE);
+                    }
                 }
             } else if (icon) {
                 stitem = new PopupMenu.PopupImageMenuItem(label, icon, { reactive: reactive });
@@ -400,10 +404,16 @@ const Menu = new Lang.Class({
                 stitem = new PopupMenu.PopupMenuItem(label, { reactive: reactive });
                 let iconActor = Util.createActorFromMemoryImage(icon_data, 24);
                 iconActor.add_style_class_name('popup-menu-icon');
-                stitem.addActor(iconActor, { align: St.Align.END });
-            }                
+                if (stitem.addActor) { // GS 3.8
+                    stitem.addActor(iconActor, { align: St.Align.END });
+                } else { // 3.10
+                    stitem.label.set_x_expand(true);
+                    stitem.actor.add(iconActor, { align: St.Align.END });
+                }
+            }
             else
                 stitem = new PopupMenu.PopupMenuItem(label, { reactive: reactive });
+            
             if (visible)
                 stitem.actor.show();
             else
@@ -484,10 +494,15 @@ const Menu = new Lang.Class({
                     //}
                 }
             } else if (property == 'toggle-state') {
-                if (this._items[id].setToggleState)
+                if (this._items[id].setToggleState) {
                     this._items[id].setToggleState(value);
-                else
-                    this._items[id].setShowDot(value);
+                } else {
+                    if (stitem.setShowDot) { // GS 3.8
+                        stitem.setShowDot(toggle_state);
+                    } else { // GS 3.10
+                        stitem.setOrnament(toggle_state ? PopupMenu.Ornament.DOT : PopupMenu.Ornament.NONE);
+                    }
+                }
             } else if (property == 'icon-name' && this._items[id].setIcon)
                 this._items[id].setIcon(value);
             else if (this._parents[id]) // element is already on a layout
@@ -495,7 +510,7 @@ const Menu = new Lang.Class({
         },
 
         _layoutUpdated: function(proxy, bus, [revision, subtree]) {
-            log("layout updated for node "+subtree);
+            log("appindicator: layout updated for node "+subtree);
             if (revision <= this._revision)
                 return;
             this._readLayout(subtree);
