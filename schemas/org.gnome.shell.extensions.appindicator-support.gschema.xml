@@ -2,7 +2,7 @@
 <schemalist gettext-domain="gnome-shell-extensions">
   <schema path="/org/gnome/shell/extensions/appindicator-support/" id="org.gnome.shell.extensions.appindicator-support">
     <key type="s" name="default">
-      <default>'message-tray'</default>
+      <default>'panel'</default>
       <summary>Where to put indicator icons per default</summary>
       <description>Control where the extension will display indicator icons.</description>
     </key>
