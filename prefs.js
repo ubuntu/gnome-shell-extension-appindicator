@@ -25,6 +25,7 @@ const Convenience = Extension.imports.convenience;
 const Config = Extension.imports.config;
 const Settings = Extension.imports.settings.Settings;
 const Interfaces = Extension.imports.interfaces;
+const Util = Extension.imports.util;
 
 // Shell and GI stuff
 const ShellConfig = imports.misc.config;
@@ -220,25 +221,7 @@ const getSNWProxy = (function(){
         if (_proxy === null) {
             _proxy = new StatusNotifierWatcherProxy(Gio.DBus.session, "org.kde.StatusNotifierWatcher", "/StatusNotifierWatcher");
 
-            //HACK: There's no way for us to set the G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES flag, so we at least try to
-            //      somewhat emulate that behavior. We however need a sync dbus call for that which is not really cool.
-            _proxy.connect("g-properties-changed", function(proxy, changed, invalidated) {
-                for each(let i in invalidated) {
-                    let result = _proxy.g_connection.call_sync(
-                        _proxy.g_name_owner,
-                        _proxy.g_object_path,
-                        "org.freedesktop.DBus.Properties",
-                        "Get",
-                        GLib.Variant.new("(ss)", [ _proxy.g_interface_name, i ]),
-                        GLib.VariantType.new("(v)"),
-                        Gio.DBusCallFlags.NONE,
-                        -1,
-                        null
-                    );
-                    let property = result.deep_unpack()[0];
-                    _proxy.set_cached_property(i, property);
-                }
-            });
+            _proxy.connect("g-properties-changed", Util.refreshInvalidatedProperties);
         }
         return _proxy;
     }
@@ -291,8 +274,8 @@ function getActivesSync() {
 
 function listenForChangedActives(clb) {
     getSNWProxy().connect("g-properties-changed", function(proxy, changed, invalidated) {
-        // call clb if "RegisteredStatusNotifierItems" is among the changed or invalidated properites
-        let propList = invalidated.concat(Object.keys(changed.deep_unpack()));
+        // call clb if "RegisteredStatusNotifierItems" is among the changed properites
+        let propList = Object.keys(changed.deep_unpack());
 
         if (propList.indexOf("RegisteredStatusNotifierItems") != -1) {
             clb();

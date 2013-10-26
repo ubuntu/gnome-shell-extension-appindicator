@@ -27,7 +27,7 @@ const Shell = imports.gi.Shell;
 const GdkPixbuf = imports.gi.GdkPixbuf;
 
 const Panel = imports.ui.panel;
-const Util = imports.misc.util;
+
 
 const Gettext = imports.gettext.domain('gnome-shell');
 const _ = Gettext.gettext;
@@ -36,6 +36,7 @@ const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const DBusMenu = Extension.imports.dbusMenu;
 const IconCache = Extension.imports.iconCache;
 const DBusInterfaces = Extension.imports.interfaces;
+const Util = Extension.imports.util;
 
 const SNICategory = {
     APPLICATION: 'ApplicationStatus',
@@ -96,6 +97,9 @@ const AppIndicator = new Lang.Class({
                 this.connect("status", function() {
                     this.emit("icon", this.icon);
                 }.bind(this));
+
+                // workaround for us not being able to set G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES
+                this._proxy.connect("g-properties-changed", Util.refreshInvalidatedProperties);
 
                 this.isConstructed = true;
                 this.emit("constructed");
