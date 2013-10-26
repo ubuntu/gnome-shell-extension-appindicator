@@ -70,6 +70,7 @@ function placementSettingsWidget() {
     var default_switch = new Gtk.ComboBoxText();
     default_switch.append("message-tray", _("Show in message tray"));
     default_switch.append("panel", _("Show in panel"));
+    default_switch.append("dash", _("Show in dash (experimental)"));
     default_switch.append("blacklist", _("Do not show"));
     default_switch.connect("changed", Lang.bind(default_switch, defaultChangedCallback));
     default_switch.set_active_id(Settings.instance.getDefault());
@@ -207,6 +208,7 @@ function attachToGrid(grid, name, index, value, changedClb) {
     select.append("auto", _("Show at default location"));
     select.append("message-tray", _("Show in message tray"));
     select.append("panel", _("Show in panel"));
+    select.append("dash", _("Show in dash (experimental)"));
     select.append("blacklist", _("Do not show"));
     select.set_active_id(value);
     select.connect("changed", changedClb);

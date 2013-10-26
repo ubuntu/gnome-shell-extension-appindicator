@@ -22,6 +22,7 @@ const AppIndicator = Extension.imports.appIndicator;
 const SNIStatus = AppIndicator.SNIStatus;
 const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon;
 const IndicatorMessageSource = Extension.imports.indicatorMessageSource;
+const DashIndicatorIcon = Extension.imports.dashIndicatorIcon;
 const Settings = Extension.imports.settings.Settings;
 
 /*
@@ -71,6 +72,8 @@ const IndicatorDispatcher = new Lang.Class({
             obj = new NullIcon(indicator);
         } else if (Settings.instance.get(indicator.id) == "panel") {
             obj = new IndicatorStatusIcon.IndicatorStatusIcon(indicator);
+        } else if (Settings.instance.get(indicator.id) == "dash") {
+            obj = new DashIndicatorIcon.CustomDashIcon(indicator);
         } else {
             obj = new IndicatorMessageSource.IndicatorMessageSource(indicator);    
         }
