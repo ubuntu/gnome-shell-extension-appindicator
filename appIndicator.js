@@ -6,7 +6,7 @@
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -35,6 +35,7 @@ const _ = Gettext.gettext;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const DBusMenu = Extension.imports.dbusMenu;
 const IconCache = Extension.imports.iconCache;
+const DBusInterfaces = Extension.imports.interfaces;
 
 const SNICategory = {
     APPLICATION: 'ApplicationStatus',
@@ -51,87 +52,9 @@ const SNIStatus = {
 
 //partially taken from the quassel irc sources, partly from libappindicator
 //there seem to be _huge_ inconsistencies between the numerous implementations
-const StatusNotifierItemIface = <interface name="org.kde.StatusNotifierItem">
-    <property name="Category" type="s" access="read"/>
-    <property name="Id" type="s" access="read"/>
-    <property name="Title" type="s" access="read"/>
-    <property name="Status" type="s" access="read"/>
-    <property name="WindowId" type="i" access="read"/>
-    <property name="Menu" type="o" access="read" />
 
-    <!-- main icon -->
-    <!-- names are preferred over pixmaps -->
-    <property name="IconName" type="s" access="read" />
-    <property name="IconThemePath" type="s" access="read" />
-
-    <!-- struct containing width, height and image data-->
-    <!-- implementation has been dropped as of now -->
-    <property name="IconPixmap" type="a(iiay)" access="read" />
-    
-    <!-- not used in ayatana code, no test case so far -->
-    <property name="OverlayIconName" type="s" access="read"/>
-    <property name="OverlayIconPixmap" type="a(iiay)" access="read" />
-
-    <!-- Requesting attention icon -->
-    <property name="AttentionIconName" type="s" access="read"/>
-
-    <!--same definition as image-->
-    <property name="AttentionIconPixmap" type="a(iiay)" access="read" />
-
-    <!-- tooltip data -->
-    <!-- unimplemented as of now -->
-    <!--(iiay) is an image-->
-    <property name="ToolTip" type="(sa(iiay)ss)" access="read" />
-
-
-    <!-- interaction: actually, we do not use them. -->
-    <method name="Activate">
-        <arg name="x" type="i" direction="in"/>
-        <arg name="y" type="i" direction="in"/>
-    </method>
-    
-    <!-- Signals: the client wants to change something in the status-->
-    <signal name="NewTitle"></signal>
-    <signal name="NewIcon"></signal>
-    <signal name="NewIconThemePath">
-        <arg type="s" name="icon_theme_path" direction="out" />
-    </signal>
-    <signal name="NewAttentionIcon"></signal>
-    <signal name="NewOverlayIcon"></signal>
-    <signal name="NewToolTip"></signal>
-    <signal name="NewStatus">
-        <arg name="status" type="s" />
-    </signal>
-    
-    <!-- ayatana labels -->
-    <signal name="XAyatanaNewLabel">
-        <arg type="s" name="label" direction="out" />
-        <arg type="s" name="guide" direction="out" />
-    </signal>
-    <property name="XAyatanaLabel" type="s" access="read" />
-    <property name="XAyatanaLabelGuide" type="s" access="read" /> <!-- unimplemented -->
-        
-
-  </interface>;
-const StatusNotifierItem = Gio.DBusProxy.makeProxyWrapper(StatusNotifierItemIface);
-
-const PropertiesIface = <interface name="org.freedesktop.DBus.Properties">
-<method name="Get">
-    <arg type="s" direction="in" />
-    <arg type="s" direction="in" />
-    <arg type="v" direction="out" />
-</method>
-<method name="GetAll">
-    <arg type="s" direction="in" />
-    <arg type="a{sv}" direction="out" />
-</method>
-<signal name="PropertiesChanged">
-    <arg type="s" direction="out" />
-    <arg type="a{sv}" direction="out" />
-    <arg type="as" direction="out" />
-</signal>
-</interface>;
-const PropertiesProxy = Gio.DBusProxy.makeProxyWrapper(PropertiesIface);
+const StatusNotifierItem = Gio.DBusProxy.makeProxyWrapper(DBusInterfaces.StatusNotifierItem);
+const PropertiesProxy = Gio.DBusProxy.makeProxyWrapper(DBusInterfaces.Properties);
 
 /**
  * the AppIndicator class serves as a generic container for indicator information and functions common
@@ -139,13 +62,13 @@ const PropertiesProxy = Gio.DBusProxy.makeProxyWrapper(PropertiesIface);
  */
 const AppIndicator = new Lang.Class({
     Name: 'AppIndicator',
-    
+
     _init: function(bus_name, object) {
         this.ICON_SIZE = Panel.PANEL_ICON_SIZE;
-        
+
         this.busName = bus_name;
         this._iconThemeChangedHandle = Gtk.IconTheme.get_default().connect('changed', this._invalidateIcon.bind(this));
-        
+
         //construct async because the remote object may be busy and irresponsive (example: quassel irc)
         this._props = new PropertiesProxy(Gio.DBus.session, bus_name, object, (function(resutl, error) {
             this._proxy = new StatusNotifierItem(Gio.DBus.session, bus_name, object, (function(result, error) {
@@ -157,7 +80,7 @@ const AppIndicator = new Lang.Class({
                     "Tooltip": this._getChangedEmitter("tooltip", "tooltip"),
                     "XAyatanaLabel": this._getChangedEmitter("label", "label")
                 };
-                
+
                 //this is really just Signals._connect, so we can disconnect them all at once
                 this._proxy.connectSignal('NewStatus', this._propertyUpdater("Status"));
                 this._proxy.connectSignal('NewIcon', this._propertyUpdater("IconName"));
@@ -165,24 +88,28 @@ const AppIndicator = new Lang.Class({
                 this._proxy.connectSignal('NewTitle', this._propertyUpdater("Title"));
                 this._proxy.connectSignal('NewToolTip', this._propertyUpdater("Tooltip"));
                 this._proxy.connectSignal('XAyatanaNewLabel', this._propertyUpdater("XAyatanaLabel"));
-                
+
                 this._propChangedHandle = this._proxy.connect("g-properties-changed", this._propertiesChanged.bind(this));
-                
+
                 this.isConstructed = true;
                 this.emit("constructed");
-                
+
                 this.reset(true);
             }).bind(this));
         }).bind(this));
     },
-    
-    //helper function
+
+    // returns a function that emits the signal `signal` with the argument `this[prop]`
     _getChangedEmitter: function(signal, prop) {
         return Lang.bind(this, function() {
             this.emit(signal, this[prop]);
         });
     },
-    
+
+    // returns a function that updates the cached property for `propertyName`.
+    // (RANT) This only needs to be done because the author of the spec deemed it necessary to use special events
+    // to signal property changes instead of using the standard org.freedesktop.DBus.Properties interface. I still
+    // wonder why.
     _propertyUpdater: function(propertyName) {
         return Lang.bind(this, function() {
             this._props.GetRemote("org.kde.StatusNotifierItem", propertyName, (function(variant, error) {
@@ -193,7 +120,7 @@ const AppIndicator = new Lang.Class({
             );
         });
     },
-    
+
     //public property getters
     get title() {
         return this._proxy.Title;
@@ -220,7 +147,7 @@ const AppIndicator = new Lang.Class({
     get label() {
         return this._proxy.XAyatanaLabel;
     },
-    
+
     //common menu handling
     //async because we may need to check the presence of a menubar object as well as the creation is async.
     getMenu: function(clb) {
@@ -234,11 +161,11 @@ const AppIndicator = new Lang.Class({
             }
         });
     },
-    
+
     _validateMenu: function(bus, path, callback) {
         Gio.DBus.session.call(
-            bus, path, "org.freedesktop.DBus.Properties", "Get", 
-            GLib.Variant.new("(ss)", ["com.canonical.dbusmenu", "Version"]), 
+            bus, path, "org.freedesktop.DBus.Properties", "Get",
+            GLib.Variant.new("(ss)", ["com.canonical.dbusmenu", "Version"]),
             GLib.VariantType.new("(v)"), Gio.DBusCallFlags.NONE, -1, null, function(conn, result) {
                 try {
                     var val = conn.call_finish(result);
@@ -257,14 +184,14 @@ const AppIndicator = new Lang.Class({
             }, null
         );
     },
-    
+
     _propertiesChanged: function(proxy, changed, invalidated) {
         var props = invalidated.concat(Object.keys(changed.deep_unpack()));
         props.forEach(function(e) {
             if (e in this._propChangedEmitters) this._propChangedEmitters[e]();
         }, this);
     },
-    
+
     //only triggers actions
     reset: function(triggerReady) {
         this.emit('status', this.status);
@@ -300,7 +227,7 @@ const AppIndicator = new Lang.Class({
         var gicon = Gio.icon_new_for_string("dialog-info");
         // real_icon_size will contain the actual icon size in contrast to the requested icon size
         var real_icon_size = icon_size;
-        
+
         if (icon_name && icon_name[0] == "/") {
             //HACK: icon is a path name. This is not specified by the api but at least inidcator-sensors uses it.
             var [ format, width, height ] = GdkPixbuf.Pixbuf.get_file_info(icon_name);
@@ -315,27 +242,27 @@ const AppIndicator = new Lang.Class({
         } else if (icon_name) {
             // we manually look up the icon instead of letting st.icon do it for us
             // this allows us to sneak in an indicator provided search path and to avoid ugly upscaled icons
-            
+
             // indicator-application looks up a special "panel" variant, we just replicate that here
             icon_name = icon_name + "-panel";
-            
+
             // icon info as returned by the lookup
             var icon_info = null;
-            
+
             // first, try to look up the icon in the default icon theme
             icon_info = Gtk.IconTheme.get_default().lookup_icon(icon_name, icon_size,
                 Gtk.IconLookupFlags.GENERIC_FALLBACK);
-            
+
             // if that failed, search in the theme path
             if (icon_info === null && this._proxy.IconThemePath) {
                 // construct GtkIconTheme
                 let icon_theme = new Gtk.IconTheme();
                 icon_theme.append_search_path(this._proxy.IconThemePath);
-                
+
                 // lookup icon
                 icon_info = icon_theme.lookup_icon(icon_name, icon_size, Gtk.IconLookupFlags.GENERIC_FALLBACK);
             }
-            
+
             // still no icon? that's bad!
             if (icon_info === null) {
                 log("FATAL: unable to lookup icon for "+icon_name);
@@ -345,15 +272,15 @@ const AppIndicator = new Lang.Class({
                     // stretched icons look very ugly, we avoid that and just show the smaller icon
                     real_icon_size = icon_info.get_base_size();
                 }
-                
+
                // create a gicon for the icon
                gicon = Gio.icon_new_for_string(icon_info.get_filename());
             }
         }
-        
+
         return new St.Icon({ gicon: gicon, icon_size: real_icon_size });
     },
-    
+
     //in contrast to createIcon, this function manages caching.
     //if you don't use the icon anymore, set .inUse to false.
     getIcon: function(icon_size) {
@@ -371,17 +298,17 @@ const AppIndicator = new Lang.Class({
         icon.inUse = true;
         return icon;
     },
-    
+
     //called when the icon theme changes
     _invalidateIcon: function() {
         this._forceIconRedraw = true;
         this._onNewIcon();
     },
-    
+
     _onNewStatus: function() {
         this.emit('status', this.status);
     },
-    
+
     _onNewLabel: function(proxy) {
         this.emit('label', this.label);
     },

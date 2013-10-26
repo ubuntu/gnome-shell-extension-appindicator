@@ -2,14 +2,14 @@
 
 .PHONY= zip-file pot mo schema all
 
+# files that go into the zip
 ZIP= $(wildcard *.js) metadata.json $(wildcard schemas/*) $(wildcard locale/*/LC_MESSAGES/*)
 
-all: pot mo schema
+all: pot mo schema config.js
 
-po/messages.pot: prefs.js
-	xgettext -k_ -o po/messages.pot prefs.js
-	
+# shortcuts
 pot: po/messages.pot
+schema: schemas/gschemas.compiled
 
 mo: $(wildcard po/*.po)
 	mkdir -p locale
@@ -18,13 +18,24 @@ mo: $(wildcard po/*.po)
 		mkdir -p locale/$$name/LC_MESSAGES; \
 		msgfmt $$x -o locale/$$name/LC_MESSAGES/gnome-shell-appindicator-support.mo; \
 	done;
-	
+
+config.js: config.js.sh
+	sh config.js.sh > config.js
+
+po/messages.pot: prefs.js
+	xgettext -k_ -o po/messages.pot prefs.js
+
 schemas/gschemas.compiled: $(wildcard schemas/*.gschema.xml)
 	glib-compile-schemas schemas
-	
-schema: schemas/gschemas.compiled
 
 zip-file: $(ZIP) mo schema
 	mkdir -p build
 	rm -f build/appindicator-support.zip
 	zip build/appindicator-support.zip $(ZIP)
+
+clean:
+	rm -rf build
+	rm -f config.js
+	rm -f schemas/gschemas.compiled
+	rm -f po/messages.pot
+	rm -rf locale

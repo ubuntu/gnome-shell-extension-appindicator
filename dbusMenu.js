@@ -6,7 +6,7 @@
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -28,90 +28,10 @@ const Shell = imports.gi.Shell;
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Util = Extension.imports.util;
+const Interfaces = Extension.imports.interfaces;
 
-//copied from libdbusmenu
-const DBusMenuInterface = <interface name="com.canonical.dbusmenu">
-<!-- Properties -->
-        <property name="Version" type="u" access="read">
-        </property>
-        <property name="TextDirection" type="s" access="read">
-        </property>
-        <property name="Status" type="s" access="read">
-        </property>
-        <property name="IconThemePath" type="as" access="read">
-        </property>
-<!-- Functions -->
-        <method name="GetLayout">
-            <arg type="i" name="parentId" direction="in" />
-            <arg type="i" name="recursionDepth" direction="in" />
-            <arg type="as" name="propertyNames" direction="in"  />
-            <arg type="u(ia{sv}av)" name="layout" direction="out" />
-        </method>
-        <method name="GetGroupProperties">
-            <arg type="ai" name="ids" direction="in" >
-            </arg>
-            <arg type="as" name="propertyNames" direction="in" >
-            </arg>
-            <arg type="a(ia{sv})" name="properties" direction="out" >
-            </arg>
-        </method>
-        <method name="GetProperty">
-            <arg type="i" name="id" direction="in">
-            </arg>
-            <arg type="s" name="name" direction="in">
-            </arg>
-            <arg type="v" name="value" direction="out">
-            </arg>
-        </method>
-        <method name="Event">
-            <arg type="i" name="id" direction="in" >
-            </arg>
-            <arg type="s" name="eventId" direction="in" >
-            </arg>
-            <arg type="v" name="data" direction="in" >
-            </arg>
-            <arg type="u" name="timestamp" direction="in" >
-            </arg>
-        </method>
-        <method name="EventGroup">
-            <arg type="a(isvu)" name="events" direction="in">
-            </arg>
-            <arg type="ai" name="idErrors" direction="out">
-            </arg>
-        </method>
-        <method name="AboutToShow">
-            <arg type="i" name="id" direction="in">
-            </arg>
-            <arg type="b" name="needUpdate" direction="out">
-            </arg>
-        </method>
-        <method name="AboutToShowGroup">
-            <arg type="ai" name="ids" direction="in">
-            </arg>
-            <arg type="ai" name="updatesNeeded" direction="out">
-            </arg>
-            <arg type="ai" name="idErrors" direction="out">
-            </arg>
-        </method>
-<!-- Signals -->
-        <signal name="ItemsPropertiesUpdated">
-            <arg type="a(ia{sv})" name="updatedProps" direction="out" />
-            <arg type="a(ias)" name="removedProps" direction="out" />
-        </signal>
-        <signal name="LayoutUpdated">
-            <arg type="u" name="revision" direction="out" />
-            <arg type="i" name="parent" direction="out" />
-        </signal>
-        <signal name="ItemActivationRequested">
-            <arg type="i" name="id" direction="out" >
-            </arg>
-            <arg type="u" name="timestamp" direction="out" >
-            </arg>
-        </signal>
-<!-- End of interesting stuff -->
-    </interface>
 
-const DBusMenuProxy = Gio.DBusProxy.makeProxyWrapper(DBusMenuInterface);
+const DBusMenuProxy = Gio.DBusProxy.makeProxyWrapper(Interfaces.DBusMenu);
 
 /**
  * Menu:
@@ -128,32 +48,32 @@ const Menu = new Lang.Class({
 
     _init: function(name, path) {
         this.parent();
-        
+
         //bus settings
         this._lateMixin.busName = name;
         this._lateMixin.path = path;
     },
-    
+
     _conserve: [
         'open'
     ],
-    
+
     _mixinInit: function(callback) {
         this._proxy = new DBusMenuProxy(Gio.DBus.session,this.busName, this.path, (function(result, error) {
-            
+
             // compact representation of a tree
             this._children = [ ];
             this._parents = { '0': null };
             this._itemProperties = { '0': { } };
             this._items = [ ];
-            
+
             this._proxy.connectSignal('ItemsPropertiesUpdated', Lang.bind(this, this._itemsPropertiesUpdated));
             this._proxy.connectSignal('ItemUpdated', Lang.bind(this, this._itemUpdated));
             this._proxy.connectSignal('LayoutUpdated', Lang.bind(this, this._layoutUpdated));
             this._revision = 0;
-            
+
             this._readLayoutQueue = new Util.AsyncTaskQueue();
-            
+
             // AboutToShow should be called when the menu is opened. Because that would notably slow down displaying it,
             // we'll fake the call here and read the layout afterwards, no matter if we needed to.
             // FIXME: this is async, do we need a callback here?
@@ -162,33 +82,33 @@ const Menu = new Lang.Class({
             }).bind(this));
         }).bind(this));
     },
-    
+
     _mixin: {
         reset: function() {
-            this._readLayout(0);        
+            this._readLayout(0);
         },
 
         _readLayout: function(subtree, callback) {
             //HACK: readLayout calls can intefere with each other, therefore we need to make sure they're serialized.
             this._readLayoutQueue.add(this._doReadLayout.bind(this, subtree), callback);
         },
-        
+
         _doReadLayout: function(subtree, callback) {
              this._proxy.GetLayoutRemote(subtree, -1, ['id'], (function(result, error) {
                 if (error) {
                     log(error);
                     log(error.stack);
-                } 
+                }
                 var revision = result[0];
                 var root = result[1];
-                
+
                 if (revision < this._revision) {
                     // this happens when skype sends LayoutUpdated events for non-existent menu items.
                     log("WARNING: trying to update layout with revision "+revision+" while we're at "+this._revision);
                     if (callback) callback();
                     return;
                 }
-                
+
                 var toFinish = 1; //we need to keep track of finished recurse operations since they're all async
                 function recurse(element, finished) {
                     let id = element[0];
@@ -210,26 +130,26 @@ const Menu = new Lang.Class({
                         if (finished) finished();
                     }
                 }
-                
+
                 var recurse_finish = (function() {
                     this._revision = revision;
                     if (this._items[subtree]) this._buildMenu(subtree);
                     this._GCItems();
                     if (callback) callback();
                 }).bind(this);
-                
+
                 if (subtree == 0) {
                     recurse.call(this, root, recurse_finish);
                 } else {
                     this._readItem(subtree, recurse.bind(this, root, recurse_finish));
                 }
-                
-                
+
+
             }).bind(this));
         },
 
         _readItem: function(id, callback) {
-            this._proxy.GetGroupPropertiesRemote([id], [], Lang.bind(this, function (result, error) { 
+            this._proxy.GetGroupPropertiesRemote([id], [], Lang.bind(this, function (result, error) {
                 if (error) {
                     log("While reading item "+id+" on "+this.busName+this.path+": ");
                     log(error);
@@ -244,13 +164,13 @@ const Menu = new Lang.Class({
                     //the unpacking algorithm is very strange...
                     var props = result[0][0][1];
                     for (var i in props) {
-                        if (i == 'icon-data') { 
-                            //HACK: newer gjs can transform byte arrays in GBytes automatically, but the versions 
+                        if (i == 'icon-data') {
+                            //HACK: newer gjs can transform byte arrays in GBytes automatically, but the versions
                             //      commonly found bundled with GS 3.6 (Ubuntu 12.10, 13.04) don't do that :(
                             props[i] = Util.variantToGBytes(props[i]);
                         } else {
                             props[i] = props[i].deep_unpack();
-                        } 
+                        }
                     }
                     this._itemProperties[id] = props;
                     if(id == 0)
@@ -259,7 +179,7 @@ const Menu = new Lang.Class({
                         this._replaceItem(id, true);
                 }
                 if (callback) callback();
-            }));        
+            }));
         },
 
         _GCItems: function() {
@@ -320,12 +240,12 @@ const Menu = new Lang.Class({
             if (typeof(id) == "undefined") throw new Error("called _replaceItem with undefined id");
             let position = 0;
             let parent = this._parents[id];
-            
+
             if (typeof(parent) == "undefined") {
                 log("WARNING: _replaceItem: parent of "+id+" is undefined!");
                 return;
             }
-            
+
             if (parent != 0 && (!this._items[parent] || !this._items[parent].menu)) {
                 // parent is not ready, rebuild it
                 this._replaceItem(parent);
@@ -413,7 +333,7 @@ const Menu = new Lang.Class({
             }
             else
                 stitem = new PopupMenu.PopupMenuItem(label, { reactive: reactive });
-            
+
             if (visible)
                 stitem.actor.show();
             else
@@ -448,7 +368,7 @@ const Menu = new Lang.Class({
                 }, this);
             }, this);
         },
-        
+
         _itemPropertyUpdated: function (proxy, id, property, value) {
             if (!this._itemProperties[id]) {
                 //we don't have any properties yet, this means we don't even deal with the item
@@ -554,13 +474,13 @@ const Menu = new Lang.Class({
             this.visible = properties['visible'];
             this.emit('root-changed');
         },
-        
+
         destroyDbusMenu: function() {
             this._GCItems();
             Signals._disconnectAll.apply(this._proxy);
             delete this._proxy;
         },
-        
+
         open: function() {
             //HACK: We already opened the menu once and called AboutToShow, but Skype doesn't seem to be interested
             //      in exposing the whole menu at construction time, so we need to send AboutToShow again.

@@ -6,7 +6,7 @@
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -26,6 +26,10 @@ const GLib = imports.gi.GLib;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const AppIndicator = Extension.imports.appIndicator;
 const StatusNotifierDispatcher = Extension.imports.statusNotifierDispatcher;
+const Interfaces = Extension.imports.interfaces;
+
+const Config = Extension.imports.config;
+const ShellConfig = imports.misc.config;
 
 // TODO: replace with org.freedesktop and /org/freedesktop when approved
 const KDE_PREFIX = 'org.kde';
@@ -38,37 +42,14 @@ const WATCHER_OBJECT = '/StatusNotifierWatcher';
 
 const ITEM_OBJECT = '/StatusNotifierItem';
 
-const StatusNotifierWatcherIface = <interface name="org.kde.StatusNotifierWatcher">
-    <method name="RegisterStatusNotifierItem">
-        <arg type="s" direction="in" />
-    </method>
-    <method name="RegisterNotificationHost">
-        <arg type="s" direction="in" />
-    </method>
-    <property name="RegisteredStatusNotifierItems" type="as" access="read" />
-    <method name="ProtocolVersion">
-        <arg type="s" direction="out" />
-    </method>
-    <method name="IsNotificationHostRegistered">
-        <arg type="b" direction="out" />
-    </method>
-    <signal name="ServiceRegistered">
-        <arg type="s" direction="out" />
-    </signal>
-    <signal name="ServiceUnregistered">
-        <arg type="s" direction="out" />
-    </signal>
-    <property name="IsStatusNotifierHostRegistered" type="b" access="read" />
-</interface>;
-
 /*
  * The StatusNotifierWatcher class implements the StatusNotifierWatcher dbus object
  */
 const StatusNotifierWatcher = new Lang.Class({
     Name: 'StatusNotifierWatcher',
-    
+
     _init: function() {
-        this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(StatusNotifierWatcherIface, this);
+        this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(Interfaces.StatusNotifierWatcher, this);
         this._dbusImpl.export(Gio.DBus.session, WATCHER_OBJECT);
         this._everAcquiredName = false;
         this._ownName = Gio.DBus.session.own_name(WATCHER_BUS_NAME,
@@ -90,11 +71,11 @@ const StatusNotifierWatcher = new Lang.Class({
             log('appindicator: Failed to acquire ' + WATCHER_BUS_NAME);
         }
     },
-    
-    
+
+
     // create a unique index for the _items dictionary
     _getItemId: function(bus_name, obj_path) {
-        return bus_name + obj_path; 
+        return bus_name + obj_path;
     },
 
     RegisterStatusNotifierItemAsync: function(params, invocation) {
@@ -112,7 +93,7 @@ const StatusNotifierWatcher = new Lang.Class({
         }
 
         let id = this._getItemId(bus_name, obj_path);
-        
+
         if(this._items[id]) {
             //delete the old one and add the new indicator
             log("WARNING: Attempting to re-register "+id+"; resetting instead");
@@ -137,7 +118,7 @@ const StatusNotifierWatcher = new Lang.Class({
             }
         }
     },
-    
+
     _remove: function(id) {
         this._items[id].destroy();
         delete this._items[id];
@@ -146,7 +127,7 @@ const StatusNotifierWatcher = new Lang.Class({
         this._dbusImpl.emit_signal('ServiceUnregistered', GLib.Variant.new('(s)', id));
         this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems', null);
     },
-    
+
     RegisterNotificationHost: function(service) {
         throw new Gio.DBusError('org.gnome.Shell.UnsupportedMethod',
                         'Registering additional notification hosts is not supported');
@@ -159,17 +140,17 @@ const StatusNotifierWatcher = new Lang.Class({
     ProtocolVersion: function() {
         // "The version of the protocol the StatusNotifierWatcher instance implements." [sic]
         // in what syntax?
-        return 'GNOME/3.6 (KDE; compatible; mostly) Shell/3.6.0';
+        return "%s/%s (KDE; compatible; mostly) GNOME Shell/%s".format(Config.id, Config.version, ShellConfig.PACKAGE_VERSION);
     },
 
     get RegisteredStatusNotifierItems() {
         return Object.keys(this._items);
     },
-    
+
     get IsStatusNotifierHostRegistered() {
         return true;
     },
-    
+
     destroy: function() {
         if (!this._isDestroyed) {
             // this doesn't do any sync operation and doesn't allow us to hook up the event of being finished
