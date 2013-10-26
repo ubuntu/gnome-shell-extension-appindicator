@@ -91,6 +91,12 @@ const AppIndicator = new Lang.Class({
 
                 this._propChangedHandle = this._proxy.connect("g-properties-changed", this._propertiesChanged.bind(this));
 
+                // Whenever the status changes, we might also have a changed icon.
+                // So we emit an event for that, too, whenever we have a new status.
+                this.connect("status", function() {
+                    this.emit("icon", this.icon);
+                }.bind(this));
+
                 this.isConstructed = true;
                 this.emit("constructed");
 
