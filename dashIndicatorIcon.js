@@ -281,9 +281,9 @@ const CustomAppIconMenu = new Lang.Class({
     },
 
     _setDbusMenu: function() {
-        this._indicator.getMenu((function(menu){ //bind the indicator menu to app indicator menu
+        this._indicator.getMenuClient((function(menu){ //bind the indicator menu to app indicator menu
             if (menu != null) {
-                menu.attach(this);
+                menu.attachToMenu(this);
             }
         }).bind(this));
     },

@@ -53,18 +53,11 @@ const IndicatorMessageSource = new Lang.Class({
             h.push(this._indicator.connect('ready', Lang.bind(this, this._display)));
             h.push(this._indicator.connect('reset', Lang.bind(this, this._reset)));
             
-            this.connect('clicked', Lang.bind(this, this._handleClicked));
             if (this._indicator.isReady) {
                 this._updateIcon();
                 this._display();
             }
         }).bind(this));
-    },
-    
-    _handleClicked: function() {
-        if (this._notification._menu) {
-            this._notification._menu.preOpen();
-        }
     },
     
     _display: function() {
@@ -115,7 +108,7 @@ const IndicatorMessageSource = new Lang.Class({
         if (fromDispatcher) {
             log("Destroying "+this._indicator.id);
             this._indicatorHandlerIds.forEach(this._indicator.disconnect.bind(this._indicator));
-            if (this._notification._menu) this._notification._menu.destroyDbusMenu();
+            if (this._notification._menu) this._notification._menu.destroy();
             this._iconBox.remove_all_children();
             MessageTray.Source.prototype.destroy.apply(this);
         }
@@ -159,12 +152,25 @@ const PopupMenuEmbedded = new Lang.Class({
         
         this.actor = box;
         this.actor._delegate = this;
-        this.isOpen = true;
     },
-    
-    //ignore.
-    open: function() { },
-    close: function() { }
+
+    open: function() {
+        // "light" variant that only sends the event
+        if (this.isOpen)
+            return;
+
+        this.isOpen = true;
+
+        this.emit('open-state-changed', true);
+    },
+
+    close: function() {
+        if (!this.isOpen)
+            return;
+
+        this.isOpen = false;
+        this.emit('open-state-changed', false);
+    }
 })
 
 /*
@@ -182,12 +188,12 @@ const IndicatorNotification = new Lang.Class({
         this.enableScrolling(false);
         this.actor.destroy();
         this.actor = this._box; //HACK: force the whole bubble to be our menu
-        
-        source._indicator.getMenu((function(menu) {
-            if (menu) {
+
+        source._indicator.getMenuClient((function(client) {
+            if (client) {
                 this._menu = new PopupMenuEmbedded();
                 this._box.add_actor(this._menu.actor);
-                menu.attach(this._menu, cb);
+                client.attachToMenu(this._menu, cb);
             } else {
                 cb();
             }

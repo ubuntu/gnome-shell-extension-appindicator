@@ -23,6 +23,8 @@ const DBusMenu = Extension.imports.dbusMenu;
 const Main = imports.ui.main;
 const Panel = imports.ui.panel;
 const Clutter = imports.gi.Clutter;
+const PopupMenu = imports.ui.popupMenu;
+
 
 /*
  * IndicatorStatusIcon implements an icon in the system status area
@@ -120,16 +122,22 @@ const IndicatorStatusIcon = new Lang.Class({
     },
     
     _display: function() {
-        var display_finish = (function(){
+        var display_finish = (function(error, result){
+            if (error) {
+                log(error)
+                log(error.stack)
+            }
+
             Main.panel.addToStatusArea("appindicator-"+this._indicator.id, this, 1, 'right');
         }).bind(this);
         
-        this._indicator.getMenu((function(menu){
-            if (menu != null) {
-                menu.attach(this.menu, display_finish);
+        this._indicator.getMenuClient((function(client){
+            if (client != null) {
+                client.attachToMenu(this.menu, display_finish);
             } else {
                 display_finish();
             }
+            
         }).bind(this));
     },
     

@@ -28,7 +28,6 @@ const GdkPixbuf = imports.gi.GdkPixbuf;
 
 const Panel = imports.ui.panel;
 
-
 const Gettext = imports.gettext.domain('gnome-shell');
 const _ = Gettext.gettext;
 
@@ -158,14 +157,16 @@ const AppIndicator = new Lang.Class({
         return this._proxy.XAyatanaLabel;
     },
 
-    //common menu handling
     //async because we may need to check the presence of a menubar object as well as the creation is async.
-    getMenu: function(clb) {
+    getMenuClient: function(clb) {
         var path = this._proxy.Menu || "/MenuBar";
         this._validateMenu(this.busName, path, function(r, name, path) {
             if (r) {
                 log("creating menu on "+[name, path]);
-                clb(new DBusMenu.Menu(name, path));
+                let client = new DBusMenu.Client(Gio.DBus.session, name, path);
+                client.init(function() {
+                    clb(client);
+                });
             } else {
                 clb(null);
             }
