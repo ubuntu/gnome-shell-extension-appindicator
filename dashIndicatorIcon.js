@@ -236,6 +236,15 @@ const CustomDashIcon = new Lang.Class({
         if (button == 1) {
             this._timestamp= new Date().getTime(); //set new time for open window
             this._indicator.open();
+            if(this._application) //If indicator is matched to an application, window activate function of app. Else, use indicator default action
+            {
+                this._application.activate();
+                Main.overview.hide();
+            }
+            else
+            {
+                this._indicator.open();
+            }
             return true;
         }
         else if (button == 3) {
