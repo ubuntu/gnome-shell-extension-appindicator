@@ -25,7 +25,7 @@ const PopupMenu = imports.ui.popupMenu;
 const Shell = imports.gi.Shell;
 
 
-const DEFAULT_BACKGROUND_IMAGE ='avatar-default';
+const DEFAULT_BACKGROUND_IMAGE = 'gnome-foot';
 const STATUSICONSIZE=40;
 
 
