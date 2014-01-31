@@ -26,7 +26,7 @@ const Shell = imports.gi.Shell;
 
 
 const DEFAULT_BACKGROUND_IMAGE = 'gnome-foot';
-const STATUSICONSIZE=40;
+const STATUSICONSCALEFACTOR=0.4;
 
 
 const CustomDashIcon = new Lang.Class({
@@ -201,8 +201,7 @@ const CustomDashIcon = new Lang.Class({
     },
 
     _createIcon: function(size) {
-        let iconsize= ((size < STATUSICONSIZE) ? size : STATUSICONSIZE);  //if requested size is smaller than maximum size, use requested size
-        return this._indicator.createIcon(iconsize);
+        return this._indicator.createIcon(Main.overview._dash.iconSize*STATUSICONSCALEFACTOR);
     },
 
     _updateIcon: function() {
