@@ -60,6 +60,18 @@ const CustomDashIcon = new Lang.Class({
         //try to associate an app to the indicator
         let thisapp = Shell.AppSystem.get_default().lookup_app(this._indicator.id+'.desktop');
 
+        //if id matching failed, try label
+        if(!thisapp)
+        {
+            thisapp = Shell.AppSystem.get_default().lookup_app(this._indicator.label+'.desktop');
+        }
+
+        //if id and label matching failed, try title
+        if(!thisapp)
+        {
+            thisapp = Shell.AppSystem.get_default().lookup_app(this._indicator.title+'.desktop');
+        }
+
         if(thisapp)
         {
             this._application=thisapp;
