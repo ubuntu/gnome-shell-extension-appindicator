@@ -143,6 +143,9 @@ const CustomDashIcon = new Lang.Class({
             if (!isPoppedUp)
             {
                 this.actor.sync_hover();  //unselects the button if menu is popped down
+            }
+            else
+            {
                 this.hideLabel();  //be sure the label is hidden.
             }
         }));
