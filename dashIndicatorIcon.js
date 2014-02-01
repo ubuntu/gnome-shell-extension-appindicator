@@ -23,6 +23,8 @@ const AppFavorites = imports.ui.appFavorites;
 const IconGrid = imports.ui.iconGrid;
 const PopupMenu = imports.ui.popupMenu;
 const Shell = imports.gi.Shell;
+const ExtensionSystem = imports.ui.extensionSystem;
+const ExtensionUtils = imports.misc.extensionUtils;
 
 
 const DEFAULT_BACKGROUND_IMAGE = 'gnome-foot';
@@ -36,6 +38,18 @@ const CustomDashIcon = new Lang.Class({
     _init: function(indicator) {
         this._indicator = indicator;
         this.parent();
+
+        this._usedDash = Main.overview._dash;
+
+        //Determine if dash-to-dock extension is running. If yes, add indicator to the dock, otherwise to the standard dash.
+        if(ExtensionSystem.getEnabledExtensions().indexOf('dash-to-dock@micxgx.gmail.com')!=-1)
+        {
+            let extension = ExtensionUtils.extensions['dash-to-dock@micxgx.gmail.com'];
+            if (extension)
+            {
+                this._usedDash = extension.stateObj.dock.dash;
+            }
+        }
 
         this.actor = new St.Button({ style_class: 'app-well-app',
             reactive: true,
@@ -96,7 +110,7 @@ const CustomDashIcon = new Lang.Class({
             }
 
             //block all other icons matching the indicator in dash, every time it is created
-            this.actoraddedid= Main.overview._dash._box.connect('actor_added', Lang.bind(this,function(container, actor){
+            this.actoraddedid= this._usedDash._box.connect('actor_added', Lang.bind(this,function(container, actor){
                 if(actor.child && actor.child._delegate && actor.child._delegate.app)
                 {
                     if(actor.child._delegate.app.get_id() == this._appid)
@@ -120,7 +134,7 @@ const CustomDashIcon = new Lang.Class({
                                          showLabel: false,
                                          createIcon: Lang.bind(this, this._createIcon) });
 
-        this.icon.setIconSize(Main.overview._dash.iconSize);
+        this.icon.setIconSize(this._usedDash.iconSize);
         this.actor.add_actor(this.icon.actor);
 
         //connect button actors
@@ -183,7 +197,7 @@ const CustomDashIcon = new Lang.Class({
         //remove any appicon icons that match the app indicator id
         if(this._appid!="")
         {
-            let children = Main.overview._dash._box.get_children().filter(function(actor) {
+            let children = this._usedDash._box.get_children().filter(function(actor) {
                 return actor.child &&
                 actor.child._delegate &&
                 actor.child._delegate.app;
@@ -200,8 +214,8 @@ const CustomDashIcon = new Lang.Class({
             }
         }
 
-        Main.overview._dash._box.insert_child_at_index(this, Main.overview._dash._box.get_children().length);
-        Main.overview._dash._redisplay(); //make sure the size of the dash is correct
+        this._usedDash._box.insert_child_at_index(this, this._usedDash._box.get_children().length);
+        this._usedDash._redisplay(); //make sure the size of the dash is correct
     },
 
 
@@ -216,11 +230,11 @@ const CustomDashIcon = new Lang.Class({
     },
 
     _createIcon: function(size) {
-        return this._indicator.createIcon(Main.overview._dash.iconSize*STATUSICONSCALEFACTOR);
+        return this._indicator.createIcon(this._usedDash.iconSize*STATUSICONSCALEFACTOR);
     },
 
     _updateIcon: function() {
-        this.icon._createIconTexture(Main.overview._dash.iconSize);
+        this.icon._createIconTexture(this._usedDash.iconSize);
     },
 
 
@@ -274,7 +288,7 @@ const CustomDashIcon = new Lang.Class({
         this._menu.disconnect(this.menuopenstateid);
         Main.overview.disconnect(this.menuoverviewid);
         if(this.actoraddedid!=0)
-            Main.overview._dash._box.disconnect(this.actoraddedid);
+            this._usedDash._box.disconnect(this.actoraddedid);
 
         if(this._appid!="" && this._favouriteposition!=-1) //re-add favourite, if it was removed
         {
@@ -288,7 +302,7 @@ const CustomDashIcon = new Lang.Class({
 
         this.parent();
 
-        Main.overview._dash._redisplay(); //make sure the size of the dash is correct
+        this._usedDash._redisplay(); //make sure the size of the dash is correct
     }
 });
 
