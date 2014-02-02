@@ -259,22 +259,23 @@ const AppIndicator = new Lang.Class({
 
             // icon info as returned by the lookup
             var icon_info = null;
-
-            // first, try to look up the icon in the default icon theme
-            icon_info = Gtk.IconTheme.get_default().lookup_icon(icon_name, icon_size,
-                Gtk.IconLookupFlags.GENERIC_FALLBACK);
-
-            // if that failed, search in the theme path
-            if (icon_info === null && this._proxy.IconThemePath) {
-                // construct GtkIconTheme
-                let icon_theme = new Gtk.IconTheme();
+            
+            // we try to avoid messing with the default icon theme, so we'll create a new one if needed
+            if (this._proxy.IconThemePath) {
+                var icon_theme = new Gtk.IconTheme();
+                Gtk.IconTheme.get_default().get_search_path().forEach(function(path) {
+                    icon_theme.append_search_path(path)
+                });
                 icon_theme.append_search_path(this._proxy.IconThemePath);
-
-                // lookup icon
-                icon_info = icon_theme.lookup_icon(icon_name, icon_size, Gtk.IconLookupFlags.GENERIC_FALLBACK);
+            } else {
+                var icon_theme = Gtk.IconTheme.get_default();
             }
 
-            // still no icon? that's bad!
+            // try to look up the icon in the icon theme
+            icon_info = icon_theme.lookup_icon(icon_name, icon_size,
+                Gtk.IconLookupFlags.GENERIC_FALLBACK);
+
+            // no icon? that's bad!
             if (icon_info === null) {
                 log("FATAL: unable to lookup icon for "+icon_name);
             } else { // we have an icon
@@ -284,8 +285,8 @@ const AppIndicator = new Lang.Class({
                     real_icon_size = icon_info.get_base_size();
                 }
 
-               // create a gicon for the icon
-               gicon = Gio.icon_new_for_string(icon_info.get_filename());
+                // create a gicon for the icon
+                gicon = Gio.icon_new_for_string(icon_info.get_filename());
             }
         }
 
