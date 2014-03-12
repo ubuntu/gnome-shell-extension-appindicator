@@ -3,7 +3,7 @@
 .PHONY= zip-file pot mo schema all
 
 # files that go into the zip
-ZIP= $(wildcard *.js) metadata.json $(wildcard schemas/*) $(wildcard locale/*/LC_MESSAGES/*)
+ZIP= $(wildcard *.js) metadata.json $(wildcard schemas/*) $(wildcard locale/*/LC_MESSAGES/*) $(wildcard interfaces-xml/*)
 
 all: pot mo schema config.js
 
