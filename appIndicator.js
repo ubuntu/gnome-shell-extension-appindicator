@@ -259,7 +259,7 @@ const AppIndicator = new Lang.Class({
 
             // icon info as returned by the lookup
             var icon_info = null;
-            
+
             // we try to avoid messing with the default icon theme, so we'll create a new one if needed
             if (this._proxy.IconThemePath) {
                 var icon_theme = new Gtk.IconTheme();
@@ -290,7 +290,22 @@ const AppIndicator = new Lang.Class({
             }
         }
 
-        return new St.Icon({ gicon: gicon, icon_size: real_icon_size });
+        let icon = new St.Icon({ gicon: gicon, icon_size: real_icon_size });
+
+        // make sure to return an actor that has the appropriate size, even if
+        // the icon we found is smaller.
+        if (real_icon_size < icon_size) {
+            log("small icon adjustment");
+            return new St.Bin({
+                width: icon_size,
+                height: icon_size,
+                child: icon,
+                x_fill: false,
+                y_fill: false
+            });
+        } else {
+            return icon;
+        }
     },
 
     //in contrast to createIcon, this function manages caching.
