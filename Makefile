@@ -23,7 +23,7 @@ config.js: config.js.sh
 	sh config.js.sh > config.js
 
 po/messages.pot: prefs.js
-	xgettext -k_ -o po/messages.pot prefs.js
+	xgettext --from-code=UTF-8 -k_ -o po/messages.pot prefs.js
 
 schemas/gschemas.compiled: $(wildcard schemas/*.gschema.xml)
 	glib-compile-schemas schemas
