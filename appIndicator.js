@@ -267,6 +267,7 @@ const AppIndicator = new Lang.Class({
                     icon_theme.append_search_path(path)
                 });
                 icon_theme.append_search_path(this._proxy.IconThemePath);
+                icon_theme.set_screen(imports.gi.Gdk.Screen.get_default());
             } else {
                 var icon_theme = Gtk.IconTheme.get_default();
             }
