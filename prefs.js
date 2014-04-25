@@ -104,12 +104,13 @@ function aboutPage() {
     versionLbl.set_markup("<span size='large' weight='light'>"+Config.version+"</span>");
 
     var copyrightLbl = new Gtk.Label();
-    copyrightLbl.set_markup("Copyright (C) 2013 <a href=\"mailto:rgcjonas@gmail.com\">Jonas Kümmerlin</a>");
+    copyrightLbl.set_markup("Copyright (C) 2013-2014 <a href=\"mailto:rgcjonas@gmail.com\">Jonas Kümmerlin</a>");
 
     var specialThanksFrame = new Gtk.Frame({ label: _(" Special thanks ") });
 
     var specialPersons = {};
     specialPersons[_("<a href=\"https://bugzilla.gnome.org/show_bug.cgi?id=652122\">Initial patches</a>:")] = "<a href='mailto:scampa.giovanni@gmail.com'>Giovanni Campagna</a>";
+    specialPersons[_("Dash placement:")] = "<a href=\"mailto:thomassc@ee.oulu.fi\">Thomas Schaberreiter</a>";
     specialPersons[_("Turkish translation:")] = "<a href=\"mailto:dkavraal@gmail.com\">Dincer Kavraal</a>";
     specialPersons[_("Spanish translation:")] = "<a href=\"mailto:damiannohales@gmail.com\">Damián Nohales</a>";
     specialPersons[_("Italian translation:")] = "<a href=\"mailto:david.dep.1996@gmail.com\">Davide Depau</a>";
