@@ -112,7 +112,8 @@ function aboutPage() {
     specialPersons[_("<a href=\"https://bugzilla.gnome.org/show_bug.cgi?id=652122\">Initial patches</a>:")] = "<a href='mailto:scampa.giovanni@gmail.com'>Giovanni Campagna</a>";
     specialPersons[_("Turkish translation:")] = "<a href=\"mailto:dkavraal@gmail.com\">Dincer Kavraal</a>";
     specialPersons[_("Spanish translation:")] = "<a href=\"mailto:damiannohales@gmail.com\">Damián Nohales</a>";
-    specialPersons[_("Italian translation:")] = "<a href=\"david.dep.1996@gmail.com\">Davide Depau</a>";
+    specialPersons[_("Italian translation:")] = "<a href=\"mailto:david.dep.1996@gmail.com\">Davide Depau</a>";
+    specialPersons[_("Polish translation:")] = "<a href=\"mailto:ozamorowski@gmail.com\">Oskar Zamorowski</a>";
 
     var specialPersonsGrid = new Gtk.Grid({ "row-spacing": 5, "column-spacing": 5, margin: 10 });
     {
@@ -328,4 +329,3 @@ function debugInfoToClipboard(obj) {
 
     obj.get_parent().remove(entry);
 }
-
