@@ -31,7 +31,7 @@ schemas/gschemas.compiled: $(wildcard schemas/*.gschema.xml)
 zip-file: $(ZIP) mo schema config.js
 	mkdir -p build
 	rm -f build/appindicator-support.zip
-	zip build/appindicator-support.zip $(ZIP) config.js
+	zip build/appindicator-support.zip *.js *.json locale/*/LC_MESSAGES/* schemas/* interfaces-xml/*
 
 clean:
 	rm -rf build

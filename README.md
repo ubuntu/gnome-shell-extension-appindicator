@@ -52,6 +52,8 @@ This section serves as reminder for the current maintainer and as instruction se
 * The maintainer decides when to release a new version.
 * Versions are tagged (and signed). Version numbers sould be kept in sync with the versions submitted to `extensions.gnome.org`.
   This implies that version numbers are integers that will be incremented which each release.
-* The maintainer will tag a new version and the do a `make clean; make zip` to generate the zip file which is immediately uploaded to `extensions.gnome.org`
+* The maintainer will tag a new version and the do a `make clean; make zip-file` to generate the zip file.
+* The zip file will be tested to ensure that nothing was missing when packaging it.
+* Only if it passed, it is uploaded to `extensions.gnome.org` and the tag is pushed.
 
 This release process has been in place since v9.
