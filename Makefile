@@ -28,10 +28,10 @@ po/messages.pot: prefs.js
 schemas/gschemas.compiled: $(wildcard schemas/*.gschema.xml)
 	glib-compile-schemas schemas
 
-zip-file: $(ZIP) mo schema
+zip-file: $(ZIP) mo schema config.js
 	mkdir -p build
 	rm -f build/appindicator-support.zip
-	zip build/appindicator-support.zip $(ZIP)
+	zip build/appindicator-support.zip $(ZIP) config.js
 
 clean:
 	rm -rf build
