@@ -27,6 +27,7 @@ const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const AppIndicator = Extension.imports.appIndicator;
 const StatusNotifierDispatcher = Extension.imports.statusNotifierDispatcher;
 const Interfaces = Extension.imports.interfaces;
+const Util = Extension.imports.util;
 
 const Config = Extension.imports.config;
 const ShellConfig = imports.misc.config;
@@ -66,10 +67,9 @@ const StatusNotifierWatcher = new Lang.Class({
 
     _lostName: function() {
         if (this._everAcquiredName)
-            log('appindicator: Lost name' + WATCHER_BUS_NAME);
-        else {
-            log('appindicator: Failed to acquire ' + WATCHER_BUS_NAME);
-        }
+            Util.Logger.debug('Lost name' + WATCHER_BUS_NAME);
+        else
+            Util.Logger.warn('Failed to acquire ' + WATCHER_BUS_NAME);
     },
 
 
@@ -96,10 +96,10 @@ const StatusNotifierWatcher = new Lang.Class({
 
         if(this._items[id]) {
             //delete the old one and add the new indicator
-            log("WARNING: Attempting to re-register "+id+"; resetting instead");
+            Util.Logger.warn("Attempting to re-register "+id+"; resetting instead");
             this._items[id].reset();
         } else {
-            log("registering "+id+" for the first time.");
+            Util.Logger.debug("registering "+id+" for the first time.");
             this._items[id] = new AppIndicator.AppIndicator(bus_name, obj_path);
             this._dbusImpl.emit_signal('ServiceRegistered', GLib.Variant.new('(s)', service));
             this._nameWatcher[id] = Gio.DBus.session.watch_name(bus_name, Gio.BusNameWatcherFlags.NONE, null,

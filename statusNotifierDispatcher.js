@@ -24,6 +24,7 @@ const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon;
 const IndicatorMessageSource = Extension.imports.indicatorMessageSource;
 const DashIndicatorIcon = Extension.imports.dashIndicatorIcon;
 const Settings = Extension.imports.settings.Settings;
+const Util = Extension.imports.util;
 
 /*
  * The IndicatorDispatcher class will get all newly added or changed indicators
@@ -62,7 +63,7 @@ const IndicatorDispatcher = new Lang.Class({
                  this._add(indicator);
              }
          } else {
-             log("unknown status on "+indicator.id+": "+status)
+             Util.Logger.warn("unknown status on "+indicator.id+": "+status)
          }
      },
      

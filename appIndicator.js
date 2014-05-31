@@ -162,7 +162,7 @@ const AppIndicator = new Lang.Class({
         var path = this._proxy.Menu || "/MenuBar";
         this._validateMenu(this.busName, path, function(r, name, path) {
             if (r) {
-                log("creating menu on "+[name, path]);
+                Util.Logger.debug("creating menu on "+[name, path]);
                 let client = new DBusMenu.Client(Gio.DBus.session, name, path);
                 client.init(function() {
                     clb(client);
@@ -181,7 +181,7 @@ const AppIndicator = new Lang.Class({
                 try {
                     var val = conn.call_finish(result);
                 } catch (e) {
-                    log("Invalid menu: "+e);
+                    Util.Logger.warn("Invalid menu: "+e);
                     return callback(false);
                 }
                 var version = val.deep_unpack()[0].deep_unpack();
@@ -189,7 +189,7 @@ const AppIndicator = new Lang.Class({
                 if (version >= 2) {
                     return callback(true, bus, path);
                 } else {
-                    log("Incompatible dbusmenu version: "+version);
+                    Util.Logger.warn("Incompatible dbusmenu version: "+version);
                     return callback(false);
                 }
             }, null
@@ -243,7 +243,7 @@ const AppIndicator = new Lang.Class({
             //HACK: icon is a path name. This is not specified by the api but at least inidcator-sensors uses it.
             var [ format, width, height ] = GdkPixbuf.Pixbuf.get_file_info(icon_name);
             if (!format) {
-                log("FATAL: invalid image format: "+icon_name);
+                Util.Logger.fatal("invalid image format: "+icon_name);
             } else {
                 // if the actual icon size is smaller, save that for later.
                 // scaled icons look ugly.
@@ -278,7 +278,7 @@ const AppIndicator = new Lang.Class({
 
             // no icon? that's bad!
             if (icon_info === null) {
-                log("FATAL: unable to lookup icon for "+icon_name);
+                Util.Logger.fatal("unable to lookup icon for "+icon_name);
             } else { // we have an icon
                 // the icon size may not match the requested size, especially with custom themes
                 if (icon_info.get_base_size() < icon_size) {
@@ -296,7 +296,7 @@ const AppIndicator = new Lang.Class({
         // make sure to return an actor that has the appropriate size, even if
         // the icon we found is smaller.
         if (real_icon_size < icon_size) {
-            log("small icon adjustment");
+            Util.Logger.debug("small icon adjustment");
             return new St.Bin({
                 width: icon_size,
                 height: icon_size,

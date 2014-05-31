@@ -1,10 +1,23 @@
 /* -*- mode: js2; js2-basic-offset: 4; indent-tabs-mode: nil -*- */
+// Copyright (C) 2013-2014 Jonas Kuemmerlin <rgcjonas@gmail.com>
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 const Lang = imports.lang;
 const St = imports.gi.St;
 const GdkPixbuf = imports.gi.GdkPixbuf;
-const Clutter = imports.gi.Clutter;
-const Cogl = imports.gi.Cogl;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
 const byteArray = imports.byteArray;
@@ -12,7 +25,6 @@ const byteArray = imports.byteArray;
 /*
  * UtilMixin:
  * Mixes in the given properties in _mixin into the object
- *
  */
 const Mixin = new Lang.Class({
     Name: 'UtilMixin',
@@ -35,7 +47,7 @@ const Mixin = new Lang.Class({
                     } else if (o.prototype && e in o.prototype) {
                         o._conserved[e] = o.prototype[e];
                     } else {
-                        log("WARNING: attempted to conserve property '"+e+"' but not found.");
+                        Logger.warn("attempted to conserve property '"+e+"' but not found.");
                     }
             });
         }
@@ -178,7 +190,7 @@ const variantToGBytes = function(variant) {
  * Essentially poor man's G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES.
  */
 function refreshInvalidatedProperties(proxy, changed, invalidated) {
-    if (invalidated.length < 1) return;
+    if (invalidated.length < 1) return
 
     asyncMap(invalidated, function(property, i, a, callback) {
         proxy.g_connection.call(
@@ -193,32 +205,57 @@ function refreshInvalidatedProperties(proxy, changed, invalidated) {
             null,
             function(conn, res) {
                 try {
-                    let newValue = proxy.g_connection.call_finish(res).deep_unpack()[0];
+                    let newValue = proxy.g_connection.call_finish(res).deep_unpack()[0]
                     callback(null, {
                         name: property,
                         value: newValue
-                    });
+                    })
                 } catch (error) {
-                    callback(error);
+                    callback(error)
                 }
             }
         );
     }, function(error, result) {
         if (error) {
             //FIXME: what else can we do?
-            log("Fatal error when refreshing invalidated properties: "+error);
+            Logger.error("While refreshing invalidated properties: "+error)
         } else {
             // build up the dictionary we feed into the variant later
-            let changed = {};
+            let changed = {}
 
             for each(let i in result) {
-                changed[i.name] = i.value;
+                changed[i.name] = i.value
 
-                proxy.set_cached_property(i.name, i.value);
+                proxy.set_cached_property(i.name, i.value)
             }
 
             // avoid any form of recursion
-            GLib.idle_add(GLib.PRIORITY_DEFAULT, proxy.emit.bind(proxy, "g-properties-changed", new GLib.Variant("a{sv}", changed), []));
+            GLib.idle_add(GLib.PRIORITY_DEFAULT, proxy.emit.bind(proxy, "g-properties-changed", new GLib.Variant("a{sv}", changed), []))
         }
     });
 }
+
+/**
+ * Helper class for logging stuff
+ */
+const Logger = {
+    _log: function(prefix, message) {
+        global.log("[AppIndicatorSupport-"+prefix+"] "+message)
+    },
+
+    debug: function(message) {
+        Logger._log("DEBUG", message);
+    },
+
+    warn: function(message) {
+        Logger._log("WARN", message);
+    },
+
+    error: function(message) {
+        Logger._log("ERROR", message);
+    },
+
+    fatal: function(message) {
+        Logger._log("FATAL", message);
+    }
+};

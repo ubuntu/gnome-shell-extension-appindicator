@@ -1,10 +1,11 @@
+/* -*- mode: js2; js2-basic-offset: 4; indent-tabs-mode: nil -*- */
 // Copyright (C) 2013 Jonas Kuemmerlin <rgcjonas@gmail.com>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -24,6 +25,7 @@ const Main = imports.ui.main;
 const Panel = imports.ui.panel;
 const Clutter = imports.gi.Clutter;
 const PopupMenu = imports.ui.popupMenu;
+const Util = Extension.imports.util;
 
 
 /*
@@ -47,7 +49,7 @@ const IndicatorStatusIcon = new Lang.Class({
         this._box.add_actor(this._iconBox);
         this._boxClickDisconnectHandler = this.actor.connect("button-press-event", this._boxClicked.bind(this));
         
-        log("Adding indicator as status menu");
+        Util.Logger.debug("Adding indicator as status menu");
         
         //stuff would keep us alive forever if icon changes places
         var h = this._indicatorHandlerIds = []; 
@@ -100,7 +102,7 @@ const IndicatorStatusIcon = new Lang.Class({
     },
     
     destroy: function() {
-        log('destroying '+this._indicator.id+'...');
+        Util.Logger.debug('destroying '+this._indicator.id+'...');
         //remove from panel
         for (var i in Main.panel.statusArea) {
             if (Main.panel.statusArea[i] === this._reset) {
@@ -123,10 +125,8 @@ const IndicatorStatusIcon = new Lang.Class({
     
     _display: function() {
         var display_finish = (function(error, result){
-            if (error) {
-                log(error)
-                log(error.stack)
-            }
+            if (error)
+                Util.Logger.error(error);
 
             Main.panel.addToStatusArea("appindicator-"+this._indicator.id, this, 1, 'right');
         }).bind(this);

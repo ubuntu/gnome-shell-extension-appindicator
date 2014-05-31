@@ -1,9 +1,27 @@
+/* -*- mode: js2; js2-basic-offset: 4; indent-tabs-mode: nil -*- */
+// Copyright (C) 2013 Jonas Kuemmerlin <rgcjonas@gmail.com>
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const StatusNotifierWatcher = Extension.imports.statusNotifierWatcher;
 const GLib = imports.gi.GLib;
 const Gio = imports.gi.Gio;
 const ExtensionSystem = imports.ui.extensionSystem;
 const StatusNotifierDispatcher = Extension.imports.statusNotifierDispatcher;
+const Util = Extension.imports.util;
 
 let statusNotifierWatcher = null;
 let isEnabled = false;
@@ -15,8 +33,8 @@ function init() {
 }
 
 //FIXME: when entering/leaving the lock screen, the extension might be enabled/disabled rapidly.
-// This will create very bad side effects in case we were not done unowning the name whil trying
-// to own it again. Since g_bus_unown_name doesn't fire any callbakc when it's done, we need to 
+// This will create very bad side effects in case we were not done unowning the name while trying
+// to own it again. Since g_bus_unown_name doesn't fire any callback when it's done, we need to
 // monitor the bus manually to find out when the name vanished so we can reclaim it again.
 function maybe_enable_after_name_available() {
     // by the time we get called whe might not be enabled
@@ -28,8 +46,8 @@ function maybe_enable_after_name_available() {
     detectExtensionsID = ExtensionSystem.connect('extension-state-changed',
         function (obj, extension) {
             if (extension.uuid == 'dash-to-dock@micxgx.gmail.com') {
-		//re-add all indicators if dash-to-dock changes its status
-	        StatusNotifierDispatcher.IndicatorDispatcher.instance._settingsChanged(null,null); 
+                //re-add all indicators if dash-to-dock changes its status
+                StatusNotifierDispatcher.IndicatorDispatcher.instance._settingsChanged(null,null);
             }
         });
     }
@@ -49,7 +67,7 @@ function disable() {
         if (detectExtensionsID) {
             ExtensionSystem.disconnect(detectExtensionsID);
             detectExtensionsID = null;
-	}
+        }
     }
 }
 
@@ -74,13 +92,13 @@ const NameWatchdog = {
     },
     
     _appeared_handler: function() {
-        log("appindicator: bus name appeared");
+        Util.Logger.debug("bus name appeared");
         this.isPresent = true;
         if (this.onAppeared) this.onAppeared();
     },
     
     _vanished_handler: function() {
-        log("appindicator: bus name vanished");
+        Util.Logger.debug("bus name vanished");
         this.isPresent = false;
         if (this.onVanished) this.onVanished();
     }

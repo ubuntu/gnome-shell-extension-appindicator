@@ -28,6 +28,7 @@ const Main = imports.ui.main;
 const Shell = imports.gi.Shell;
 const Gtk = imports.gi.Gtk;
 const Clutter = imports.gi.Clutter;
+const Util = Extension.imports.util;
 
 /*
  * A MessageTray.Source subclass that implements an indicator icon in the message tray
@@ -106,7 +107,7 @@ const IndicatorMessageSource = new Lang.Class({
         //      even though the notification is resident. StatusNotificationDispatcher will signal us
         //      if we need to comply with the request. Ignoring it thankfully doesn't cause any problems.
         if (fromDispatcher) {
-            log("Destroying "+this._indicator.id);
+            Util.Logger.debug("Destroying "+this._indicator.id);
             this._indicatorHandlerIds.forEach(this._indicator.disconnect.bind(this._indicator));
             if (this._notification._menu) this._notification._menu.destroy();
             this._iconBox.remove_all_children();

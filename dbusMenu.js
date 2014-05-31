@@ -31,7 +31,7 @@ const Util = Extension.imports.util
 const Interfaces = Extension.imports.interfaces
 const Q = Extension.imports.q.Q
 
-//Q.longStackSupport = true;
+Q.longStackSupport = true;
 
 const DBusMenuProxy = Gio.DBusProxy.makeProxyWrapper(Interfaces.DBusMenu)
 
@@ -269,7 +269,7 @@ const Client = new Lang.Class({
         // I will queue all layout operations I will queue all layout operations I will queue....
         this._queueLayoutOperation(function(callback) {
             // get layout for root node
-            this._rebuildMenuWithLayout(0).nodeify(callback)
+            this._rebuildMenuWithLayout(0).finally(callback)
         }.bind(this), callback)
 
         let openHandlerId = menu.connect("open-state-changed", this.menuOpened.bind(this))
@@ -329,9 +329,9 @@ const Client = new Lang.Class({
                 if (!result[0][0]) {
                     //FIXME: how the hell does nm-applet manage to get us here?
                     //it doesn't seem to have any negative effects, however
-                    log("While reading item "+id+" on "+this.busName+this.path+": ")
-                    log("Empty result set (?)")
-                    log(result)
+                    Util.Logger.debug("While reading item "+id+" on "+this.busName+this.path+": ")
+                    Util.Logger.debug("Empty result set (?)")
+                    Util.Logger.debug(result)
 
                     // resolve with empty set
                     deferred.resolve({})
@@ -375,8 +375,9 @@ const Client = new Lang.Class({
                     item._parentMenu.replaceSingleItem(item, newItem)
                 })
             } else {
-                log("WARNING: DBusMenu reading layout for item that does not exist?")
-                log("Deliberately ignoring it, but beware the menu might be corrupted")
+                Util.Logger.warn("DBusMenu reading layout for item that does not exist?")
+                Util.Logger.warn("Deliberately ignoring it, but beware the menu might be corrupted")
+                //FIXME: should we initiate a complete rebuild here?
                 return Q(true)
             }
         }
@@ -402,7 +403,8 @@ const Client = new Lang.Class({
                 // better check whether revision is sane
                 if ("_revision" in this && revision < this._revision) {
                     // Has been seen in skype
-                    log("DBusMenu: trying to replace with older layout ?!")
+                    Util.Logger.debug("DBusMenu: trying to replace with older layout ?!")
+                    Util.Logger.debug("For id "+id+" got layout "+revision+" having already seen revision "+this._revision)
                     deferred.reject(new Error("Older layout received, something is fishy here."))
                 } else {
                     this._revision = revision
@@ -442,7 +444,7 @@ const Client = new Lang.Class({
             } else {
                 if (result) {
                     this._queueLayoutOperation(function(callback) {
-                        this._rebuildMenuWithLayout(id).done(callback)
+                        this._rebuildMenuWithLayout(id).finally(callback)
                     }.bind(this))
                 }
             }
@@ -464,13 +466,15 @@ const Client = new Lang.Class({
         }
         let idList = Object.keys(idHash)
 
-        Q.all(idList.map(function(id) { return this._rebuildMenuWithLayout(id) }, this)).done()
+        this._queueLayoutOperation(function(callback) {
+            Q.all(idList.map(function(id) { return this._rebuildMenuWithLayout(id) }, this)).finally(callback)
+        }.bind(this))
     },
 
     _layoutUpdated: function(proxy, bus, [revision, subtreeId]) {
         if ("_revision" in this && revision < this._revision) {
-            log("WARNING DBusMenu: Trying to update with layout that is older than the one we have")
-            log("Something is corrupt here.")
+            Util.Logger.warn("DBusMenu: Trying to update with layout that is older than the one we have")
+            Util.Logger.warn("Something is corrupt here.")
             return
         } else {
             this._revision = revision
@@ -478,7 +482,7 @@ const Client = new Lang.Class({
 
         // We need to enqueue layout work because modifying the menu in parallel usually goes terribly wrong
         this._queueLayoutOperation(function(callback) {
-            this._rebuildMenuWithLayout(subtreeId).done(callback)
+            this._rebuildMenuWithLayout(subtreeId).finally(callback)
         }.bind(this))
 
     }

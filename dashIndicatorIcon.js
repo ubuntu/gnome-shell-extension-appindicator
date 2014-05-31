@@ -272,9 +272,6 @@ const CustomDashIcon = new Lang.Class({
     },
 
     destroy: function() {
-        log('destroying '+this._indicator.id+'...');
-
-
         //destroy stuff owned by us
         this._indicatorHandlerIds.forEach(this._indicator.disconnect.bind(this._indicator));
         if (this._menu.destroyDbusMenu) {
