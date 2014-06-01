@@ -194,10 +194,10 @@ const IndicatorNotification = new Lang.Class({
             if (client) {
                 this._menu = new PopupMenuEmbedded();
                 this._box.add_actor(this._menu.actor);
-                client.attachToMenu(this._menu, cb);
-            } else {
-                cb();
+                client.attachToMenu(this._menu);
             }
+            
+            cb()
         }).bind(this));
     },
 });

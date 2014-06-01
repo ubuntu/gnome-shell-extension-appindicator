@@ -28,210 +28,203 @@ const Shell = imports.gi.Shell
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension()
 const Util = Extension.imports.util
-const Interfaces = Extension.imports.interfaces
-const Q = Extension.imports.q.Q
-
-Q.longStackSupport = true;
-
-const DBusMenuProxy = Gio.DBusProxy.makeProxyWrapper(Interfaces.DBusMenu)
-
 
 /**
- * Common mixin for DbusPopupMenu and DbusSubMenu
- *
- * Contains the layout builder and fires back events to the client
+ * Cretes new wrapper menu items and injects methods for managing them at runtime
  */
-const DBusMenuMixin = new Lang.Class({
-    Name: 'DBusMenuMixin',
-    Extends: Util.Mixin,
+const MenuItemFactory = {
+    createItem: function(client, dbusItem) {
+        // first, decide whether it's a submenu or not
+        if (dbusItem.property_get("children-display") == "submenu")
+            var shellItem = new PopupMenu.PopupSubMenuMenuItem("FIXME")
+        else if (dbusItem.property_get("type") == "separator")
+            var shellItem = new PopupMenu.PopupSeparatorMenuItem('')
+        else
+            var shellItem = new PopupMenu.PopupMenuItem("FIXME")
 
-    _init: function(client) {
-        this.parent()
-        this._mixin._client = client
-    },
+        shellItem._dbusItem = dbusItem
+        shellItem._dbusClient = client
 
-    _mixin: {
-        // refills the menu from the given layout (as read from dbus)
-        // returns a promise
-        refillFromLayout: function(root) {
-            let id = root[0]
-            let children = root[2]
+        shellItem._icon = new St.Icon({ style_class: 'popup-menu-icon', x_align: St.Align.END })
+        if (shellItem instanceof PopupMenu.PopupMenuItem) {
+            shellItem.actor.add(shellItem._icon, { x_align: St.Align.END })
+            shellItem.label.get_parent().child_set(shellItem.label, { expand: true })
+        }
 
-            this._busId = id
+        // initialize our state
+        MenuItemFactory._updateLabel.call(shellItem)
+        MenuItemFactory._updateOrnament.call(shellItem)
+        MenuItemFactory._updateImage.call(shellItem)
+        MenuItemFactory._updateVisible.call(shellItem)
+        MenuItemFactory._updateSensitive.call(shellItem)
 
-            if (children.length == 0) {
-                return Q(null)
-            } else {
-                let childrenLoadPromises = children.map(function(variant) {
-                    let child = variant.deep_unpack()
-                    let id = child[0]
-                    return this._client.menuItemFactory.createItem(id, child)
-                }.bind(this))
-
-                // wait for everything to be loaded, then replace everything
-                return Q.all(childrenLoadPromises)
-                    .then(this.replaceAllItems.bind(this))
-            }
-        },
-
-        replaceAllItems: function(items) {
-            this.removeAll()
-            for each(let item in items) {
-                this.addMenuItem(item)
-                this._client.cache(item._busId, item) // add to cache
-                item._parentMenu = this
-            }
-        },
-
-        replaceSingleItem: function(old_item, new_item) {
-            // find the position
-            let items = this._getMenuItems()
-            let index = -1
-            for (let i = 0; i < items.length; ++i) {
-                if (items[i] == old_item) {
-                    index = i
-                    break
-                }
-            }
-            if (index > -1) {
-                old_item.destroy()
-                this.addMenuItem(new_item, index)
-                this._client.cache(new_item._busId, new_item) // add to cache
-                new_item._parentMenu = this
-            } else {
-                throw new Error("DBusMenu: trying to replace item that is not in list")
+        // initially create children
+        if (shellItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+            let children = dbusItem.get_children()
+            for (let i = 0; i < children.length; ++i) {
+                shellItem.menu.addMenuItem(MenuItemFactory.createItem(client, children[i]))
             }
         }
-    }
-})
 
-/**
- * Creates menu items from layout and properties.
- * Will automatically retrieve missing info from the Client.
- *
- * Created menu items should be treated immutable.
- */
-const DBusMenuItemFactory = new Lang.Class({
-    Name: 'DBusMenuItemFactory',
+        // now, connect various events
+        Util.connectAndRemoveOnDestroy(dbusItem, {
+            'property-changed':   MenuItemFactory._onPropertyChanged.bind(shellItem),
+            'child-added':        MenuItemFactory._onChildAdded.bind(shellItem),
+            'child-removed':      MenuItemFactory._onChildRemoved.bind(shellItem),
+            'child-moved':        MenuItemFactory._onChildMoved.bind(shellItem)
+        }, shellItem)
+        Util.connectAndRemoveOnDestroy(shellItem, {
+            'activate':  MenuItemFactory._onActivate.bind(shellItem)
+        })
+        if (shellItem.menu)
+            Util.connectAndRemoveOnDestroy(shellItem.menu, {
+                "open-state-changed": MenuItemFactory._onOpenStateChanged.bind(shellItem)
+            })
 
-    _init: function(client) {
-        this._client = client
+        return shellItem
     },
 
-    // only public method
-    // async, returns promise
-    createItem: Q.async(function(id, layout) {
-        if (!layout)
-            layout = yield this._client.getLayout(id, [])
-
-        let props = this._client.decodeProperties(layout[1])
-        let children = layout[2]
-        let item = null
-
-        // label is needed most of the time
-        let label = props["label"] || ''
-        if (label) // get rid of underscores
-            label = label.replace(/_([^_])/, '$1')
-
-        if (children && children.length) {
-            // children? let's create a submenu
-            item = yield this._createSubMenuItem(id, label, children)
-        } else if (props.type == 'separator') {
-            // separators are special, too
-            item = new PopupMenu.PopupSeparatorMenuItem()
+    _onOpenStateChanged: function(menu, open) {
+        if (open) {
+            this._dbusItem.handle_event("opened", GLib.Variant.new("i", 0), 0)
+            this._dbusClient.ghettoAboutToShow(this._dbusItem.get_id())
         } else {
-            // a "normal" item with label, icons
+            this._dbusItem.handle_event("closed", GLib.Variant.new("i", 0), 0)
+        }
+    },
 
-            if (props["toggle-type"] && props["toggle-type"] != "none") {
-                // toggle items may be special
-                item = this._createToggle(label, props)
-            } else {
-                // a really normal item
-                item = new PopupMenu.PopupMenuItem(label)
-            }
+    _onActivate: function() {
+        this._dbusItem.handle_event("clicked", GLib.Variant.new("i", 0), 0)
+    },
 
-            // maybe add an icon
-            let icon_name = props["icon-name"]
-            let icon_data = props["icon-data"]
-            if (icon_data || icon_name) {
-                let iconActor;
-                if (icon_data)
-                    iconActor = Util.createActorFromMemoryImage(icon_data, 24)
-                else if (icon_name)
-                    iconActor = new St.Icon({ "icon-name": icon_name })
+    _onPropertyChanged: function(dbusItemm, prop, value) {
+        if (prop == "toggle-type" || prop == "toggle-state")
+            MenuItemFactory._updateOrnament.call(this)
+        else if (prop == "label")
+            MenuItemFactory._updateLabel.call(this)
+        else if (prop == "enabled")
+            MenuItemFactory._updateSensitive.call(this)
+        else if (prop == "visible")
+            MenuItemFactory._updateVisible.call(this)
+        else if (prop == "icon-name" || prop == "icon-data")
+            MenuItemFactory._updateImage.call(this)
+        else if (prop == "type" || prop == "children-display")
+            MenuItemFactory._replaceSelf.call(this)
+        //else
+        //    Util.Logger.debug("Unhandled property change: "+prop)
+    },
 
-                iconActor.add_style_class_name('popup-menu-icon')
-                if (item.addActor) { // GS 3.8
-                    item.addActor(iconActor, { align: St.Align.END })
-                } else { // 3.10
-                    item.label.set_x_expand(true)
-                    item.actor.add(iconActor, { align: St.Align.END })
+    _onChildAdded: function(dbusItem, child, position) {
+        if (!(this instanceof PopupMenu.PopupSubMenuMenuItem)) {
+            Util.Logger.warn("Tried to add a child to non-submenu item. Better recreate it as whole")
+            MenuItemFactory._replaceSelf.call(this)
+        } else {
+            this.menu.addMenuItem(MenuItemFactory.createItem(this._dbusClient, child), position)
+        }
+    },
+
+    _onChildRemoved: function(dbusItem, child) {
+        if (!(this instanceof PopupMenu.PopupSubMenuMenuItem)) {
+            Util.Logger.warn("Tried to remove a child from non-submenu item. Better recreate it as whole")
+            MenuItemFactory._replaceSelf.call(this)
+        } else {
+            // find it!
+            this.menu._getMenuItems().forEach(function(item) {
+                if (item._dbusItem == child)
+                    item.destroy()
+            })
+        }
+    },
+
+    _onChildMoved: function(dbusItem, child, oldpos, newpos) {
+        if (!(this instanceof PopupMenu.PopupSubMenuMenuItem)) {
+            Util.Logger.warn("Tried to move a child in non-submenu item. Better recreate it as whole")
+            MenuItemFactory._replaceSelf.call(this)
+        } else {
+            //HACK: we're really getting into the internals of the PopupMenu implementation
+
+            // First, find our wrapper. We do not trust the old positioning.
+            let family = this.menu._getMenuItems()
+            for (let i = 0; i < family.length; ++i) {
+                if (family[i]._dbusItem == child) {
+                    // now, remove it
+                    this.menu.box.remove_child(family[i].actor)
+
+                    // and add it again somewhere else
+                    if (newpos < family.length && family[newpos] != family[i])
+                        this.menu.box.insert_child_below(family[i].actor, family[newpos].actor)
+                    else
+                        this.menu.box.add(family[i].actor)
+
+                    // skip the rest
+                    return
                 }
             }
+        }
+    },
 
-            // set reativeness
-            if ("enabled" in props && !props["enabled"]) // not enabled
-                item.setSensitive(false)
+    _updateLabel: function() {
+        let label = this._dbusItem.property_get("label")
+
+        if (label)
+            label = label.replace(/_([^_])/, "$1") // get rid of underscores telling us the keyboard accelerators
+        else
+            label = ''
+
+        this.label.set_text(label)
+    },
+
+    _updateOrnament: function() {
+        if (this._dbusItem.property_get("toggle-type") == "checkmark" && this._dbusItem.property_get_int("toggle-state"))
+            this.setOrnament(PopupMenu.Ornament.CHECK)
+        else if (this._dbusItem.property_get("toggle-type") == "radio" && this._dbusItem.property_get_int("toggle-state"))
+            this.setOrnament(PopupMenu.Ornament.DOT)
+        else
+            this.setOrnament(PopupMenu.Ornament.NONE)
+    },
+
+    _updateImage: function() {
+        let iconName = this._dbusItem.property_get("icon-name")
+        let iconData = this._dbusItem.property_get_variant("icon-data")
+        if (iconName)
+            this._icon.icon_name = iconName
+        else if (iconData)
+            this._icon.gicon = Util.createPixbufFromMemoryImage(iconData.get_data_as_bytes())
+    },
+
+    _updateVisible: function() {
+        this.actor.visible = this._dbusItem.property_get_bool("visible")
+    },
+
+    _updateSensitive: function() {
+        this.setSensitive(this._dbusItem.property_get_bool("enabled"))
+    },
+
+    _replaceSelf: function(newSelf) {
+        // create our new self if needed
+        if (!newSelf)
+            newSelf = MenuItemFactory.createItem(this._dbusClient, this._dbusItem)
+
+        // first, we need to find our old position
+        let pos = -1
+        let family = this._parent._getMenuItems()
+        for (let i = 0; i < family.length; ++i) {
+            if (family[i] === this)
+                pos = i
         }
 
-        // do we need to hide it?
-        if ("visible" in props && !props["visible"])
-            item.actor.hide()
+        if (pos < 0)
+            throw new Error("DBusMenu: can't replace non existing menu item")
 
-        // save the id for later
-        item._busId = id
 
-        // register our activate handler
-        let activateHandlerId = item.connect("activate", this._client.itemActivated.bind(this._client, id))
+        // add our new self while we're still alive
+        this._parent.addMenuItem(newSelf, pos)
 
-        // uncache it at destroy
-        let destroyHandlerId = item.connect("destroy", function() {
-            item.disconnect(activateHandlerId)
-            item.disconnect(destroyHandlerId)
-            this._client.uncache(id)
-        }.bind(this))
-
-        Q.return(item)
-    }),
-
-    _createSubMenuItem: Q.async(function(id, label, children) {
-        let item = new PopupMenu.PopupSubMenuMenuItem(label)
-
-        new DBusMenuMixin(this._client).attach(item.menu)
-
-        yield item.menu.refillFromLayout([id, null, children])
-
-        Q.return(item)
-    }),
-
-    _createToggle: function(label, props) {
-        let toggle_type = props["toggle-type"]
-        let toggle_state = props["toggle-state"]
-
-        let item = null
-
-        if (PopupMenu.PopupMenuItem.prototype.setShowDot) {
-            // GS 3.8: implement toggles using setShowDot and switches
-            if (toggle_type == "radio") {
-                item = new PopupMenu.PopupMenuItem(label)
-                item.setShowDot(toggle_state)
-            } else { // must be checkbox
-                item = new PopupMenu.PopupSwitchMenuItem(label, toggle_state)
-            }
-        } else { // GS 3.10: implement toggles using Ornaments
-            item = new PopupMenu.PopupMenuItem(label)
-
-            if (toggle_type == "radio" && toggle_state)
-                item.setOrnament(PopupMenu.Ornament.DOT)
-            else if (toggle_state) // checkbox is implied
-                item.setOrnament(PopupMenu.Ornament.CHECK)
-        }
-
-        item.actor.accessible_role = Atk.Role.CHECK_MENU_ITEM
-
-        return item
+        // now destroy our old self
+        this.destroy()
     }
-})
+}
+
 
 /**
  * Processes DBus events, creates the menu items and handles the actions
@@ -241,249 +234,160 @@ const DBusMenuItemFactory = new Lang.Class({
 const Client = new Lang.Class({
     Name: 'DbusMenuClient',
 
-    _init: function(busConn, busName, path) {
+    _init: function(busName, path) {
         this.parent()
-        this._busConn = busConn
-        this._busName = busName
-        this._path = path
+        this._busName  = busName
+        this._busPath  = path
+        this._client   = 'Dbusmenu' in imports.gi ? imports.gi.Dbusmenu.Client.new(busName, path) : null
+        this._rootMenu = null // the shell menu
+        this._rootItem = null // the DbusMenuItem for the root
 
-        // Hash table (id:menuItem)
-        this._menuItemCache = {}
-
-        // the item factory
-        this._menuItemFactory = new DBusMenuItemFactory(this)
+        this._rootItemDisconnectHandlers = []
+        this._menuDisconnectHandlers     = []
+        this._rootChangedHandler         = null
     },
 
-    get menuItemFactory() {
-        return this._menuItemFactory
-    },
-
-    // you must call this before real work is being done
-    // if you provide a callback, it will be called when the menu has been built completely
-    //
-    // this must be called after "init" succeeded
-    attachToMenu: function(menu, callback) {
+    // this will attach the client to an already existing menu that will be used as the root menu.
+    // it will also connect the client to be automatically destroyed when the menu dies.
+    attachToMenu: function(menu) {
         this._rootMenu = menu
-        new DBusMenuMixin(this).attach(menu)
 
-        // I will queue all layout operations I will queue all layout operations I will queue....
-        this._queueLayoutOperation(function(callback) {
-            // get layout for root node
-            this._rebuildMenuWithLayout(0).finally(callback)
-        }.bind(this), callback)
+        // fallbak error message in case we don't have libdbusmenu
+        if (!this._client) {
+            let error = new PopupMenu.PopupMenuItem('ERROR: Could not load libdbusmenu')
+            error.setSensitive(false)
+            menu.addMenuItem(error)
 
-        let openHandlerId = menu.connect("open-state-changed", this.menuOpened.bind(this))
+            menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem())
 
-        menu.connect("destroy", function() {
-            menu.disconnect(openHandlerId)
-        }.bind(this))
-    },
-
-    // dbus handling
-    init: function(callback) {
-        this._proxy = new DBusMenuProxy(this._busConn, this._busName, this._path, function(result, error) {
-            if (error) {
-                callback(error)
-                return;
-            }
-
-            this._proxy.connectSignal('ItemsPropertiesUpdated', Lang.bind(this, this._itemsPropertiesUpdated))
-
-            this._revision = 0;
-
-            this._readLayoutQueue = new Util.AsyncTaskQueue()
-
-            callback()
-        }.bind(this))
-    },
-
-    // turns the a{sv} property dictionary into a javascript object
-    // includes the special handling for the "icon-data" array
-    decodeProperties: function(properties) {
-        if (properties instanceof GLib.Variant)
-            properties = properties.deep_unpack()
-
-        let decodedProperties = {}
-
-        for (var i in properties) {
-            if (i == 'icon-data') {
-                //HACK: newer gjs can transform byte arrays in GBytes automatically, but the versions
-                //      commonly found bundled with GS 3.6 (Ubuntu 12.10, 13.04) don't do that :(
-                decodedProperties[i] = Util.variantToGBytes(properties[i])
-            } else {
-                decodedProperties[i] = properties[i].deep_unpack()
-            }
-        }
-
-        return decodedProperties;
-    },
-
-    // returns a promise
-    getPropertiesForId: function(id, properties) {
-        let deferred = Q.defer()
-
-        this._proxy.GetGroupPropertiesRemote([id], properties, function(result, error) {
-            if (error) {
-                deferred.reject(error)
-            } else {
-                if (!result[0][0]) {
-                    //FIXME: how the hell does nm-applet manage to get us here?
-                    //it doesn't seem to have any negative effects, however
-                    Util.Logger.debug("While reading item "+id+" on "+this.busName+this.path+": ")
-                    Util.Logger.debug("Empty result set (?)")
-                    Util.Logger.debug(result)
-
-                    // resolve with empty set
-                    deferred.resolve({})
-                } else {
-                    // do some massaging on the result
-                    //FIXME: this doesn't just look weird. It is weird.
-                    let props = result[0][0][1]
-
-                    deferred.resolve(this.decodeProperties(props))
-                }
-            }
-        }.bind(this))
-
-        return deferred.promise
-    },
-
-    // operating on the menu structure might intefere if someone attempts to do it in parallel
-    // we need to serialize everything
-    _queueLayoutOperation: function(task, callback) {
-        this._readLayoutQueue.add(task, callback)
-    },
-
-    // rebuilds the menu at the given id with the given layout
-    // you may pass in a falsy value for the layout, and it will be retrieved.
-    // returns a promise
-    _rebuildMenuWithLayout: function(id, layout) {
-        // we have a direct reference to the root menu
-        if (id == 0) {
-            let layoutPromise; // we might not have the layout, so we make sure to get it
-            if (layout) layoutPromise = Q(layout)
-            else layoutPromise = this.getLayout(id, [])
-
-            return layoutPromise.then(function(layout) {
-                return this._rootMenu.refillFromLayout(layout)
-            }.bind(this))
-        } else {
-            // we may have it in the cache
-            let item = this.lookup(id)
-            if (item) {
-                return this.menuItemFactory.createItem(id, layout).then(function(newItem) {
-                    item._parentMenu.replaceSingleItem(item, newItem)
+            //FIXME: can we be nice to non-ubuntu users, too?
+            if (GLib.find_program_in_path('software-center')) {
+                let advice = new PopupMenu.PopupMenuItem('Install gir1.2-dbusmenu-glib-0.4 now')
+                Util.connectAndRemoveOnDestroy(advice, {
+                    'activate': function() {
+                        GLib.spawn_command_line_async('software-center gir1.2-dbusmenu-glib-0.4')
+                    }
                 })
+                menu.addMenuItem(advice)
             } else {
-                Util.Logger.warn("DBusMenu reading layout for item that does not exist?")
-                Util.Logger.warn("Deliberately ignoring it, but beware the menu might be corrupted")
-                //FIXME: should we initiate a complete rebuild here?
-                return Q(true)
+                let advice = new PopupMenu.PopupMenuItem('Please install matching introspection data')
+                advice.setSensitive(false)
+                menu.addMenuItem(advice)
             }
-        }
-    },
-
-    // async, returns a promise
-    getLayout: function(id, properties) {
-        let deferred = Q.defer()
-
-        if (typeof properties == "undefined")
-            properties = ['id']
-
-        //(RANT) Who at Gnome HQ thought it was a good idea to make a callback (result, error)
-        // when everyone else settled on (error, result)? Now we can't use nice promise
-        // adapters because a gnome dev decided he must put the parameters the other way round
-        this._proxy.GetLayoutRemote(id, -1, properties, function(result, error) {
-            if (error) {
-                deferred.reject(error)
-            } else {
-                let revision = result[0]
-                let root = result[1]
-
-                // better check whether revision is sane
-                if ("_revision" in this && revision < this._revision) {
-                    // Has been seen in skype
-                    Util.Logger.debug("DBusMenu: trying to replace with older layout ?!")
-                    Util.Logger.debug("For id "+id+" got layout "+revision+" having already seen revision "+this._revision)
-                    deferred.reject(new Error("Older layout received, something is fishy here."))
-                } else {
-                    this._revision = revision
-
-                    deferred.resolve(root)
-                }
-            }
-        }.bind(this))
-
-        return deferred.promise
-    },
-
-    // puts a menu item in the cache
-    cache: function(id, item) {
-        this._menuItemCache[id] = item
-    },
-
-    // removes a menu item from the cache
-    uncache: function(id) {
-        delete this._menuItemCache[id]
-    },
-
-    // searches a item in the cache
-    lookup: function(id) {
-        if (id in this._menuItemCache) return this._menuItemCache[id]
-        else return null
-    },
-
-    // send event about opening/closing submenu
-    menuOpened: function(menu, state) {
-        // we send an AboutToShow event and maybe update the layout
-        let id = menu._busId || 0
-
-        this._proxy.AboutToShowRemote(id, function(result, error) {
-            if (error) {
-                throw error // js runtime will pick it up and display to the dev
-            } else {
-                if (result) {
-                    this._queueLayoutOperation(function(callback) {
-                        this._rebuildMenuWithLayout(id).finally(callback)
-                    }.bind(this))
-                }
-            }
-        }.bind(this))
-    },
-
-    // send "clicked" event over the bus
-    itemActivated: function(id, item, event) {
-        // we emit clicked also for keyboard activation
-        // XXX: what is event specific data?
-        this._proxy.EventRemote(id, 'clicked', GLib.Variant.new("s", ""), event.get_time())
-    },
-
-    _itemsPropertiesUpdated: function (proxy, bus, [changed, removed]) {
-        // assemble a list of all ids that need to be regenerated
-        let idHash = {} //HACK: will eat any duplicate ids
-        for each(let i in changed.concat(removed)) {
-            idHash[i[0]] = true
-        }
-        let idList = Object.keys(idHash)
-
-        this._queueLayoutOperation(function(callback) {
-            Q.all(idList.map(function(id) { return this._rebuildMenuWithLayout(id) }, this)).finally(callback)
-        }.bind(this))
-    },
-
-    _layoutUpdated: function(proxy, bus, [revision, subtreeId]) {
-        if ("_revision" in this && revision < this._revision) {
-            Util.Logger.warn("DBusMenu: Trying to update with layout that is older than the one we have")
-            Util.Logger.warn("Something is corrupt here.")
-            return
         } else {
-            this._revision = revision
+            this._rootChangedHandler = this._client.connect("root-changed", this._onRootChanged.bind(this))
+            Util.connectAndSaveId(menu, {
+                'open-state-changed': this._onMenuOpened.bind(this),
+                'destroy'           : this.destroy.bind(this)
+            }, this._menuDisconnectHandlers)
+
+            this._onRootChanged()
         }
+    },
 
-        // We need to enqueue layout work because modifying the menu in parallel usually goes terribly wrong
-        this._queueLayoutOperation(function(callback) {
-            this._rebuildMenuWithLayout(subtreeId).finally(callback)
-        }.bind(this))
+    _onRootChanged: function() {
+        // cleanup: remove handlers
+        if (this._rootItem)
+            Util.disconnectArray(this._rootItemDisconnectHandlers)
 
+        // cleanup: remove existing wrapper childs
+        this._rootMenu.removeAll()
+
+        // save new root
+        this._rootItem = this._client.get_root()
+
+        if (this._rootItem) {
+            // connect new handlers
+            Util.connectAndSaveId(this._rootItem, {
+                "child-added"   : this._onRootChildAdded.bind(this),
+                "child-removed" : this._onRootChildRemoved.bind(this),
+                "child-moved"   : this._onRootChildMoved.bind(this)
+            }, this._rootItemDisconnectHandlers)
+
+            // fill the menu for the first time
+            for each(let child in this._rootItem.get_children())
+                this._rootMenu.addMenuItem(MenuItemFactory.createItem(this, child))
+        }
+    },
+
+    _onRootChildAdded: function(dbusItem, child, position) {
+        this._rootMenu.addMenuItem(MenuItemFactory.createItem(this, child), position)
+    },
+
+    _onRootChildRemoved: function(dbusItem, child) {
+        // children like to play hide and seek
+        // but we know how to find it for sure!
+        this._rootMenu._getMenuItems().forEach(function(item) {
+            if (item._dbusItem == child)
+                item.destroy()
+        })
+    },
+
+    _onRootChildMoved: function(dbusItem, child, oldpos, newpos) {
+        //HACK: we're really getting into the internals of the PopupMenu implementation
+
+        // First, find our wrapper. Children tend to lie. We do not trust the old positioning.
+        let family = this._rootMenu._getMenuItems()
+        for (let i = 0; i < family.length; ++i) {
+            if (family[i]._dbusItem == child) {
+                // now, remove it
+                this._rootMenu.box.remove_child(family[i].actor)
+
+                // and add it again somewhere else
+                if (newpos < family.length && family[newpos] != family[i])
+                    this._rootMenu.box.insert_child_below(family[i].actor, family[newpos].actor)
+                else
+                    this._rootMenu.box.add(family[i].actor)
+
+                // skip the rest
+                return
+            }
+        }
+    },
+
+    _onMenuOpened: function(menu, state) {
+        if (!this._rootItem) return
+
+        if (state) {
+            this._rootItem.handle_event("opened", GLib.Variant.new("i", 0), 0)
+            this.ghettoAboutToShow(0)
+        } else {
+            this._rootItem.handle_event("closed", GLib.Variant.new("i", 0), 0)
+        }
+    },
+
+    destroy: function() {
+        if (this._rootMenu)
+            Util.disconnectArray(this._rootMenu, this._menuDisconnectHandlers)
+
+        if (this._rootItem)
+            Util.disconnectArray(this._rootItem, this._rootItemDisconnectHandlers)
+
+        if (this._client)
+            this._client.disconnect(this._rootChangedHandler)
+
+        // we set them to null in case the client instance lingers around
+        // while the dbus menu could already be garbage collected
+        this._client   = null
+        this._rootItem = null
+        this._rootMenu = null
+    },
+
+    //HACK: when calling DbusmenuMenuitem::send_about_to_show, gjs will complain that
+    // the argument 'cb' (type void) may not be null, and request 2 arguments.
+    // this is wrong on multiple levels and clearly a bug in the introspection data or
+    // gjs mapping, which I could not track down as of now. We'll work around that by
+    // issuing the about to show event via raw dbus calls ourselves.
+    ghettoAboutToShow: function(id) {
+        Gio.DBus.session.call(this._busName,
+                              this._busPath,
+                              "com.canonical.dbusmenu",
+                              "AboutToShow",
+                              GLib.Variant.new("(i)", [id]),
+                              GLib.VariantType.new("(b)"),
+                              Gio.DBusCallFlags.NONE,
+                              -1,
+                              null,
+                              function(conn, result) { /* we don't care about the result */ conn.call_finish(result) });
     }
 })

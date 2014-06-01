@@ -124,20 +124,12 @@ const IndicatorStatusIcon = new Lang.Class({
     },
     
     _display: function() {
-        var display_finish = (function(error, result){
-            if (error)
-                Util.Logger.error(error);
-
-            Main.panel.addToStatusArea("appindicator-"+this._indicator.id, this, 1, 'right');
-        }).bind(this);
-        
         this._indicator.getMenuClient((function(client){
             if (client != null) {
-                client.attachToMenu(this.menu, display_finish);
-            } else {
-                display_finish();
+                client.attachToMenu(this.menu)
             }
             
+            Main.panel.addToStatusArea("appindicator-"+this._indicator.id, this, 1, 'right')
         }).bind(this));
     },
     

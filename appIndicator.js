@@ -159,14 +159,11 @@ const AppIndicator = new Lang.Class({
 
     //async because we may need to check the presence of a menubar object as well as the creation is async.
     getMenuClient: function(clb) {
-        var path = this._proxy.Menu || "/MenuBar";
+        var path = this._proxy.Menu || "/MenuBar"
         this._validateMenu(this.busName, path, function(r, name, path) {
             if (r) {
-                Util.Logger.debug("creating menu on "+[name, path]);
-                let client = new DBusMenu.Client(Gio.DBus.session, name, path);
-                client.init(function() {
-                    clb(client);
-                });
+                Util.Logger.debug("creating menu on "+[name, path])
+                clb(new DBusMenu.Client(name, path))
             } else {
                 clb(null);
             }

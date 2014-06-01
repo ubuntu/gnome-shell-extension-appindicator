@@ -17,7 +17,6 @@
 
 const StatusNotifierItem = loadInterfaceXml("StatusNotifierItem.xml")
 const Properties = loadInterfaceXml("Properties.xml")
-const DBusMenu = loadInterfaceXml("DBusMenu.xml")
 const StatusNotifierWatcher = loadInterfaceXml("StatusNotifierWatcher.xml")
 
 // loads a xml file into an in-memory string

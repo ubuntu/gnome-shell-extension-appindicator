@@ -20,77 +20,6 @@ const St = imports.gi.St;
 const GdkPixbuf = imports.gi.GdkPixbuf;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
-const byteArray = imports.byteArray;
-
-/*
- * UtilMixin:
- * Mixes in the given properties in _mixin into the object
- */
-const Mixin = new Lang.Class({
-    Name: 'UtilMixin',
-    
-    _init: function() {
-        this._lateMixin = {};
-    },
-    
-    _mixin: {},
-    
-    _conserve: [],
-    
-    attach: function(o) {
-        if (!this._mixin) return;
-        if (this._conserve && this._conserve.forEach) {
-            o._conserved = {};
-            this._conserve.forEach(function(e) {
-                    if (e in o) {
-                        o._conserved[e] = o[e];
-                    } else if (o.prototype && e in o.prototype) {
-                        o._conserved[e] = o.prototype[e];
-                    } else {
-                        Logger.warn("attempted to conserve property '"+e+"' but not found.");
-                    }
-            });
-        }
-        for (var i in this._mixin) {
-            o[i] = this._mixin[i];
-        }
-        for (var i in this._lateMixin) {
-            o[i] = this._lateMixin[i]
-        }
-        if (this._mixinInit) {
-            this._mixinInit.apply(o, Array.prototype.slice.call(arguments, 1));
-        }
-    }
-});
-
-/*
- * AsyncTaskQueue:
- * Schedules asynchrouns tasks which may not overlap during execution
- *
- * The scheduled functions are required to take a callback as their last arguments, and all other arguments
- * need to be bound using Function.prototype.bind
- */
-const AsyncTaskQueue = new Lang.Class({
-    Name: 'AsyncTaskQueue',
-    
-    _init: function() {
-        this._taskList = [];
-    },
-    
-    // shedule the async task for execution or execute right away if there's no current task
-    add: function(task, callback, context) {
-        this._taskList.push({task: task, callback: callback, context: context});
-        if (this._taskList.length == 1) this._executeNext();
-    },
-    
-    _executeNext: function() {
-        this._taskList[0].task.call(null, (function() {
-            if (this._taskList[0].callback) this._taskList[0].callback.apply(this._taskList[0].context, arguments);
-            this._taskList.shift();
-            if (this._taskList.length) this._executeNext();
-        }).bind(this));
-    }
-});
 
 /*
  * The standard array map operation, but in async mode
@@ -132,52 +61,10 @@ function asyncMap(array, mapFunc, callback) {
     }
 }
 
-const createActorFromPixmap = function(pixmap, icon_size) {
-    if (!(pixmap && pixmap.length)) return null;
-    // pixmap is actually an array of icons, so that hosts can pick the
-    // best size (here considered as the area covered by the icon)
-    // XXX: should we use sum of width and height instead? or consider
-    // only one dimension?
-    let best = 0;
-    let bestHeight = pixmap[0][1];
-    let goal = icon_size;
-    for (let i = 1; i < pixmap.length; i++) {
-        let height = pixmap[i][1];
-        if (Math.abs(goal - height) < Math.abs(goal - bestHeight)) {
-            best = i;
-            bestHeight = height;
-        }
-    }
-    let [width, height, imageData] = pixmap[best];
-    // each image is ARGB32
-    // XXX: we're not getting a rowstride! let's hope images are compressed enough
-    let rowstride = width * 4;
-    return St.TextureCache.get_default().load_from_raw(imageData, imageData.length,
-                                                       true, width, height, rowstride,
-                                                       icon_size);
-};
-
 //data: GBytes
-const createActorFromMemoryImage = function(data) {
+const createPixbufFromMemoryImage = function(data) {
     var stream = Gio.MemoryInputStream.new_from_bytes(data);
-    var pixbuf = GdkPixbuf.Pixbuf.new_from_stream(stream, null);
-    return new St.Icon({ gicon: pixbuf, icon_size: pixbuf.get_width() });
-}
-
-//HACK: GLib.Variant.prototype.get_data_as_bytes only exists in recent gjs versions
-const variantToGBytes = function(variant) {
-    if (typeof(GLib.Variant.prototype.get_data_as_bytes) != "undefined") {
-        return variant.get_data_as_bytes();
-    } else {
-        //FIXME: this is very very inefficient. we're sorry.
-        var data = variant.deep_unpack(); //will create an array of doubles...
-        var data_length = data.length;
-        var array = new imports.byteArray.ByteArray(data_length);
-        for (var i = 0; i < data_length; i++) {
-            array[i] = data[i];
-        }
-        return GLib.ByteArray.free_to_bytes(array); //this can't be correct but it suprisingly works like a charm.
-    }
+    return GdkPixbuf.Pixbuf.new_from_stream(stream, null);
 }
 
 /**
@@ -259,3 +146,45 @@ const Logger = {
         Logger._log("FATAL", message);
     }
 };
+
+/**
+ * will take the given signals and handlers, connect them to the object
+ * and push the id needed to disconnect it into the given array.
+ * the id array is returned, too
+ *
+ * if you do not pass a predefined array, it will be created for you.
+ */
+const connectAndSaveId = function(target, handlers /* { "signal": handler } */, idArray) {
+    idArray = typeof idArray != 'undefined' ? idArray : []
+    for (let signal in handlers) {
+        idArray.push(target.connect(signal, handlers[signal]))
+    }
+    return idArray
+}
+
+/**
+ * will connect the given handlers to the object, and automatically disconnect them
+ * when the 'destroy' signal is emitted
+ */
+const connectAndRemoveOnDestroy = function(target, handlers, /* optional */ destroyTarget, /* optional */ destroySignal) {
+    var ids, destroyId
+
+    ids = connectAndSaveId(target, handlers)
+
+    if (typeof destroyTarget == 'undefined') destroyTarget = target
+    if (typeof destroySignal == 'undefined') destroySignal = 'destroy'
+
+    destroyId = destroyTarget.connect(destroySignal, function() {
+        disconnectArray(target, ids)
+        destroyTarget.disconnect(destroyId)
+    })
+}
+
+/**
+ * disconnect an array of signal handler ids. The ids are then removed from the array.
+ */
+const disconnectArray = function(target, idArray) {
+    for (let handler = idArray.shift(); handler !== undefined; handler = idArray.shift()) {
+        target.disconnect(handler);
+    }
+}
