@@ -105,7 +105,8 @@ const StatusNotifierWatcher = new Lang.Class({
             this._nameWatcher[id] = Gio.DBus.session.watch_name(bus_name, Gio.BusNameWatcherFlags.NONE, null,
                                         Lang.bind(this, this._itemVanished));
             StatusNotifierDispatcher.IndicatorDispatcher.instance.dispatch(this._items[id]);
-            this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems', null); //FIXME: null is incorrect
+            this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems', GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
+            Util.Logger.debug("done registering");
         }
         invocation.return_value(null);
     },
@@ -125,7 +126,7 @@ const StatusNotifierWatcher = new Lang.Class({
         Gio.DBus.session.unwatch_name(this._nameWatcher[id]);
         delete this._nameWatcher[id];
         this._dbusImpl.emit_signal('ServiceUnregistered', GLib.Variant.new('(s)', id));
-        this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems', null);
+        this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems', GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
     },
 
     RegisterNotificationHost: function(service) {
