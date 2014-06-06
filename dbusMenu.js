@@ -22,6 +22,7 @@ const GLib = imports.gi.GLib
 const Atk = imports.gi.Atk
 const St = imports.gi.St
 const Signals = imports.signals
+const Clutter = imports.gi.Clutter
 
 const PopupMenu = imports.ui.popupMenu
 const Shell = imports.gi.Shell
@@ -30,9 +31,62 @@ const Extension = imports.misc.extensionUtils.getCurrentExtension()
 const Util = Extension.imports.util
 
 /**
- * Cretes new wrapper menu items and injects methods for managing them at runtime
+ * Creates new wrapper menu items and injects methods for managing them at runtime.
+ *
+ * Many functions in this object will be bound to the created item and executed as event
+ * handlers, so any `this` will refer to a menu item create in createItem
  */
 const MenuItemFactory = {
+    // Ornament polyfill for 3.8
+    OrnamentType: PopupMenu.Ornament ? PopupMenu.Ornament : {
+        NONE: 0,
+        CHECK: 1,
+        DOT: 2
+    },
+
+    _setOrnamentPolyfill: function(ornamentType) {
+        if (ornamentType == MenuItemFactory.OrnamentType.CHECK) {
+            this._ornament.set_text('\u2713')
+            this.actor.add_accessible_state(Atk.StateType.CHECKED)
+        } else if (ornamentType == MenuItemFactory.OrnamentType.DOT) {
+            this._ornament.set_text('\u2022')
+            this.actor.add_accessible_state(Atk.StateType.CHECKED)
+        } else {
+            this._ornament.set_text('')
+            this.actor.remove_accessible_state(Atk.StateType.CHECKED)
+        }
+    },
+
+    // GS3.8 uses a complicated system to compute the allocation for each child in pure JS
+    // we hack together a function that allocates space for our ornament, using the x
+    // calculations normally used for the dot and the y calculations used for every
+    // other item. Thank god they replaced that whole allocation stuff in 3.10, so I don't
+    // really need to understand how it works, as long as it looks right in 3.8
+    _allocateOrnament: function(actor, box, flags) {
+        if (!this._ornament) return
+
+        let height = box.y2 - box.y1;
+        let direction = actor.get_text_direction();
+
+        let dotBox = new Clutter.ActorBox()
+        let dotWidth = Math.round(box.x1 / 2)
+
+        if (direction == Clutter.TextDirection.LTR) {
+            dotBox.x1 = Math.round(box.x1 / 4)
+            dotBox.x2 = dotBox.x1 + dotWidth
+        } else {
+            dotBox.x2 = box.x2 + 3 * Math.round(box.x1 / 4)
+            dotBox.x1 = dotBox.x2 - dotWidth
+        }
+
+        let [minHeight, naturalHeight] = this._ornament.get_preferred_height(dotBox.x2 - dotBox.x1)
+
+        dotBox.y1 = Math.round(box.y1 + (height - naturalHeight) / 2)
+        dotBox.y2 = dotBox.y1 + naturalHeight
+
+        this._ornament.allocate(dotBox, flags)
+    },
+
     createItem: function(client, dbusItem) {
         // first, decide whether it's a submenu or not
         if (dbusItem.property_get("children-display") == "submenu")
@@ -45,10 +99,23 @@ const MenuItemFactory = {
         shellItem._dbusItem = dbusItem
         shellItem._dbusClient = client
 
-        shellItem._icon = new St.Icon({ style_class: 'popup-menu-icon', x_align: St.Align.END })
         if (shellItem instanceof PopupMenu.PopupMenuItem) {
-            shellItem.actor.add(shellItem._icon, { x_align: St.Align.END })
-            shellItem.label.get_parent().child_set(shellItem.label, { expand: true })
+            shellItem._icon = new St.Icon({ style_class: 'popup-menu-icon', x_align: St.Align.END })
+            if (shellItem.addActor) { //GS 3.8
+                shellItem.addActor(shellItem._icon, { align: St.Align.END })
+            } else { //GS >= 3.10
+                shellItem.actor.add(shellItem._icon, { x_align: St.Align.END })
+                shellItem.label.get_parent().child_set(shellItem.label, { expand: true })
+            }
+
+            // GS3.8: emulate the ornament stuff.
+            // this is similar to how the setShowDot function works
+            if (!shellItem.setOrnament) {
+                shellItem._ornament = new St.Label()
+                shellItem.actor.add_actor(shellItem._ornament)
+                shellItem.setOrnament = MenuItemFactory._setOrnamentPolyfill
+                shellItem.actor.connect('allocate', MenuItemFactory._allocateOrnament.bind(shellItem)) //GS doesn't disconnect that one, either
+            }
         }
 
         // initialize our state
@@ -171,19 +238,24 @@ const MenuItemFactory = {
         else
             label = ''
 
-        this.label.set_text(label)
+        if (this.label) // especially on GS3.8, the separator item might not even have a hidden label
+            this.label.set_text(label)
     },
 
     _updateOrnament: function() {
+        if (!this.setOrnament) return // separators and alike might not have gotten the polyfill
+
         if (this._dbusItem.property_get("toggle-type") == "checkmark" && this._dbusItem.property_get_int("toggle-state"))
-            this.setOrnament(PopupMenu.Ornament.CHECK)
+            this.setOrnament(MenuItemFactory.OrnamentType.CHECK)
         else if (this._dbusItem.property_get("toggle-type") == "radio" && this._dbusItem.property_get_int("toggle-state"))
-            this.setOrnament(PopupMenu.Ornament.DOT)
+            this.setOrnament(MenuItemFactory.OrnamentType.DOT)
         else
-            this.setOrnament(PopupMenu.Ornament.NONE)
+            this.setOrnament(MenuItemFactory.OrnamentType.NONE)
     },
 
     _updateImage: function() {
+        if (!this._icon) return // might be missing on submenus / separators
+
         let iconName = this._dbusItem.property_get("icon-name")
         let iconData = this._dbusItem.property_get_variant("icon-data")
         if (iconName)
