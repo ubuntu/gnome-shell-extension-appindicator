@@ -41,10 +41,48 @@ app.connect("startup", function() {
     
     item = Gtk.CheckMenuItem.new_with_label("Check me!");
     menu.append(item);
+
+    item = Gtk.MenuItem.new_with_label("Blub");
+    let sub = new Gtk.Menu();
+    item.set_submenu(sub);
+    menu.append(item);
+
+    item = Gtk.MenuItem.new_with_label("Blubdablub");
+    sub.append(item);
     
     item = new Gtk.SeparatorMenuItem();
     menu.append(item);
+
+    item = Gtk.MenuItem.new_with_label("Foo");
+    menu.append(item);
+
+    let submenu = new Gtk.Menu();
+    item.set_submenu(submenu);
+
+    item = Gtk.MenuItem.new_with_label("Hello");
+    submenu.append(item);
+
+    item = Gtk.MenuItem.new_with_label("Nested");
+    submenu.append(item);
+
+    let submenu1 = new Gtk.Menu();
+    item.set_submenu(submenu1);
+
+    item = Gtk.MenuItem.new_with_label("Another nested");
+    submenu.append(item);
+
+    let submenu2 = new Gtk.Menu();
+    item.set_submenu(submenu2);
+
+    item = Gtk.MenuItem.new_with_label("Some other item");
+    submenu1.append(item);
+
+    item = Gtk.MenuItem.new_with_label("abcdefg");
+    submenu2.append(item);
     
+    item = new Gtk.SeparatorMenuItem();
+    menu.append(item);
+
     var group = [];
     
     for (let i = 0; i < 5; ++i) {

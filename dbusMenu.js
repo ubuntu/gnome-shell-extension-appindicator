@@ -439,6 +439,13 @@ Signals.addSignalMethods(DBusClient.prototype)
 // PART TWO: "View" frontend implementation.
 //////////////////////////////////////////////////////////////////////////
 
+// https://bugzilla.gnome.org/show_bug.cgi?id=731514
+// GNOME 3.10 and 3.12 can't open a nested submenu.
+// Patches have been written, but it's not clear when (if?) they will be applied.
+// We also don't know whether they will be backported to 3.10, so we will work around
+// it in the meantime. Offending versions can be clearly identified:
+const NEED_NESTED_SUBMENU_FIX = '_setOpenedSubMenu' in PopupMenu.PopupMenu.prototype
+
 /**
  * Creates new wrapper menu items and injects methods for managing them at runtime.
  *
@@ -552,6 +559,7 @@ const MenuItemFactory = {
         Util.connectAndRemoveOnDestroy(shellItem, {
             'activate':  MenuItemFactory._onActivate.bind(shellItem)
         })
+
         if (shellItem.menu)
             Util.connectAndRemoveOnDestroy(shellItem.menu, {
                 "open-state-changed": MenuItemFactory._onOpenStateChanged.bind(shellItem)
@@ -562,6 +570,18 @@ const MenuItemFactory = {
 
     _onOpenStateChanged: function(menu, open) {
         if (open) {
+            if (NEED_NESTED_SUBMENU_FIX) {
+                // close our own submenus
+                if (menu._openedSubMenu)
+                    menu._openedSubMenu.close(false)
+
+                // register ourselves and close sibling submenus
+                if (menu._parent._openedSubMenu && menu._parent._openedSubMenu !== menu)
+                    menu._parent._openedSubMenu.close(true)
+
+                menu._parent._openedSubMenu = menu
+            }
+
             this._dbusItem.handle_event("opened", null, 0)
             this._dbusItem.send_about_to_show()
         } else {
@@ -741,6 +761,9 @@ const Client = new Lang.Class({
         // cleanup: remove existing childs (just in case)
         this._rootMenu.removeAll()
 
+        if (NEED_NESTED_SUBMENU_FIX)
+            menu._setOpenedSubMenu = this._setOpenedSubmenu.bind(this)
+
         // connect handlers
         Util.connectAndSaveId(menu, {
             'open-state-changed': this._onMenuOpened.bind(this),
@@ -755,6 +778,22 @@ const Client = new Lang.Class({
         // fill the menu for the first time
         for each(let child in this._rootItem.get_children())
             this._rootMenu.addMenuItem(MenuItemFactory.createItem(this, child))
+    },
+
+    _setOpenedSubmenu: function(submenu) {
+        if (!submenu)
+            return
+
+        if (submenu._parent != this._rootMenu)
+            return
+
+        if (submenu === this._openedSubMenu)
+            return
+
+        if (this._openedSubMenu && this._openedSubMenu.isOpen)
+            this._openedSubMenu.close(true)
+
+        this._openedSubMenu = submenu
     },
 
     _onRootChildAdded: function(dbusItem, child, position) {
@@ -778,6 +817,9 @@ const Client = new Lang.Class({
         if (!this._rootItem) return
 
         if (state) {
+            if (this._openedSubMenu && this._openedSubMenu.isOpen)
+                this._openedSubMenu.close()
+
             this._rootItem.handle_event("opened", null, 0)
             this._rootItem.send_about_to_show()
         } else {
