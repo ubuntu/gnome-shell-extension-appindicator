@@ -276,6 +276,23 @@ const DBusClient = new Lang.Class({
         }, this)
     },
 
+    // Traverses the list of cached menu items and removes everyone that is not in the list
+    // so we don't keep alive unused items
+    _gcItems: function() {
+        let tag = new Date().getTime()
+
+        let toTraverse = [ 0 ]
+        while (toTraverse.length > 0) {
+            let item = this.get_item(toTraverse.shift())
+            item._dbusClientGcTag = tag
+            Array.prototype.push.apply(toTraverse, item.get_children_ids())
+        }
+
+        for (let i in this._items)
+            if (this._items[i]._dbusClientGcTag != tag)
+                delete this._items[i]
+    },
+
     // the original implementation will only request partial layouts if somehow possible
     // we try to save us from multiple kinds of race conditions by always requesting a full layout
     _beginLayoutUpdate: function() {
@@ -295,6 +312,7 @@ const DBusClient = new Lang.Class({
 
         let [ revision, root ] = result
         this._doLayoutUpdate(root)
+        this._gcItems()
 
         if (this._flagLayoutUpdateRequired)
             this._beginLayoutUpdate()
