@@ -40,36 +40,25 @@ const IndicatorStatusIcon = new Lang.Class({
         
         this._indicator = indicator;
         
-        this._iconBox = new St.BoxLayout();
-        if (!this._box) { // Gnome Shell 3.10
-            this._box = new St.BoxLayout();
-            this.actor.add_actor(this._box);
-        }
+        this._iconBox = indicator.getIconActor(Panel.PANEL_ICON_SIZE);
+        if (!this._box) // Gnome Shell 3.10
+            this.actor.add_actor(this._box = new St.BoxLayout());
+
         this._box.destroy_all_children();
         this._box.add_actor(this._iconBox);
-        this._boxClickDisconnectHandler = this.actor.connect("button-press-event", this._boxClicked.bind(this));
-        
+        Util.connectAndRemoveOnDestroy(this.actor, {
+            'button-press-event': this._boxClicked.bind(this)
+        })
+
         Util.Logger.debug("Adding indicator as status menu");
-        
-        //stuff would keep us alive forever if icon changes places
-        var h = this._indicatorHandlerIds = []; 
-        h.push(this._indicator.connect('icon', Lang.bind(this, this._updateIcon)));
-        h.push(this._indicator.connect('ready', Lang.bind(this, this._display)));
-        h.push(this._indicator.connect('reset', Lang.bind(this, this._reset)));
-        h.push(this._indicator.connect('label', Lang.bind(this, this._updateLabel)));
-        if (this._indicator.isReady) {
-            //indicator already ready when adding? unheard of, but we still handle it.
-            this._updateIcon();
-            this._updateLabel();
-            this._display();
-        }
-    },
-    
-    _updateIcon: function() {
-        if (this._iconBox.firstChild && this._iconBox.firstChild.inUse) this._iconBox.firstChild.inUse = false;
-        this._iconBox.remove_all_children();
-        var icon = this._indicator.getIcon(Panel.PANEL_ICON_SIZE);
-        this._iconBox.add_actor(icon);
+
+        Util.connectAndRemoveOnDestroy(this._indicator, {
+            'ready': this._display.bind(this),
+            'label': this._updateLabel.bind(this)
+        }, this)
+
+        if (this._indicator.isReady)
+            this._display()
     },
     
     _updateLabel: function() {
@@ -94,38 +83,23 @@ const IndicatorStatusIcon = new Lang.Class({
         }
     },
     
-    _reset: function() {
-        this._updateIcon();
-        if (this.menu.reset) {
-            this.menu.reset();
-        }
-    },
-    
     destroy: function() {
         Util.Logger.debug('destroying '+this._indicator.id+'...');
-        //remove from panel
-        for (var i in Main.panel.statusArea) {
-            if (Main.panel.statusArea[i] === this._reset) {
-                delete Main.panel.statusArea[i];
-            }
-        }
-        
+
         //destroy stuff owned by us
-        this._indicatorHandlerIds.forEach(this._indicator.disconnect.bind(this._indicator));
-        if (this.menu.destroyDbusMenu) {
-            this.menu.destroyDbusMenu();
-        }
-        this._iconBox.remove_all_children(); //save from destroying, icon cache will take care of that
+        if (this._menuClient) this._menuClient.destroy()
         this._box.destroy_all_children();
-        this.actor.disconnect(this._boxClickDisconnectHandler);
         
         //call parent
         this.parent();
     },
     
     _display: function() {
+        this._updateLabel()
+
         this._indicator.getMenuClient((function(client){
             if (client != null) {
+                this._menuClient = client
                 client.attachToMenu(this.menu)
             }
             

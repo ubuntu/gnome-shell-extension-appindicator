@@ -168,17 +168,10 @@ const CustomDashIcon = new Lang.Class({
         this._menu.close(); //Initially close the menu!
         this._menuManager.addMenu(this._menu);
 
-        //stuff would keep us alive forever if icon changes places
-        var h = this._indicatorHandlerIds = [];
-        h.push(this._indicator.connect('icon', Lang.bind(this, this._updateIcon)));
-        h.push(this._indicator.connect('ready', Lang.bind(this, this._display)));
-        h.push(this._indicator.connect('reset', Lang.bind(this, this._reset)));
-
-        if (this._indicator.isReady) {
-            //indicator already ready when adding? unheard of, but we still handle it.
-            this._updateIcon();
+        if (this._indicator.isReady)
             this._display();
-        }
+        else
+            Util.connectOnce(this._indicator, 'ready', this._display.bind(this));
     },
 
     _onWindowDemandsAttention: function(display, window) {
@@ -230,7 +223,7 @@ const CustomDashIcon = new Lang.Class({
     },
 
     _createIcon: function(size) {
-        return this._indicator.createIcon(this._usedDash.iconSize*STATUSICONSCALEFACTOR);
+        return this._indicator.getIconActor(this._usedDash.iconSize*STATUSICONSCALEFACTOR);
     },
 
     _updateIcon: function() {
@@ -273,10 +266,7 @@ const CustomDashIcon = new Lang.Class({
 
     destroy: function() {
         //destroy stuff owned by us
-        this._indicatorHandlerIds.forEach(this._indicator.disconnect.bind(this._indicator));
-        if (this._menu.destroyDbusMenu) {
-            this._menu.destroyDbusMenu();
-        }
+        if (this._menu._menuClient) this._menu._menuClient.destroy();
 
         //disconnect all signals
         this.actor.disconnect(this.buttonpressid);
@@ -318,6 +308,7 @@ const CustomAppIconMenu = new Lang.Class({
         this._indicator.getMenuClient((function(menu){ //bind the indicator menu to app indicator menu
             if (menu != null) {
                 menu.attachToMenu(this);
+                this._menuClient = menu;
             }
         }).bind(this));
     },

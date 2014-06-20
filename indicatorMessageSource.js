@@ -47,17 +47,12 @@ const IndicatorMessageSource = new Lang.Class({
         
         //notification is async because it carries the menu
         this._notification = new IndicatorNotification(this, (function() {
-            this._iconBox = new St.BoxLayout();
+            this._iconBox = this._indicator.getIconActor(this.SOURCE_ICON_SIZE)
             
-            var h = this._indicatorHandlerIds = [];
-            h.push(this._indicator.connect('icon', Lang.bind(this, this._updateIcon)));
-            h.push(this._indicator.connect('ready', Lang.bind(this, this._display)));
-            h.push(this._indicator.connect('reset', Lang.bind(this, this._reset)));
-            
-            if (this._indicator.isReady) {
-                this._updateIcon();
-                this._display();
-            }
+            if (this._indicator.isReady)
+                this._display()
+            else
+                Util.connectOnce(this._indicator, 'ready', this._display.bind(this))
         }).bind(this));
     },
     
@@ -81,10 +76,6 @@ const IndicatorMessageSource = new Lang.Class({
     
     set title(val) {
         //ignore
-    }, 
-    
-    _reset: function() {
-    
     },
     
     buildRightClickMenu: function() {
@@ -94,24 +85,20 @@ const IndicatorMessageSource = new Lang.Class({
     getSummaryIcon: function() {
         return this._iconBox;
     },
-    
-    _updateIcon: function() {
-        if (this._iconBox.firstChild && this._iconBox.firstChild.inUse) this._iconBox.firstChild.inUse = false;
-        this._iconBox.remove_all_children();
-        var icon = this._indicator.getIcon(this.SOURCE_ICON_SIZE);
-        this._iconBox.add_actor(icon);
-    },
-    
+
     destroy: function(fromDispatcher) {
         //HACK: In 3.10, the message tray just destroys the source whenever someone clicks the close button
         //      even though the notification is resident. StatusNotificationDispatcher will signal us
         //      if we need to comply with the request. Ignoring it thankfully doesn't cause any problems.
         if (fromDispatcher) {
-            Util.Logger.debug("Destroying "+this._indicator.id);
-            this._indicatorHandlerIds.forEach(this._indicator.disconnect.bind(this._indicator));
-            if (this._notification._menu) this._notification._menu.destroy();
-            this._iconBox.remove_all_children();
-            MessageTray.Source.prototype.destroy.apply(this);
+            Util.Logger.debug("Destroying "+this._indicator.id)
+
+            if (this._notification._menu)
+                this._notification._menu.destroy()
+            if (this._notification._menuClient)
+                this._notification._menuClient.destroy()
+
+            this.parent()
         }
     },
     
@@ -195,6 +182,7 @@ const IndicatorNotification = new Lang.Class({
                 this._menu = new PopupMenuEmbedded();
                 this._box.add_actor(this._menu.actor);
                 client.attachToMenu(this._menu);
+                this._menuClient = client;
             }
             
             cb()

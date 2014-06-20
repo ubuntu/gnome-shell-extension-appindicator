@@ -26,8 +26,6 @@ const St = imports.gi.St;
 const Shell = imports.gi.Shell;
 const GdkPixbuf = imports.gi.GdkPixbuf;
 
-const Panel = imports.ui.panel;
-
 const Gettext = imports.gettext.domain('gnome-shell');
 const _ = Gettext.gettext;
 
@@ -50,12 +48,6 @@ const SNIStatus = {
     NEEDS_ATTENTION: 'NeedsAttention'
 };
 
-//partially taken from the quassel irc sources, partly from libappindicator
-//there seem to be _huge_ inconsistencies between the numerous implementations
-
-const StatusNotifierItem = Gio.DBusProxy.makeProxyWrapper(DBusInterfaces.StatusNotifierItem);
-const PropertiesProxy = Gio.DBusProxy.makeProxyWrapper(DBusInterfaces.Properties);
-
 /**
  * the AppIndicator class serves as a generic container for indicator information and functions common
  * for every displaying implementation (IndicatorMessageSource and IndicatorStatusIcon)
@@ -64,102 +56,79 @@ const AppIndicator = new Lang.Class({
     Name: 'AppIndicator',
 
     _init: function(bus_name, object) {
-        this.ICON_SIZE = Panel.PANEL_ICON_SIZE;
+        this.busName = bus_name
 
-        this.busName = bus_name;
+        this._iconSize = 16 //arbitrary value
+
+        this._proxy = new Util.XmlLessDBusProxy({
+            connection: Gio.DBus.session,
+            name: bus_name,
+            path: object,
+            interface: 'org.kde.StatusNotifierItem',
+            propertyWhitelist: [
+                'Title',
+                'Id',
+                'Category',
+                'Status',
+                'ToolTip',
+                'XAyatanaLabel',
+                'Menu',
+                'IconName',
+                'AttentionIconName',
+                'OverlayIconName',
+            ],
+            onReady: (function() {
+                this.isReady = true
+                this.emit('ready')
+            }).bind(this)
+        })
+
+        this._proxy.connect('-property-changed', this._onPropertyChanged.bind(this))
+        this._proxy.connect('-signal', this._translateNewSignals.bind(this))
+
         this._iconThemeChangedHandle = Gtk.IconTheme.get_default().connect('changed', this._invalidateIcon.bind(this));
-
-        //construct async because the remote object may be busy and irresponsive (example: quassel irc)
-        this._props = new PropertiesProxy(Gio.DBus.session, bus_name, object, (function(resutl, error) {
-            this._proxy = new StatusNotifierItem(Gio.DBus.session, bus_name, object, (function(result, error) {
-                this._propChangedEmitters = {
-                    "Status": this._getChangedEmitter("status", "status"),
-                    "IconName": this._getChangedEmitter("icon", "iconName"),
-                    "AttentionIconName": this._getChangedEmitter("icon", "iconName"),
-                    "Title": this._getChangedEmitter("title", "title"),
-                    "Tooltip": this._getChangedEmitter("tooltip", "tooltip"),
-                    "XAyatanaLabel": this._getChangedEmitter("label", "label")
-                };
-
-                //this is really just Signals._connect, so we can disconnect them all at once
-                this._proxy.connectSignal('NewStatus', this._propertyUpdater("Status"));
-                this._proxy.connectSignal('NewIcon', this._propertyUpdater("IconName"));
-                this._proxy.connectSignal('NewAttentionIcon', this._propertyUpdater("AttentionIconName"));
-                this._proxy.connectSignal('NewTitle', this._propertyUpdater("Title"));
-                this._proxy.connectSignal('NewToolTip', this._propertyUpdater("Tooltip"));
-                this._proxy.connectSignal('XAyatanaNewLabel', this._propertyUpdater("XAyatanaLabel"));
-
-                this._propChangedHandle = this._proxy.connect("g-properties-changed", this._propertiesChanged.bind(this));
-
-                // Whenever the status changes, we might also have a changed icon.
-                // So we emit an event for that, too, whenever we have a new status.
-                this.connect("status", function() {
-                    this.emit("icon", this.icon);
-                }.bind(this));
-
-                // workaround for us not being able to set G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES
-                this._proxy.connect("g-properties-changed", Util.refreshInvalidatedProperties);
-
-                this.isConstructed = true;
-                this.emit("constructed");
-
-                this.reset(true);
-            }).bind(this));
-        }).bind(this));
     },
 
-    // returns a function that emits the signal `signal` with the argument `this[prop]`
-    _getChangedEmitter: function(signal, prop) {
-        return Lang.bind(this, function() {
-            this.emit(signal, this[prop]);
-        });
-    },
+    // The Author of the spec didn't like the PropertiesChanged signal, so he invented his own
+    _translateNewSignals: function(proxy, signal, params) {
+        if (signal.substr(0, 3) == 'New') {
+            let prop = signal.substr(3)
 
-    // returns a function that updates the cached property for `propertyName`.
-    // (RANT) This only needs to be done because the author of the spec deemed it necessary to use special events
-    // to signal property changes instead of using the standard org.freedesktop.DBus.Properties interface. I still
-    // wonder why.
-    _propertyUpdater: function(propertyName) {
-        return Lang.bind(this, function() {
-            this._props.GetRemote("org.kde.StatusNotifierItem", propertyName, (function(variant, error) {
-                    if (error) return;
-                    this._proxy.set_cached_property(propertyName, variant[0]);
-                    if (propertyName in this._propChangedEmitters) this._propChangedEmitters[propertyName]();
-                }).bind(this)
-            );
-        });
+            if (this._proxy.propertyWhitelist.indexOf(prop) > -1)
+                this._proxy.invalidateProperty(prop)
+
+            if (this._proxy.propertyWhitelist.indexOf(prop + 'Pixmap') > -1)
+                this._proxy.invalidateProperty(prop + 'Pixmap')
+        } else if (signal == 'XAyatanaNewLabel') {
+            // and the ayatana guys made sure to invent yet another way of composing these signals...
+            this._proxy.invalidateProperty('XAyatanaLabel')
+        }
     },
 
     //public property getters
     get title() {
-        return this._proxy.Title;
+        return this._proxy.cachedProperties.Title;
     },
     get id() {
-        return this._proxy.Id;
-    },
-    get category() {
-        return this._proxy.Category;
+        return this._proxy.cachedProperties.Id;
     },
     get status() {
-        return this._proxy.Status;
+        return this._proxy.cachedProperties.Status;
     },
     get iconName() {
         if (this.status == SNIStatus.NEEDS_ATTENTION) {
-            return this._proxy.AttentionIconName;
+            return this._proxy.cachedProperties.AttentionIconName;
         } else {
-            return this._proxy.IconName;
+            return this._proxy.cachedProperties.IconName;
         }
     },
-    get tooltip() {
-        return this._proxy.Tooltip;
-    },
     get label() {
-        return this._proxy.XAyatanaLabel;
+        return this._proxy.cachedProperties.XAyatanaLabel;
     },
 
     //async because we may need to check the presence of a menubar object as well as the creation is async.
     getMenuClient: function(clb) {
-        var path = this._proxy.Menu || "/MenuBar"
+        var path = this._proxy.cachedProperties.Menu || "/MenuBar"
         this._validateMenu(this.busName, path, function(r, name, path) {
             if (r) {
                 Util.Logger.debug("creating menu on "+[name, path])
@@ -193,42 +162,39 @@ const AppIndicator = new Lang.Class({
         );
     },
 
-    _propertiesChanged: function(proxy, changed, invalidated) {
-        var props = invalidated.concat(Object.keys(changed.deep_unpack()));
-        props.forEach(function(e) {
-            if (e in this._propChangedEmitters) this._propChangedEmitters[e]();
-        }, this);
+    _onPropertyChanged: function(proxy, property, newValue) {
+        // some property changes require updates on our part,
+        // a few need to be passed down to the displaying code
+
+        // all these can mean that the icon has to be changed
+        if (property == 'Status' || property == 'IconName' || property == 'AttentionIconName')
+            this._updateIcon()
+
+        // the label will be handled elsewhere
+        if (property == 'XAyatanaLabel')
+            this.emit('label')
+
+        // status updates are important for the StatusNotifierDispatcher
+        if (property == 'Status')
+            this.emit('status')
     },
 
-    //only triggers actions
+    // triggers a reload of all properties
     reset: function(triggerReady) {
-        this.emit('status', this.status);
-        this.emit('title', this.title);
-        this.emit('tooltip', this.tooltip);
-        this.emit('icon', this.iconName);
-        this.emit('label', this.label);
-        if (triggerReady) {
-            this.isReady = true;
-            this.emit('ready');
-        } else {
-            this.emit('reset');
-        }
+        this._proxy.invalidateAllProperties(this.emit.bind(this, 'reset'))
     },
 
     destroy: function() {
-        if (this.isConstructed) {
-            Signals._disconnectAll.apply(this._proxy);
-            this._proxy.disconnect(this._propChangedHandle);
-            Gtk.IconTheme.get_default().disconnect(this._iconThemeChangedHandle);
-            this.emit('destroy', this);
-            this.disconnectAll();
-            this._proxy = null; //in case we still have circular references...
-        } else {
-            this.connect("constructed", this.destroy.bind(this));
-        }
+        this.emit('destroy')
+
+        Gtk.IconTheme.get_default().disconnect(this._iconThemeChangedHandle)
+
+        this.disconnectAll()
+        if (this._iconBin) this._iconBin.destroy()
+        this._proxy.destroy()
     },
 
-    createIcon: function(icon_size) {
+    _createIcon: function(icon_size) {
         // shortcut variable
         var icon_name = this.iconName;
         // fallback icon
@@ -288,66 +254,66 @@ const AppIndicator = new Lang.Class({
             }
         }
 
-        let icon = new St.Icon({ gicon: gicon, icon_size: real_icon_size });
-
-        // make sure to return an actor that has the appropriate size, even if
-        // the icon we found is smaller.
-        if (real_icon_size < icon_size) {
-            Util.Logger.debug("small icon adjustment");
-            return new St.Bin({
-                width: icon_size,
-                height: icon_size,
-                child: icon,
-                x_fill: false,
-                y_fill: false
-            });
-        } else {
-            return icon;
-        }
+        return new St.Icon({ gicon: gicon, icon_size: real_icon_size });
     },
 
-    //in contrast to createIcon, this function manages caching.
-    //if you don't use the icon anymore, set .inUse to false.
-    getIcon: function(icon_size) {
-        var icon_id = this.iconName + "@" + icon_size;
-        var icon = IconCache.IconCache.instance.get(icon_id);
-        if (icon && this._forceIconRedraw) {
-            IconCache.IconCache.instance.forceDestroy(icon_id);
-            this._forceIconRedraw = false;
-            icon = null;
+    // updates the icon in this._iconBin, managing caching
+    _updateIcon: function(force_redraw) {
+        // remove old icon
+        if (this._iconBin && this._iconBin.get_child()) {
+            this._iconBin.get_child().inUse = false
+            this._iconBin.set_child(null)
         }
-        if (!icon) {
-            icon = this.createIcon(icon_size);
-            IconCache.IconCache.instance.add(icon_id, icon);
+
+        let icon_id = this.iconName + "@" + this._iconSize
+        let new_icon = IconCache.IconCache.instance.get(icon_id)
+
+        if (new_icon && force_redraw) {
+            IconCache.IconCache.instance.forceDestroy(icon_id)
+            new_icon = null
         }
-        icon.inUse = true;
-        return icon;
+
+        if (!new_icon) {
+            new_icon = this._createIcon(this._iconSize)
+            IconCache.IconCache.instance.add(icon_id, new_icon)
+        }
+
+        new_icon.inUse = true
+
+        if (this._iconBin)
+            this._iconBin.set_child(new_icon)
     },
 
-    //called when the icon theme changes
+    // returns an icon actor in the right size that contains the icon.
+    // the icon will be update automatically if it changes.
+    getIconActor: function(icon_size) {
+        this._iconSize = icon_size
+
+        if (this._iconBin) {
+            if (this._iconBin.get_child())
+                this._iconBin.get_child().inUse = false
+
+            this._iconBin.destroy()
+        }
+
+        this._iconBin = new St.Bin({
+            width: icon_size,
+            height: icon_size,
+            x_fill: false,
+            y_fill: false
+        })
+
+        if (this.isReady)
+            this._updateIcon(true)
+        else
+            Util.connectOnce(this, 'ready', this._updateIcon.bind(this))
+
+        return this._iconBin
+    },
+
+    // called when the icon theme changes
     _invalidateIcon: function() {
-        this._forceIconRedraw = true;
-        this._onNewIcon();
-    },
-
-    _onNewStatus: function() {
-        this.emit('status', this.status);
-    },
-
-    _onNewLabel: function(proxy) {
-        this.emit('label', this.label);
-    },
-
-    _onNewIcon: function(proxy, iconType) {
-        this.emit('icon', this.iconName);
-    },
-
-    _onNewTitle: function(proxy) {
-        this.emit("title", this.title);
-    },
-
-    _onNewTooltip: function(proxy) {
-        this.emit("tooltip", this.tooltip);
+        this._updateIcon(true);
     },
 
     open: function() {
@@ -355,7 +321,12 @@ const AppIndicator = new Lang.Class({
         // nor can we call any X11 functions. Luckily, the Activate method usually works fine.
         // parameters are "an hint to the item where to show eventual windows" [sic]
         // ... and don't seem to have any effect.
-        this._proxy.ActivateRemote(0, 0);
+        this._proxy.call({
+            name: 'Activate',
+            paramTypes: 'ii',
+            paramValues: [0, 0]
+            // we don't care about the result
+        })
     }
 });
 Signals.addSignalMethods(AppIndicator.prototype);

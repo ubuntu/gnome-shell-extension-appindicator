@@ -93,6 +93,21 @@ app.connect("startup", function() {
         menu.append(item);
     }
 
+    item = new Gtk.SeparatorMenuItem();
+    menu.append(item);
+
+    item = Gtk.MenuItem.new_with_label("Set Label");
+    item.connect('activate', function() {
+        indicator.set_label(''+new Date().getSeconds(), 'Blub');
+    });
+    menu.append(item);
+
+    item = Gtk.MenuItem.new_with_label("Unset Label");
+    item.connect('activate', function() {
+        indicator.set_label('', '');
+    })
+    menu.append(item);
+
     menu.show_all();
 
     var indicator = AppIndicator.Indicator.new("Hello", "indicator-test", AppIndicator.IndicatorCategory.APPLICATION_STATUS);

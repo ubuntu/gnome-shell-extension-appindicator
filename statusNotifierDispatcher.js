@@ -40,67 +40,84 @@ const IndicatorDispatcher = new Lang.Class({
     },
     
     dispatch: function(indicator) {
-        if (indicator.isConstructed) this._doDispatch(indicator);
-        else indicator.connect("constructed", this._doDispatch.bind(this, indicator));
+        if (indicator.isReady) this._doDispatch(indicator);
+        else indicator.connect("ready", this._doDispatch.bind(this, indicator));
     },
     
     _doDispatch: function(indicator) {
-        // this is actually needed for the whole lifetime of indicator. It will be disconnected automatically on destroy.
-        indicator.connect('status', Lang.bind(this, this._updatedStatus, indicator));
+        this._icons[indicator.id] = {
+            statusChangedId:    indicator.connect('status', this._updatedStatus.bind(this, indicator)),
+            destroyedId:        indicator.connect('destroy', this._freeContainer.bind(this, indicator)),
+            currentVisual:      null,
+            indicator:          indicator
+        }
+
         this._updatedStatus(indicator);
     },
     
     _updatedStatus: function(indicator) {
-         if (!indicator) return;
-         var status = indicator.status;
-         if (status == SNIStatus.PASSIVE) {
-             // remove it 
-             if (indicator.id in this._icons) {
-                 this._remove(indicator);
-             }
-         } else if (status == SNIStatus.ACTIVE || status == SNIStatus.NEEDS_ATTENTION) {
-             if (!(indicator.id in this._icons)) {
-                 this._add(indicator);
-             }
-         } else {
-             Util.Logger.warn("unknown status on "+indicator.id+": "+status)
-         }
-     },
-     
-    _add: function(indicator) {
-        var obj;
-        if (Settings.instance.get(indicator.id) == "blacklist") {
-            obj = new NullIcon(indicator);
-        } else if (Settings.instance.get(indicator.id) == "panel") {
-            obj = new IndicatorStatusIcon.IndicatorStatusIcon(indicator);
-        } else if (Settings.instance.get(indicator.id) == "dash") {
-            obj = new DashIndicatorIcon.CustomDashIcon(indicator);
-        } else {
-            obj = new IndicatorMessageSource.IndicatorMessageSource(indicator);    
+        if (!indicator)
+            return
+
+        if (indicator.status == SNIStatus.PASSIVE && this._isVisible(indicator))
+            this._hide(indicator)
+        else if ((indicator.status == SNIStatus.ACTIVE || indicator.status == SNIStatus.NEEDS_ATTENTION)
+                 && !this._isVisible(indicator))
+            this._show(indicator)
+    },
+
+    _isVisible: function(indicator) {
+        return (indicator.id in this._icons) && this._icons[indicator.id].currentVisual
+    },
+
+    _show: function(indicator) {
+        if (Settings.instance.get(indicator.id) == "blacklist")
+            this._icons[indicator.id].currentVisual = new NullIcon(indicator)
+        else if (Settings.instance.get(indicator.id) == "panel")
+            this._icons[indicator.id].currentVisual = new IndicatorStatusIcon.IndicatorStatusIcon(indicator)
+        else if (Settings.instance.get(indicator.id) == "dash")
+            this._icons[indicator.id].currentVisual = new DashIndicatorIcon.CustomDashIcon(indicator)
+        else
+            this._icons[indicator.id].currentVisual = new IndicatorMessageSource.IndicatorMessageSource(indicator)
+    },
+    
+    _hide: function(indicator) {
+        this._icons[indicator.id].currentVisual.destroy(true)
+        this._icons[indicator.id].currentVisual = null
+    },
+    
+    _redisplay: function(id) {
+        if (!(id in this._icons))
+            return
+
+        let indicator = this._icons[id].indicator;
+
+        if (this._isVisible(indicator)) {
+            this._hide(indicator)
+            this._show(indicator)
         }
-        this._icons[indicator.id] = obj;
-        indicator.connect('destroy', this._remove.bind(this, indicator));
     },
-    
-    _remove: function(indicator) {
-        this._icons[indicator.id].destroy(true);
-        delete this._icons[indicator.id];
-    },
-    
-    _readd: function(id) {
-        if (!(id in this._icons)) return;
-        var indicator = this._icons[id]._indicator;
-        this._remove(indicator);
-        this.dispatch(indicator)
+
+    _freeContainer: function(indicator) {
+        if (!(indicator.id in this._icons))
+            return
+
+        indicator.disconnect(this._icons[indicator.id].statusChangedId)
+        indicator.disconnect(this._icons[indicator.id].destroyedId)
+
+        if (this._isVisible(indicator))
+            this._hide(indicator)
+
+        delete this._icons[indicator.id]
     },
     
     _settingsChanged: function(obj, name) {
         if (name) {
-            this._readd(name);
+            this._redisplay(name);
         } else {
             // readd every item
             for (var i in this._icons) {
-                this._readd(i);
+                this._redisplay(i);
             }
         }
     },

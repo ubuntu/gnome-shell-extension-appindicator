@@ -16,6 +16,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 const Lang = imports.lang;
+const Signals = imports.signals;
 const St = imports.gi.St;
 const GdkPixbuf = imports.gi.GdkPixbuf;
 const Gio = imports.gi.Gio;
@@ -66,6 +67,180 @@ const createPixbufFromMemoryImage = function(data) {
     var stream = Gio.MemoryInputStream.new_from_bytes(data);
     return GdkPixbuf.Pixbuf.new_from_stream(stream, null);
 }
+
+/**
+ * This proxy works completely without an interface xml, making it both flexible
+ * and mistake-prone. It will cache properties and emit events, and provides
+ * shortcuts for calling methods.
+ */
+const XmlLessDBusProxy = new Lang.Class({
+    Name: 'XmlLessDBusProxy',
+
+    _init: function(params) {
+        if (!params.connection || !params.name || !params.path || !params.interface)
+            throw new Error("XmlLessDBusProxy: please provide connection, name, path and interface")
+
+        this.connection = params.connection
+        this.name = params.name
+        this.path = params.path
+        this.interface = params.interface
+        this.propertyWhitelist = params.propertyWhitelist || []
+        this.cachedProperties = {}
+
+        this.invalidateAllProperties(params.onReady)
+        this._signalId = this.connection.signal_subscribe(this.name,
+                                                          this.interface,
+                                                          null,
+                                                          this.path,
+                                                          null,
+                                                          Gio.DBusSignalFlags.NONE,
+                                                          this._onSignal.bind(this))
+        this._propChangedId = this.connection.signal_subscribe(this.name,
+                                                               'org.freedesktop.DBus.Properties',
+                                                               'PropertiesChanged',
+                                                               this.path,
+                                                               null,
+                                                               Gio.DBusSignalFlags.NONE,
+                                                               this._onPropertyChanged.bind(this))
+    },
+
+    setProperty: function(propertyName, valueVariant) {
+        //TODO: implement
+    },
+
+    /**
+     * Initiates recaching the given property.
+     *
+     * This is useful if the interface notifies the consumer of changed properties
+     * in unorthodox ways or if you changed the whitelist
+     */
+    invalidateProperty: function(propertyName, callback) {
+        this.connection.call(this.name,
+                             this.path,
+                             'org.freedesktop.DBus.Properties',
+                             'Get',
+                             GLib.Variant.new('(ss)', [ this.interface, propertyName ]),
+                             GLib.VariantType.new('(v)'),
+                             Gio.DBusCallFlags.NONE,
+                             -1,
+                             null,
+                             this._getPropertyCallback.bind(this, propertyName, callback))
+    },
+
+    _getPropertyCallback: function(propertyName, callback, conn, result) {
+        try {
+            let newValue = conn.call_finish(result).deep_unpack()[0].deep_unpack()
+
+            if (this.propertyWhitelist.indexOf(propertyName) > -1) {
+                this.cachedProperties[propertyName] = newValue
+                this.emit("-property-changed", propertyName, newValue)
+                this.emit("-property-changed::"+propertyName, newValue)
+            }
+        } catch (e) {
+            // this can mean two things:
+            //  - the interface is gone (or doesn't conform or whatever)
+            //  - the property doesn't exist
+            // we do not care and we don't even log it.
+            //Logger.debug("XmlLessDBusProxy: while getting property: "+e)
+        }
+
+        if (callback) callback()
+    },
+
+    invalidateAllProperties: function(callback) {
+        let waitFor = 0
+
+        this.propertyWhitelist.forEach(function(prop) {
+            waitFor += 1
+            this.invalidateProperty(prop, maybeFinished)
+        }, this)
+
+        function maybeFinished() {
+            waitFor -= 1
+            if (waitFor == 0 && callback)
+                callback()
+        }
+    },
+
+    _onPropertyChanged: function(conn, sender, path, iface, signal, params) {
+        let [ , changed, invalidated ] = params.deep_unpack()
+
+        for (let i in changed) {
+            if (this.propertyWhitelist.indexOf(i) > -1) {
+                this.cachedProperties[i] = changed[i].deep_unpack()
+                this.emit("-property-changed", i, this.cachedProperties[i])
+                this.emit("-property-changed::"+i, this.cachedProperties[i])
+            }
+        }
+
+        for (let i = 0; i < invalidated.length; ++i) {
+            if (this.propertyWhitelist.indexOf(invalidated[i]) > -1)
+                this.invalidateProperty(invalidated[i])
+        }
+    },
+
+    _onSignal: function(conn, sender, path, iface, signal, params) {
+        this.emit("-signal", signal, params)
+        this.emit(signal, params.deep_unpack())
+    },
+
+    call: function(params) {
+        if (!params)
+            throw new Error("XmlLessDBusProxy::call: need params argument")
+
+        if (!params.name)
+            throw new Error("XmlLessDBusProxy::call: missing name")
+
+        if (params.params instanceof GLib.Variant) {
+            // good!
+        } else if (params.paramTypes && params.paramValues) {
+            params.params = GLib.Variant.new('(' + params.paramTypes + ')', params.paramValues)
+        } else {
+            throw new Error("XmlLessDBusProxy::call: provide either paramType (string) and paramValues (array) or params (GLib.Variant)")
+        }
+
+        if (!params.returnTypes)
+            params.returnTypes = ''
+
+        if (!params.onSuccess)
+            params.onSuccess = function() {}
+
+        if (!params.onError)
+            params.onError = function(error) {
+                Logger.warn("XmlLessDBusProxy::call: DBus error: "+error)
+            }
+
+        this.connection.call(this.name,
+                             this.path,
+                             this.interface,
+                             params.name,
+                             params.params,
+                             GLib.VariantType.new('(' + params.returnTypes + ')'),
+                             Gio.DBusCallFlags.NONE,
+                             -1,
+                             null,
+                             function(conn, result) {
+                                 try {
+                                     let returnVariant = conn.call_finish(result)
+                                     params.onSuccess(returnVariant.deep_unpack())
+                                 } catch (e) {
+                                     params.onError(e)
+                                 }
+                             })
+
+    },
+
+    destroy: function() {
+        this.emit('-destroy')
+
+        this.disconnectAll()
+
+        this.connection.signal_unsubscribe(this._signalId)
+        this.connection.signal_unsubscribe(this._propChangedId)
+    }
+})
+Signals.addSignalMethods(XmlLessDBusProxy.prototype)
+
 
 /**
  * Refetches invalidated properties
@@ -187,4 +362,26 @@ const disconnectArray = function(target, idArray) {
     for (let handler = idArray.shift(); handler !== undefined; handler = idArray.shift()) {
         target.disconnect(handler);
     }
+}
+
+/**
+ * connects a handler and removes it after the first call, or if the source object is destroyed
+ */
+const connectOnce = function(target, signal, handler, /* optional */ destroyTarget, /* optional */ destroySignal) {
+    var signalId, destroyId
+
+    if (typeof destroyTarget == 'undefined') destroyTarget = target
+    if (typeof destroySignal == 'undefined') destroySignal = 'destroy'
+
+    signalId = target.connect(signal, function() {
+        target.disconnect(signalId)
+        handler.apply(this, arguments)
+    })
+
+    if (!destroyTarget.connect)
+        return
+
+    destroyId = destroyTarget.connect(destroySignal, function() {
+        target.disconnect(signalId)
+    })
 }
