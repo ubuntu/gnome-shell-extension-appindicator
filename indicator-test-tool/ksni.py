@@ -24,6 +24,11 @@ class Notifier(QObject):
         self.menu.addAction("Hello", self.onHelloClicked)
         self.menu.addAction("Change Status", self.toggleStatus)
         self.menu.addAction("Hide for some seconds", self.hideForAWhile)
+        self.menu.addAction("Switch to pixmap icon", self.usePixmap)
+        self.menu.addSeparator()
+        self.menu.addAction("Set overlay pixmap", self.setOverlayPixmap)
+        self.menu.addAction("Set overlay icon name", self.setOverlayName)
+        self.menu.addAction("Remove overlay icon", self.removeOverlay)
         self.tray.setContextMenu(self.menu)
 
         self.tray.activateRequested.connect(self.onActivated)
@@ -43,6 +48,22 @@ class Notifier(QObject):
     def hideForAWhile(self):
         self.tray.setStatus(KStatusNotifierItem.Passive)
         Qt.QTimer.singleShot(2000, self.toggleStatus)
+
+    def usePixmap(self):
+        self.tray.setIconByName(QString(""))
+        self.tray.setIconByPixmap(Qt.QIcon.fromTheme("accessories-calculator"))
+
+    def setOverlayPixmap(self):
+        self.tray.setOverlayIconByName(QString(""))
+        self.tray.setOverlayIconByPixmap(Qt.QIcon.fromTheme("gtk-dialog-info"))
+
+    def setOverlayName(self):
+        self.tray.setOverlayIconByPixmap(Qt.QIcon())
+        self.tray.setOverlayIconByName(QString("gtk-dialog-error"))
+
+    def removeOverlay(self):
+        self.tray.setOverlayIconByName(QString(""))
+        self.tray.setOverlayIconByPixmap(Qt.QIcon())
 
 if __name__ == '__main__':
     notifer = Notifier()

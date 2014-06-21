@@ -19,6 +19,8 @@ const Lang = imports.lang;
 const GLib = imports.gi.GLib;
 const Mainloop = imports.mainloop;
 
+const Util = imports.misc.extensionUtils.getCurrentExtension().imports.util;
+
 // The icon cache caches icon objects in case they're reused shortly aftwerwards.
 // This is necessary for some indicators like skype which rapidly switch between serveral icons.
 // Without caching, the garbage collection would never be able to handle the amount of new icon data.
@@ -26,7 +28,6 @@ const Mainloop = imports.mainloop;
 // The presence of an inUse property set to true on the icon will extend the lifetime.
 
 // how to use: see IconCache.add, IconCache.get
-// make sure the cached icon has a property inUse set to true if you don't want icon cache to destroy it for you.
 const IconCache = new Lang.Class({
     Name: 'IconCache',
     
@@ -40,7 +41,7 @@ const IconCache = new Lang.Class({
     },
     
     add: function(id, o) {
-        //log("adding to cache: "+id);
+        //Util.Logger.debug("IconCache: adding "+id);
         if (!(o && id)) return null;
         if (id in this._cache)
             this._remove(id);
@@ -50,7 +51,7 @@ const IconCache = new Lang.Class({
     },
     
     _remove: function(id) {
-        //log('removing from cache: '+id);
+        //Util.Logger.debug('IconCache: removing '+id);
         if ('destroy' in this._cache[id]) this._cache[id].destroy();
         delete this._cache[id];
         delete this._lifetime[id];
@@ -59,7 +60,14 @@ const IconCache = new Lang.Class({
     forceDestroy: function(id) {
         this._remove(id);
     },
+
+    // removes everything from the cache
+    clear: function() {
+        for (let id in this._cache)
+            this._remove(id)
+    },
     
+    // returns an object from the cache, or null if it can't be found.
     get: function(id) {
         if (id in this._cache) {
             this._lifetime[id] = new Date().getTime() + this.LIFETIME_TIMESPAN; //renew lifetime
@@ -72,12 +80,12 @@ const IconCache = new Lang.Class({
         var time = new Date().getTime();
         for (var id in this._cache) {
             if (this._cache[id].inUse) {
-                //log (id + " is in use.");
+                //Util.Logger.debug ("IconCache: " + id + " is in use.");
                 continue;
             } else if (this._lifetime[id] < time) {
                 this._remove(id);
             } else {
-                //log (id + " survived this round.");
+                //Util.Logger.debug("IconCache: " + id + " survived this round.");
             }
         }
         if (!this._stopGc) Mainloop.timeout_add(this.GC_INTERVAL, Lang.bind(this, this._gc));
@@ -88,4 +96,3 @@ const IconCache = new Lang.Class({
         this._stopGc = true;
     }
 });
-IconCache.instance = new IconCache();
