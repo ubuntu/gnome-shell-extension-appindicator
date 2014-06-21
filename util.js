@@ -1,5 +1,4 @@
-/* -*- mode: js2; js2-basic-offset: 4; indent-tabs-mode: nil -*- */
-// Copyright (C) 2013-2014 Jonas Kuemmerlin <rgcjonas@gmail.com>
+// Copyright (C) 2013-2014 Jonas Kümmerlin <rgcjonas@gmail.com>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -14,18 +13,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+const GdkPixbuf = imports.gi.GdkPixbuf
+const Gio = imports.gi.Gio
+const GLib = imports.gi.GLib
+const St = imports.gi.St
 
-const Lang = imports.lang;
-const Signals = imports.signals;
-const St = imports.gi.St;
-const GdkPixbuf = imports.gi.GdkPixbuf;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
+const Lang = imports.lang
+const Signals = imports.signals
 
 /*
  * The standard array map operation, but in async mode
  * `mapFunc` is expected to have the signature `function(element, index, array, callback)` where `callback` is `function(error, result)`.
- * `callback` is expected to have the siganture `function(error, result)`
+ * `callback` is expected to have the signature `function(error, result)`
  *
  * The callback function is called when every mapping operation has finished, with the original array as result.
  * or when at least one mapFunc returned an error, then immediately with that error.

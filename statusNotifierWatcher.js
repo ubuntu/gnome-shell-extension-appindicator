@@ -1,6 +1,5 @@
-/* -*- mode: js2; js2-basic-offset: 4; indent-tabs-mode: nil -*- */
 // Copyright (C) 2011 Giovanni Campagna
-// Copyright (C) 2013 Jonas Kuemmerlin <rgcjonas@gmail.com>
+// Copyright (C) 2013-2014 Jonas Kümmerlin <rgcjonas@gmail.com>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -15,22 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+const Gio = imports.gi.Gio
+const GLib = imports.gi.GLib
+const Gtk = imports.gi.Gtk
 
-const Gio = imports.gi.Gio;
-const Gtk = imports.gi.Gtk;
-const Lang = imports.lang;
-const Mainloop = imports.mainloop;
-const Signals = imports.signals;
-const GLib = imports.gi.GLib;
+const Lang = imports.lang
+const Mainloop = imports.mainloop
+const ShellConfig = imports.misc.config
+const Signals = imports.signals
 
-const Extension = imports.misc.extensionUtils.getCurrentExtension();
-const AppIndicator = Extension.imports.appIndicator;
-const StatusNotifierDispatcher = Extension.imports.statusNotifierDispatcher;
-const Interfaces = Extension.imports.interfaces;
-const Util = Extension.imports.util;
+const Extension = imports.misc.extensionUtils.getCurrentExtension()
 
-const Config = Extension.imports.config;
-const ShellConfig = imports.misc.config;
+const AppIndicator = Extension.imports.appIndicator
+const Config = Extension.imports.config
+const Interfaces = Extension.imports.interfaces
+const StatusNotifierDispatcher = Extension.imports.statusNotifierDispatcher
+const Util = Extension.imports.util
+
 
 // TODO: replace with org.freedesktop and /org/freedesktop when approved
 const KDE_PREFIX = 'org.kde';

@@ -1,5 +1,4 @@
-/* -*- mode: js2; js2-basic-offset: 4; indent-tabs-mode: nil -*- */
-// Copyright (C) 2013 Jonas Kuemmerlin <rgcjonas@gmail.com>
+// Copyright (C) 2013-2014 Jonas Kümmerlin <rgcjonas@gmail.com>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -15,9 +14,10 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-const Lang = imports.lang;
-const GLib = imports.gi.GLib;
-const Mainloop = imports.mainloop;
+const GLib = imports.gi.GLib
+
+const Lang = imports.lang
+const Mainloop = imports.mainloop
 
 const Util = imports.misc.extensionUtils.getCurrentExtension().imports.util;
 

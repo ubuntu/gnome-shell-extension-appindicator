@@ -1,6 +1,5 @@
-/* -*- mode: js2; js2-basic-offset: 4; indent-tabs-mode: nil -*- */
 // Copyright (C) 2011 Giovanni Campagna
-// Copyright (C) 2013 Jonas Kuemmerlin <rgcjonas@gmail.com>
+// Copyright (C) 2013-2014 Jonas Kümmerlin <rgcjonas@gmail.com>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -15,22 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-
-const Lang = imports.lang
+const Atk = imports.gi.Atk
+const Clutter = imports.gi.Clutter
 const Gio = imports.gi.Gio
 const GLib = imports.gi.GLib
-const Atk = imports.gi.Atk
-const St = imports.gi.St
-const Signals = imports.signals
-const Clutter = imports.gi.Clutter
-
+const Lang = imports.lang
 const PopupMenu = imports.ui.popupMenu
-const Shell = imports.gi.Shell
+const Signals = imports.signals
+const St = imports.gi.St
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension()
-const Util = Extension.imports.util
-const DBusInterfaces = Extension.imports.interfaces
 
+const DBusInterfaces = Extension.imports.interfaces
+const Util = Extension.imports.util
 
 //////////////////////////////////////////////////////////////////////////
 // PART ONE: "ViewModel" backend implementation.

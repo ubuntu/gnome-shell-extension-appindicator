@@ -1,5 +1,4 @@
-/* -*- mode: js2; js2-basic-offset: 4; indent-tabs-mode: nil -*- */
-// Copyright (C) 2013 Jonas Kuemmerlin <rgcjonas@gmail.com>
+// Copyright (C) 2013-2014 Jonas Kümmerlin <rgcjonas@gmail.com>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -15,16 +14,17 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-const Lang = imports.lang;
+const Lang = imports.lang
 
-const Extension = imports.misc.extensionUtils.getCurrentExtension();
-const AppIndicator = Extension.imports.appIndicator;
-const SNIStatus = AppIndicator.SNIStatus;
-const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon;
-const IndicatorMessageSource = Extension.imports.indicatorMessageSource;
-const DashIndicatorIcon = Extension.imports.dashIndicatorIcon;
-const Settings = Extension.imports.settings.Settings;
-const Util = Extension.imports.util;
+const Extension = imports.misc.extensionUtils.getCurrentExtension()
+
+const AppIndicator = Extension.imports.appIndicator
+const DashIndicatorIcon = Extension.imports.dashIndicatorIcon
+const IndicatorMessageSource = Extension.imports.indicatorMessageSource
+const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon
+const Settings = Extension.imports.settings.Settings
+const SNIStatus = AppIndicator.SNIStatus
+const Util = Extension.imports.util
 
 /*
  * The IndicatorDispatcher class will get all newly added or changed indicators

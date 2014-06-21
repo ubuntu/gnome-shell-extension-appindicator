@@ -1,4 +1,3 @@
-/* -*- mode: js2; js2-basic-offset: 4; indent-tabs-mode: nil -*- */
 // Copyright (C) 2013 Thomas Schaberreiter <thomassc@ee.oulu.fi>
 //
 // This program is free software; you can redistribute it and/or
@@ -14,17 +13,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-const Main = imports.ui.main;
-const Dash = imports.ui.dash;
-const Lang = imports.lang;
-const St = imports.gi.St;
-const AppDisplay = imports.ui.appDisplay;
-const AppFavorites = imports.ui.appFavorites;
-const IconGrid = imports.ui.iconGrid;
-const PopupMenu = imports.ui.popupMenu;
-const Shell = imports.gi.Shell;
-const ExtensionSystem = imports.ui.extensionSystem;
-const ExtensionUtils = imports.misc.extensionUtils;
+const Shell = imports.gi.Shell
+const St = imports.gi.St
+
+const AppDisplay = imports.ui.appDisplay
+const AppFavorites = imports.ui.appFavorites
+const Dash = imports.ui.dash
+const ExtensionSystem = imports.ui.extensionSystem
+const ExtensionUtils = imports.misc.extensionUtils
+const IconGrid = imports.ui.iconGrid
+const Lang = imports.lang
+const Main = imports.ui.main
+const PopupMenu = imports.ui.popupMenu
 
 
 const DEFAULT_BACKGROUND_IMAGE = 'gnome-foot';
