@@ -30,6 +30,17 @@ let detectExtensionsID = null;
 function init() {
     NameWatchdog.init();
     NameWatchdog.onVanished = maybe_enable_after_name_available;
+
+    //HACK: we want to leave the watchdog alive when disabling the extension,
+    // but if we are being reloaded, we destroy it since it could be considered
+    // a leak and spams our log, too.
+    if (typeof global['--appindicator-extension-on-reload'] == 'function')
+        global['--appindicator-extension-on-reload']()
+
+    global['--appindicator-extension-on-reload'] = function() {
+        Util.Logger.debug("Reload detected, destroying old watchdog")
+        NameWatchdog.destroy()
+    }
 }
 
 //FIXME: when entering/leaving the lock screen, the extension might be enabled/disabled rapidly.
