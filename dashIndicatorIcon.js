@@ -26,6 +26,9 @@ const Lang = imports.lang
 const Main = imports.ui.main
 const PopupMenu = imports.ui.popupMenu
 
+const Extension = imports.misc.extensionUtils.getCurrentExtension()
+
+const Util = Extension.imports.util
 
 const DEFAULT_BACKGROUND_IMAGE = 'gnome-foot';
 const STATUSICONSCALEFACTOR=0.4;
@@ -34,6 +37,7 @@ const STATUSICONSCALEFACTOR=0.4;
 const CustomDashIcon = new Lang.Class({
     Name: 'CustomDashIcon',
     Extends: Dash.DashItemContainer,
+    GTypeName: Util.WORKAROUND_RELOAD_TYPE_REGISTER('CustomDashIcon'),
 
     _init: function(indicator) {
         this._indicator = indicator;

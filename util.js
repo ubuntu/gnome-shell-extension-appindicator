@@ -384,3 +384,18 @@ const connectOnce = function(target, signal, handler, /* optional */ destroyTarg
         target.disconnect(signalId)
     })
 }
+
+/**
+ * Workaround for https://bugzilla.gnome.org/show_bug.cgi?id=734071
+ *
+ * Will append the given name with a number to distinguish code loaded later from the last loaded version
+ */
+const WORKAROUND_RELOAD_TYPE_REGISTER = function(name) {
+    return 'Gjs_' + name + '__' + global['--appindicator-loaded-count']
+}
+
+// this will only execute once when the extension is loaded
+if (!global['--appindicator-loaded-count'])
+    global['--appindicator-loaded-count'] = 1
+else
+    global['--appindicator-loaded-count']++

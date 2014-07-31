@@ -443,6 +443,7 @@ Signals.addSignalMethods(AppIndicator.prototype);
 const IconContainer = new Lang.Class({
     Name: 'AppIndicatorIconContainer',
     Extends: Clutter.Actor,
+    GTypeName: Util.WORKAROUND_RELOAD_TYPE_REGISTER('AppIndicatorIconContainer'),
 
     _init: function(icon_size) {
         this.parent()
