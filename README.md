@@ -1,5 +1,5 @@
-# AppIndicator support for GNOME Shell
-This extension integrates AppIndicators, which are quite popular since the introduction of ubuntu unity, into the gnome shell.
+# AppIndicator/KStatusNotifierItem support for GNOME Shell
+This extension integrates Ubuntu AppIndicators and KStatusNotifierItems (KDE's blessed successor of the systray) into GNOME Shell.
 
 It's based on patches made by Giovanni Campagna: https://bugzilla.gnome.org/show_bug.cgi?id=652122
 
@@ -11,15 +11,12 @@ It's based on patches made by Giovanni Campagna: https://bugzilla.gnome.org/show
 ## Missing features
 * Tooltips: Not implemented in `libappindicator` nor in Unity and I've yet to see any indicator using it for anything relevant (KDE ones maybe?). Also, the GNOME designers decided not to have tooltips in the shell and I'd like to honor that decision.
 * Oversized icons like the ones used by `indicator-multiload` are unsupported. They will be shrunk to normal size.
-* Icon pixmaps: Implementation is likely to return if we find a real world indicator as test case.
-* Overlay icons: Implementation has been dropped because there's no testcase. Will return if there's real world usage.
 
 ## Incomplete features
 * Ayatana labels are supported in the panel only.
 
 ## Known issues
 * ClassicMenu Indicator takes ages to load and has been reported to freeze the shell forever. This is probably caused by the insane amount of embedded PNG icons. Try at your own risk.
-* Embedded PNG icon data in menus (as used by Skype, ClassicMenu Indicator and others) can only be handled efficiently in recent gjs versions. Older versions (notably Ubuntu 12.10) will have to use a very ugly and inefficient method.
 
 ## Installation
 Normal users are recommended to get the extension from [extensions.gnome.org](https://extensions.gnome.org/extension/615/appindicator-support/).
@@ -40,7 +37,7 @@ In order to successfully resolve the issues you need to provide some data:
 * Your distribution, Shell version and extension version (something like "latest git" or "latest from extensions.gnome.org" is sufficient).
 
   Starting from extension version v10, you can get this all by clicking "Copy debug information" on the "About" tab in the settings screen.
-  You may of course shorten it a bit if you consider the "uname -a" output a privacy breach.
+  You may of course shorten it a bit if you consider the `uname -a` output a privacy breach.
 * The indicator that caused the bug (if applicable)
 * Instructions how to reproduce it. **This is the single most important point**. Bugs that [can't be reproduced](http://xkcd.com/583/) can't be fixed either.
 
