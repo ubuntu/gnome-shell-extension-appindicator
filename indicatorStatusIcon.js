@@ -84,14 +84,18 @@ const IndicatorStatusIcon = new Lang.Class({
     },
     
     destroy: function() {
-        Util.Logger.debug('destroying '+this._indicator.id+'...');
+        Util.Logger.debug('destroying '+this._indicator.id+'...')
 
-        //destroy stuff owned by us
-        if (this._menuClient) this._menuClient.destroy()
-        this._box.destroy_all_children();
+        // destroy stuff owned by us
+        if (this._menuClient)
+            this._menuClient.destroy()
+
+        this._iconBox.get_parent().remove_child(this._iconBox)
+
+        this._box.destroy_all_children()
         
         //call parent
-        this.parent();
+        this.parent()
     },
     
     _display: function() {

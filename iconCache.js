@@ -43,7 +43,7 @@ const IconCache = new Lang.Class({
     add: function(id, o) {
         //Util.Logger.debug("IconCache: adding "+id);
         if (!(o && id)) return null;
-        if (id in this._cache)
+        if (id in this._cache && this._cache[id] !== o)
             this._remove(id);
         this._cache[id] = o;
         this._lifetime[id] = new Date().getTime() + this.LIFETIME_TIMESPAN;
@@ -70,6 +70,7 @@ const IconCache = new Lang.Class({
     // returns an object from the cache, or null if it can't be found.
     get: function(id) {
         if (id in this._cache) {
+            //Util.Logger.debug('IconCache: retrieving '+id);
             this._lifetime[id] = new Date().getTime() + this.LIFETIME_TIMESPAN; //renew lifetime
             return this._cache[id];
         }
@@ -94,5 +95,6 @@ const IconCache = new Lang.Class({
     
     destroy: function() {
         this._stopGc = true;
+        this.clear();
     }
 });
