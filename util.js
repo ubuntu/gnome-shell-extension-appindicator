@@ -284,11 +284,11 @@ function refreshInvalidatedProperties(proxy, changed, invalidated) {
             // build up the dictionary we feed into the variant later
             let changed = {}
 
-            for each(let i in result) {
+            result.forEach(function(i) {
                 changed[i.name] = i.value
 
                 proxy.set_cached_property(i.name, i.value)
-            }
+            })
 
             // avoid any form of recursion
             GLib.idle_add(GLib.PRIORITY_DEFAULT, proxy.emit.bind(proxy, "g-properties-changed", new GLib.Variant("a{sv}", changed), []))

@@ -772,8 +772,9 @@ const Client = new Lang.Class({
         }, this._rootItemDisconnectHandlers)
 
         // fill the menu for the first time
-        for each(let child in this._rootItem.get_children())
+        this._rootItem.get_children().forEach(function(child) {
             this._rootMenu.addMenuItem(MenuItemFactory.createItem(this, child))
+        }, this)
     },
 
     _setOpenedSubmenu: function(submenu) {
