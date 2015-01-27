@@ -47,7 +47,7 @@ const IndicatorMessageSource = new Lang.Class({
         
         //notification is async because it carries the menu
         this._notification = new IndicatorNotification(this, (function() {
-            this._iconBox = this._indicator.getIconActor(this.SOURCE_ICON_SIZE)
+            this._iconBox = new AppIndicator.IconActor(this._indicator, this.SOURCE_ICON_SIZE)
             
             if (this._indicator.isReady)
                 this._display()
@@ -98,6 +98,7 @@ const IndicatorMessageSource = new Lang.Class({
             if (this._notification._menuClient)
                 this._notification._menuClient.destroy()
 
+            this._iconBox.destroy()
             this.parent()
         }
     },

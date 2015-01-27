@@ -28,6 +28,7 @@ const PopupMenu = imports.ui.popupMenu
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension()
 
+const AppIndicator = Extension.imports.appIndicator
 const Util = Extension.imports.util
 
 const DEFAULT_BACKGROUND_IMAGE = 'gnome-foot';
@@ -227,7 +228,7 @@ const CustomDashIcon = new Lang.Class({
     },
 
     _createIcon: function(size) {
-        return this._indicator.getIconActor(this._usedDash.iconSize*STATUSICONSCALEFACTOR);
+        return new AppIndicator.IconActor(this._indicator, this._usedDash.iconSize*STATUSICONSCALEFACTOR);
     },
 
     _updateIcon: function() {

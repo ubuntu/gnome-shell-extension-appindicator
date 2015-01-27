@@ -24,7 +24,7 @@ const PopupMenu = imports.ui.popupMenu;
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 
-const IconCache = Extension.imports.iconCache;
+const AppIndicator = Extension.imports.appIndicator
 const DBusMenu = Extension.imports.dbusMenu;
 const Util = Extension.imports.util;
 
@@ -40,7 +40,7 @@ const IndicatorStatusIcon = new Lang.Class({
         
         this._indicator = indicator;
         
-        this._iconBox = indicator.getIconActor(Panel.PANEL_ICON_SIZE);
+        this._iconBox = new AppIndicator.IconActor(indicator, Panel.PANEL_ICON_SIZE);
         if (!this._box) // Gnome Shell 3.10
             this.actor.add_actor(this._box = new St.BoxLayout());
 
@@ -90,7 +90,7 @@ const IndicatorStatusIcon = new Lang.Class({
         if (this._menuClient)
             this._menuClient.destroy()
 
-        this._iconBox.get_parent().remove_child(this._iconBox)
+        this._iconBox.destroy()
 
         this._box.destroy_all_children()
         
