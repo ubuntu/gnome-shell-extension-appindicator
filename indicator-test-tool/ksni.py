@@ -55,11 +55,11 @@ class Notifier(QObject):
 
     def setOverlayPixmap(self):
         self.tray.setOverlayIconByName(QString(""))
-        self.tray.setOverlayIconByPixmap(Qt.QIcon.fromTheme("gtk-dialog-info"))
+        self.tray.setOverlayIconByPixmap(Qt.QIcon.fromTheme("dialog-information"))
 
     def setOverlayName(self):
         self.tray.setOverlayIconByPixmap(Qt.QIcon())
-        self.tray.setOverlayIconByName(QString("gtk-dialog-error"))
+        self.tray.setOverlayIconByName(QString("dialog-error"))
 
     def removeOverlay(self):
         self.tray.setOverlayIconByName(QString(""))
