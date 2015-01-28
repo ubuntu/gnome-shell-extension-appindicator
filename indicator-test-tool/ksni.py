@@ -32,9 +32,13 @@ class Notifier(QObject):
         self.tray.setContextMenu(self.menu)
 
         self.tray.activateRequested.connect(self.onActivated)
+        self.tray.scrollRequested.connect(self.onScroll)
 
     def onActivated(self, show, point):
         print "Activate() called, show="+str(show)+", point="+str(point)
+
+    def onScroll(self, delta, orientation):
+        print "Scroll() called, delta="+str(delta)+", orientation="+str(orientation)
 
     def onHelloClicked(self):
         print "Hello World!"

@@ -229,6 +229,22 @@ const AppIndicator = new Lang.Class({
             paramValues: [0, 0]
             // we don't care about the result
         })
+    },
+
+    scroll: function(dx, dy) {
+        if (dx != 0)
+            this._proxy.call({
+                name: 'Scroll',
+                paramTypes: 'is',
+                paramValues: [ Math.floor(dx), 'horizontal' ]
+            })
+
+        if (dy != 0)
+            this._proxy.call({
+                name: 'Scroll',
+                paramTypes: 'is',
+                paramValues: [ Math.floor(dy), 'vertical' ]
+            })
     }
 });
 Signals.addSignalMethods(AppIndicator.prototype);
@@ -239,7 +255,7 @@ const IconActor = new Lang.Class({
     GTypeName: Util.WORKAROUND_RELOAD_TYPE_REGISTER('AppIndicatorIconActor'),
 
     _init: function(indicator, icon_size) {
-        this.parent()
+        this.parent({ reactive: true })
         this.width  = icon_size
         this.height = icon_size
 
@@ -258,7 +274,12 @@ const IconActor = new Lang.Class({
             'overlay-icon': this._updateOverlayIcon.bind(this),
             'ready':        this._invalidateIcon.bind(this)
         }, this)
-        this._iconThemeChangedHandle = Gtk.IconTheme.get_default().connect('changed', this._invalidateIcon.bind(this))
+        Util.connectAndRemoveOnDestroy(this, {
+            'scroll-event': this._handleScrollEvent.bind(this)
+        })
+        Util.connectAndRemoveOnDestroy(Gtk.IconTheme.get_default(), {
+            'changed': this._invalidateIcon.bind(this)
+        }, this)
 
         if (indicator.isReady)
             this._invalidateIcon()
@@ -468,6 +489,29 @@ const IconActor = new Lang.Class({
         this._overlayIcon.set_child(newIcon)
     },
 
+    _handleScrollEvent: function(actor, event) {
+        if (actor != this)
+            return Clutter.EVENT_PROPAGATE
+
+        if (event.get_source() != this)
+            return Clutter.EVENT_PROPAGATE
+
+        if (event.type() != Clutter.EventType.SCROLL)
+            return Clutter.EVENT_PROPAGATE
+
+        // Since Clutter 1.10, clutter will always send a smooth scrolling event
+        // with explicit deltas, no matter what input device is used
+        // In fact, for every scroll there will be a smooth and non-smooth scroll
+        // event, and we can choose which one we interpret.
+        if (event.get_scroll_direction() == Clutter.ScrollDirection.SMOOTH) {
+            let [ dx, dy ] = event.get_scroll_delta()
+
+            this._indicator.scroll(dx, dy)
+        }
+
+        return Clutter.EVENT_STOP
+    },
+
     // called when the icon theme changes
     _invalidateIcon: function() {
         this._iconCache.clear()
@@ -480,8 +524,6 @@ const IconActor = new Lang.Class({
         this._iconCache.destroy()
 
         Util.Logger.debug("Destroying icon actor")
-
-        Gtk.IconTheme.get_default().disconnect(this._iconThemeChangedHandle)
 
         this.parent()
     }
