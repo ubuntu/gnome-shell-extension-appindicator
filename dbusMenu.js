@@ -754,7 +754,7 @@ const Client = new Lang.Class({
         this._rootMenu = menu
         this._rootItem = this._client.get_root()
 
-        // cleanup: remove existing childs (just in case)
+        // cleanup: remove existing children (just in case)
         this._rootMenu.removeAll()
 
         if (NEED_NESTED_SUBMENU_FIX)
@@ -767,8 +767,8 @@ const Client = new Lang.Class({
         }, this._menuDisconnectHandlers)
         Util.connectAndSaveId(this._rootItem, {
             "child-added"   : this._onRootChildAdded.bind(this),
-                                "child-removed" : this._onRootChildRemoved.bind(this),
-                                "child-moved"   : this._onRootChildMoved.bind(this)
+            "child-removed" : this._onRootChildRemoved.bind(this),
+            "child-moved"   : this._onRootChildMoved.bind(this)
         }, this._rootItemDisconnectHandlers)
 
         // fill the menu for the first time
