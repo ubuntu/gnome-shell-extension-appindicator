@@ -108,6 +108,19 @@ app.connect("startup", function() {
     })
     menu.append(item);
 
+    item = new Gtk.SeparatorMenuItem();
+    menu.append(item);
+
+    item = Gtk.MenuItem.new_with_label("Hide for some time");
+    item.connect('activate', function() {
+        indicator.set_status(AppIndicator.IndicatorStatus.PASSIVE);
+        GLib.timeout_add(0, 5000, function() {
+            indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE);
+            return false;
+        });
+    });
+    menu.append(item);
+
     menu.show_all();
 
     var indicator = AppIndicator.Indicator.new("Hello", "indicator-test", AppIndicator.IndicatorCategory.APPLICATION_STATUS);
