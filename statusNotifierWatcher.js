@@ -27,7 +27,6 @@ const Extension = imports.misc.extensionUtils.getCurrentExtension()
 
 const AppIndicator = Extension.imports.appIndicator
 const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon
-const Config = Extension.imports.config
 const Interfaces = Extension.imports.interfaces
 const Util = Extension.imports.util
 
@@ -149,7 +148,7 @@ const StatusNotifierWatcher = new Lang.Class({
     ProtocolVersion: function() {
         // "The version of the protocol the StatusNotifierWatcher instance implements." [sic]
         // in what syntax?
-        return "%s/%s (KDE; compatible; mostly) GNOME Shell/%s".format(Config.id, Config.version, ShellConfig.PACKAGE_VERSION);
+        return "appindicatorsupport@rgcjonas.gmail.com (KDE; compatible; mostly) GNOME Shell/%s".format(ShellConfig.PACKAGE_VERSION);
     },
 
     get RegisteredStatusNotifierItems() {
