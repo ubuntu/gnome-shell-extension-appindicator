@@ -121,6 +121,15 @@ app.connect("startup", function() {
     });
     menu.append(item);
 
+    item = Gtk.MenuItem.new_with_label("Close in 5 seconds");
+    item.connect('activate', function() {
+        GLib.timeout_add(0, 5000, function() {
+            app.quit();
+            return false;
+        });
+    });
+    menu.append(item);
+
     menu.show_all();
 
     var indicator = AppIndicator.Indicator.new("Hello", "indicator-test", AppIndicator.IndicatorCategory.APPLICATION_STATUS);

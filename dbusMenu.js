@@ -396,6 +396,9 @@ const DBusClient = new Lang.Class({
     },
 
     send_event: function(id, event, params, timestamp) {
+        if (!this._proxy)
+            return
+
         this._proxy.EventRemote(id, event, params, timestamp, function(result, error) { /* we don't care */ })
     },
 
@@ -581,6 +584,12 @@ const MenuItemFactory = {
             this._dbusItem.handle_event("opened", null, 0)
             this._dbusItem.send_about_to_show()
         } else {
+            if (NEED_NESTED_SUBMENU_FIX) {
+                // close our own submenus
+                if (menu._openedSubMenu)
+                    menu._openedSubMenu.close(false)
+            }
+
             this._dbusItem.handle_event("closed", null, 0)
         }
     },
