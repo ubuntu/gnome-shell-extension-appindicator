@@ -26,9 +26,9 @@ const Signals = imports.signals
 const Extension = imports.misc.extensionUtils.getCurrentExtension()
 
 const AppIndicator = Extension.imports.appIndicator
+const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon
 const Config = Extension.imports.config
 const Interfaces = Extension.imports.interfaces
-const StatusNotifierDispatcher = Extension.imports.statusNotifierDispatcher
 const Util = Extension.imports.util
 
 
@@ -97,15 +97,23 @@ const StatusNotifierWatcher = new Lang.Class({
         if(this._items[id]) {
             //delete the old one and add the new indicator
             Util.Logger.warn("Attempting to re-register "+id+"; resetting instead");
+
             this._items[id].reset();
         } else {
             Util.Logger.debug("registering "+id+" for the first time.");
-            this._items[id] = new AppIndicator.AppIndicator(bus_name, obj_path);
+
+            let indicator = new AppIndicator.AppIndicator(bus_name, obj_path);
+            let visual = new IndicatorStatusIcon.IndicatorStatusIcon(indicator);
+            indicator.connect('destroy', visual.destroy.bind(visual));
+
+            this._items[id] = indicator;
+
             this._dbusImpl.emit_signal('ServiceRegistered', GLib.Variant.new('(s)', service));
             this._nameWatcher[id] = Gio.DBus.session.watch_name(bus_name, Gio.BusNameWatcherFlags.NONE, null,
-                                        Lang.bind(this, this._itemVanished));
-            StatusNotifierDispatcher.IndicatorDispatcher.instance.dispatch(this._items[id]);
+                                                                this._itemVanished.bind(this));
+
             this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems', GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
+
             Util.Logger.debug("done registering");
         }
         invocation.return_value(null);

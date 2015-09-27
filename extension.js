@@ -19,7 +19,6 @@ const GLib = imports.gi.GLib
 const Extension = imports.misc.extensionUtils.getCurrentExtension()
 const ExtensionSystem = imports.ui.extensionSystem
 
-const StatusNotifierDispatcher = Extension.imports.statusNotifierDispatcher
 const StatusNotifierWatcher = Extension.imports.statusNotifierWatcher
 const Util = Extension.imports.util
 

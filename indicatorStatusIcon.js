@@ -54,7 +54,8 @@ const IndicatorStatusIcon = new Lang.Class({
 
         Util.connectAndRemoveOnDestroy(this._indicator, {
             'ready': this._display.bind(this),
-            'label': this._updateLabel.bind(this)
+            'label': this._updateLabel.bind(this),
+            'status': this._updateStatus.bind(this)
         }, this)
 
         if (this._indicator.isReady)
@@ -82,6 +83,13 @@ const IndicatorStatusIcon = new Lang.Class({
             }
         }
     },
+
+    _updateStatus: function() {
+        if (this._indicator.status != AppIndicator.SNIStatus.PASSIVE)
+            this.actor.show()
+        else
+            this.actor.hide()
+    },
     
     destroy: function() {
         Util.Logger.debug('destroying '+this._indicator.id+'...')
@@ -100,6 +108,7 @@ const IndicatorStatusIcon = new Lang.Class({
     
     _display: function() {
         this._updateLabel()
+        this._updateStatus()
 
         this._indicator.getMenuClient((function(client){
             if (client != null) {
