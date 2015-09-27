@@ -21,46 +21,6 @@ const St = imports.gi.St
 const Lang = imports.lang
 const Signals = imports.signals
 
-/*
- * The standard array map operation, but in async mode
- * `mapFunc` is expected to have the signature `function(element, index, array, callback)` where `callback` is `function(error, result)`.
- * `callback` is expected to have the signature `function(error, result)`
- *
- * The callback function is called when every mapping operation has finished, with the original array as result.
- * or when at least one mapFunc returned an error, then immediately with that error.
- *
- * If you pass any wrong parameters, the result is undefined (most likely some kind of cryptic error)
- */
-function asyncMap(array, mapFunc, callback) {
-    if (!callback) callback = function(){};
-
-    var newArray = array.slice(0);
-    var toFinish = 0;
-
-    // empty object
-    if (newArray.length == 0) {
-        callback(null, newArray);
-        return;
-    }
-
-    for (let i = 0; i < newArray.length; ++i) {
-        toFinish += 1;
-        mapFunc(newArray[i], i, newArray, function(i, error, result) {
-            toFinish -= 1;
-            if (error) {
-                callback(error);
-                callback = function(){};
-            } else {
-                newArray[i] = result;
-
-                if (toFinish <= 0) {
-                    callback(null, newArray);
-                }
-            }
-        }.bind(null, i));
-    }
-}
-
 //data: GBytes
 const createPixbufFromMemoryImage = function(data) {
     var stream = Gio.MemoryInputStream.new_from_bytes(data);
@@ -240,61 +200,6 @@ const XmlLessDBusProxy = new Lang.Class({
 })
 Signals.addSignalMethods(XmlLessDBusProxy.prototype)
 
-
-/**
- * Refetches invalidated properties
- *
- * A handler for the "g-properties-changed" signal of a GDbusProxy.
- * It will refetch all invalidated properties and put them in the cache, and
- * then raise another "g-properties-changed" signal with the updated properties.
- *
- * Essentially poor man's G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES.
- */
-function refreshInvalidatedProperties(proxy, changed, invalidated) {
-    if (invalidated.length < 1) return
-
-    asyncMap(invalidated, function(property, i, a, callback) {
-        proxy.g_connection.call(
-            proxy.g_name_owner,
-            proxy.g_object_path,
-            "org.freedesktop.DBus.Properties",
-            "Get",
-            GLib.Variant.new("(ss)", [ proxy.g_interface_name, property ]),
-            GLib.VariantType.new("(v)"),
-            Gio.DBusCallFlags.NONE,
-            -1,
-            null,
-            function(conn, res) {
-                try {
-                    let newValue = proxy.g_connection.call_finish(res).deep_unpack()[0]
-                    callback(null, {
-                        name: property,
-                        value: newValue
-                    })
-                } catch (error) {
-                    callback(error)
-                }
-            }
-        );
-    }, function(error, result) {
-        if (error) {
-            //FIXME: what else can we do?
-            Logger.error("While refreshing invalidated properties: "+error)
-        } else {
-            // build up the dictionary we feed into the variant later
-            let changed = {}
-
-            result.forEach(function(i) {
-                changed[i.name] = i.value
-
-                proxy.set_cached_property(i.name, i.value)
-            })
-
-            // avoid any form of recursion
-            GLib.idle_add(GLib.PRIORITY_DEFAULT, proxy.emit.bind(proxy, "g-properties-changed", new GLib.Variant("a{sv}", changed), []))
-        }
-    });
-}
 
 /**
  * Helper class for logging stuff
