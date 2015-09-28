@@ -122,6 +122,9 @@ const AppIndicator = new Lang.Class({
     get label() {
         return this._proxy.cachedProperties.XAyatanaLabel;
     },
+    get menuPath() {
+        return this._proxy.cachedProperties.Menu || "/MenuBar"
+    },
 
     get attentionIcon() {
         return [
@@ -145,42 +148,6 @@ const AppIndicator = new Lang.Class({
             this._proxy.cachedProperties.OverlayIconPixmap,
             this._proxy.cachedProperties.IconThemePath
         ]
-    },
-
-    //async because we may need to check the presence of a menubar object as well as the creation is async.
-    getMenuClient: function(clb) {
-        var path = this._proxy.cachedProperties.Menu || "/MenuBar"
-        this._validateMenu(this.busName, path, function(r, name, path) {
-            if (r) {
-                Util.Logger.debug("creating menu on "+[name, path])
-                clb(new DBusMenu.Client(name, path))
-            } else {
-                clb(null);
-            }
-        });
-    },
-
-    _validateMenu: function(bus, path, callback) {
-        Gio.DBus.session.call(
-            bus, path, "org.freedesktop.DBus.Properties", "Get",
-            GLib.Variant.new("(ss)", ["com.canonical.dbusmenu", "Version"]),
-            GLib.VariantType.new("(v)"), Gio.DBusCallFlags.NONE, -1, null, function(conn, result) {
-                try {
-                    var val = conn.call_finish(result);
-                } catch (e) {
-                    Util.Logger.warn("Invalid menu: "+e);
-                    return callback(false);
-                }
-                var version = val.deep_unpack()[0].deep_unpack();
-                //fixme: what do we implement?
-                if (version >= 2) {
-                    return callback(true, bus, path);
-                } else {
-                    Util.Logger.warn("Incompatible dbusmenu version: "+version);
-                    return callback(false);
-                }
-            }, null
-        );
     },
 
     _onPropertyChanged: function(proxy, property, newValue) {

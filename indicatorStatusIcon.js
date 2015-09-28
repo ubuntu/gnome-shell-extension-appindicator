@@ -110,14 +110,12 @@ const IndicatorStatusIcon = new Lang.Class({
         this._updateLabel()
         this._updateStatus()
 
-        this._indicator.getMenuClient((function(client){
-            if (client != null) {
-                this._menuClient = client
-                client.attachToMenu(this.menu)
-            }
-            
-            Main.panel.addToStatusArea("appindicator-"+this._indicator.uniqueId, this, 1, 'right')
-        }).bind(this));
+        if (!this._menuClient) {
+            this._menuClient = new DBusMenu.Client(this._indicator.busName, this._indicator.menuPath)
+            this._menuClient.attachToMenu(this.menu)
+        }
+
+        Main.panel.addToStatusArea("appindicator-"+this._indicator.uniqueId, this, 1, 'right')
     },
     
     _boxClicked: function(actor, event) {
