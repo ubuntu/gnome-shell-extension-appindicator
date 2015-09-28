@@ -116,7 +116,7 @@ const IndicatorStatusIcon = new Lang.Class({
                 client.attachToMenu(this.menu)
             }
             
-            Main.panel.addToStatusArea("appindicator-"+this._indicator.id, this, 1, 'right')
+            Main.panel.addToStatusArea("appindicator-"+this._indicator.uniqueId, this, 1, 'right')
         }).bind(this));
     },
     

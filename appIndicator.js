@@ -54,6 +54,7 @@ const AppIndicator = new Lang.Class({
 
     _init: function(bus_name, object) {
         this.busName = bus_name
+        this._uniqueId = bus_name + object
 
         this._proxy = new Util.XmlLessDBusProxy({
             connection: Gio.DBus.session,
@@ -111,6 +112,9 @@ const AppIndicator = new Lang.Class({
     },
     get id() {
         return this._proxy.cachedProperties.Id;
+    },
+    get uniqueId() {
+        return this._uniqueId;
     },
     get status() {
         return this._proxy.cachedProperties.Status;
