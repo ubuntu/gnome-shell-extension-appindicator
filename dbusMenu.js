@@ -448,56 +448,6 @@ const NEED_NESTED_SUBMENU_FIX = '_setOpenedSubMenu' in PopupMenu.PopupMenu.proto
  * handlers, so any `this` will refer to a menu item create in createItem
  */
 const MenuItemFactory = {
-    // Ornament polyfill for 3.8
-    OrnamentType: PopupMenu.Ornament ? PopupMenu.Ornament : {
-        NONE: 0,
-        CHECK: 1,
-        DOT: 2
-    },
-
-    _setOrnamentPolyfill: function(ornamentType) {
-        if (ornamentType == MenuItemFactory.OrnamentType.CHECK) {
-            this._ornament.set_text('\u2713')
-            this.actor.add_accessible_state(Atk.StateType.CHECKED)
-        } else if (ornamentType == MenuItemFactory.OrnamentType.DOT) {
-            this._ornament.set_text('\u2022')
-            this.actor.add_accessible_state(Atk.StateType.CHECKED)
-        } else {
-            this._ornament.set_text('')
-            this.actor.remove_accessible_state(Atk.StateType.CHECKED)
-        }
-    },
-
-    // GS3.8 uses a complicated system to compute the allocation for each child in pure JS
-    // we hack together a function that allocates space for our ornament, using the x
-    // calculations normally used for the dot and the y calculations used for every
-    // other item. Thank god they replaced that whole allocation stuff in 3.10, so I don't
-    // really need to understand how it works, as long as it looks right in 3.8
-    _allocateOrnament: function(actor, box, flags) {
-        if (!this._ornament) return
-
-        let height = box.y2 - box.y1;
-        let direction = actor.get_text_direction();
-
-        let dotBox = new Clutter.ActorBox()
-        let dotWidth = Math.round(box.x1 / 2)
-
-        if (direction == Clutter.TextDirection.LTR) {
-            dotBox.x1 = Math.round(box.x1 / 4)
-            dotBox.x2 = dotBox.x1 + dotWidth
-        } else {
-            dotBox.x2 = box.x2 + 3 * Math.round(box.x1 / 4)
-            dotBox.x1 = dotBox.x2 - dotWidth
-        }
-
-        let [minHeight, naturalHeight] = this._ornament.get_preferred_height(dotBox.x2 - dotBox.x1)
-
-        dotBox.y1 = Math.round(box.y1 + (height - naturalHeight) / 2)
-        dotBox.y2 = dotBox.y1 + naturalHeight
-
-        this._ornament.allocate(dotBox, flags)
-    },
-
     createItem: function(client, dbusItem) {
         // first, decide whether it's a submenu or not
         if (dbusItem.property_get("children-display") == "submenu")
@@ -512,21 +462,8 @@ const MenuItemFactory = {
 
         if (shellItem instanceof PopupMenu.PopupMenuItem) {
             shellItem._icon = new St.Icon({ style_class: 'popup-menu-icon', x_align: St.Align.END })
-            if (shellItem.addActor) { //GS 3.8
-                shellItem.addActor(shellItem._icon, { align: St.Align.END })
-            } else { //GS >= 3.10
-                shellItem.actor.add(shellItem._icon, { x_align: St.Align.END })
-                shellItem.label.get_parent().child_set(shellItem.label, { expand: true })
-            }
-
-            // GS3.8: emulate the ornament stuff.
-            // this is similar to how the setShowDot function works
-            if (!shellItem.setOrnament) {
-                shellItem._ornament = new St.Label()
-                shellItem.actor.add_actor(shellItem._ornament)
-                shellItem.setOrnament = MenuItemFactory._setOrnamentPolyfill
-                shellItem.actor.connect('allocate', MenuItemFactory._allocateOrnament.bind(shellItem)) //GS doesn't disconnect that one, either
-            }
+            shellItem.actor.add(shellItem._icon, { x_align: St.Align.END })
+            shellItem.label.get_parent().child_set(shellItem.label, { expand: true })
         }
 
         // initialize our state
@@ -653,11 +590,11 @@ const MenuItemFactory = {
         if (!this.setOrnament) return // separators and alike might not have gotten the polyfill
 
         if (this._dbusItem.property_get("toggle-type") == "checkmark" && this._dbusItem.property_get_int("toggle-state"))
-            this.setOrnament(MenuItemFactory.OrnamentType.CHECK)
+            this.setOrnament(PopupMenu.Ornament.CHECK)
         else if (this._dbusItem.property_get("toggle-type") == "radio" && this._dbusItem.property_get_int("toggle-state"))
-            this.setOrnament(MenuItemFactory.OrnamentType.DOT)
+            this.setOrnament(PopupMenu.Ornament.DOT)
         else
-            this.setOrnament(MenuItemFactory.OrnamentType.NONE)
+            this.setOrnament(PopupMenu.Ornament.NONE)
     },
 
     _updateImage: function() {
