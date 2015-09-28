@@ -1,5 +1,5 @@
 // Copyright (C) 2011 Giovanni Campagna
-// Copyright (C) 2013-2014 Jonas Kümmerlin <rgcjonas@gmail.com>
+// Copyright (C) 2013-2015 Jonas Kümmerlin <rgcjonas@gmail.com>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -18,6 +18,7 @@ const Atk = imports.gi.Atk
 const Clutter = imports.gi.Clutter
 const Gio = imports.gi.Gio
 const GLib = imports.gi.GLib
+const GdkPixbuf = imports.gi.GdkPixbuf
 const Lang = imports.lang
 const PopupMenu = imports.ui.popupMenu
 const Signals = imports.signals
@@ -672,7 +673,7 @@ const MenuItemFactory = {
         if (iconName)
             this._icon.icon_name = iconName
         else if (iconData)
-            this._icon.gicon = Util.createPixbufFromMemoryImage(iconData.get_data_as_bytes())
+            this._icon.gicon = GdkPixbuf.Pixbuf.new_from_stream(Gio.MemoryInputStream.new_from_bytes(iconData.get_data_as_bytes()), null)
     },
 
     _updateVisible: function() {
