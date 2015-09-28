@@ -36,6 +36,10 @@
         <arg name="x" type="i" direction="in"/>
         <arg name="y" type="i" direction="in"/>
     </method>
+    <method name="Scroll">
+        <arg name="delta" type="i" direction="in"/>
+        <arg name="dir"   type="s" direction="in"/>
+    </method>
 
     <!-- Signals: the client wants to change something in the status-->
     <signal name="NewTitle"></signal>
@@ -51,12 +55,15 @@
     </signal>
 
     <!-- ayatana labels -->
-    <signal name="XAyatanaNewLabel">
+    <!-- These are commented out because GDBusProxy would otherwise require them,
+         but they are not available for KDE indicators
+    -->
+    <!--<signal name="XAyatanaNewLabel">
         <arg type="s" name="label" direction="out" />
         <arg type="s" name="guide" direction="out" />
     </signal>
     <property name="XAyatanaLabel" type="s" access="read" />
-    <property name="XAyatanaLabelGuide" type="s" access="read" /> <!-- unimplemented -->
+    <property name="XAyatanaLabelGuide" type="s" access="read" />-->
 
 
 </interface>

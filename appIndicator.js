@@ -31,6 +31,7 @@ const Signals = imports.signals
 const DBusMenu = Extension.imports.dbusMenu;
 const IconCache = Extension.imports.iconCache;
 const Util = Extension.imports.util;
+const Interfaces = Extension.imports.interfaces;
 
 const SNICategory = {
     APPLICATION: 'ApplicationStatus',
@@ -56,137 +57,141 @@ const AppIndicator = new Lang.Class({
         this.busName = bus_name
         this._uniqueId = bus_name + object
 
-        this._proxy = new Util.XmlLessDBusProxy({
-            connection: Gio.DBus.session,
-            name: bus_name,
-            path: object,
-            interface: 'org.kde.StatusNotifierItem',
-            propertyWhitelist: [ //keep sorted alphabetically, please
-                'AttentionIconName',
-                'AttentionIconPixmap',
-                'Category',
-                'IconName',
-                'IconPixmap',
-                'IconThemePath',
-                'Id',
-                'Menu',
-                'OverlayIconName',
-                'OverlayIconPixmap',
-                'Status',
-                'Title',
-                'ToolTip',
-                'XAyatanaLabel'
-            ],
-            onReady: (function() {
-                this.isReady = true
-                this.emit('ready')
-            }).bind(this)
-        })
+        let interface_info = Gio.DBusInterfaceInfo.new_for_xml(Interfaces.StatusNotifierItem)
 
-        this._proxy.connect('-property-changed', this._onPropertyChanged.bind(this))
-        this._proxy.connect('-signal', this._translateNewSignals.bind(this))
+        //HACK: we cannot use Gio.DBusProxy.makeProxyWrapper because we need
+        //      to specify G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES
+        this._proxy = new Gio.DBusProxy({ g_connection: Gio.DBus.session,
+                                          g_interface_name: interface_info.name,
+                                          g_interface_info: interface_info,
+                                          g_name: bus_name,
+                                          g_object_path: object,
+                                          g_flags: Gio.DBusProxyFlags.GET_INVALIDATED_PROPERTIES })
+        this._proxy.init_async(GLib.PRIORITY_DEFAULT, null, (function(initable, result) {
+                try {
+                    initable.init_finish(result);
+
+                    this.isReady = true
+                    this.emit('ready')
+                } catch(e) {
+                    Util.Logger.warn("While intializing proxy for "+bus_name+object+": "+e)
+                }
+            }).bind(this))
+
+        this._proxyPropertyList = interface_info.properties.map(function(propinfo) { return propinfo.name })
+
+
+        Util.connectSmart(this._proxy, 'g-properties-changed', this, '_onPropertiesChanged')
+        Util.connectSmart(this._proxy, 'g-signal', this, '_translateNewSignals')
     },
 
     // The Author of the spec didn't like the PropertiesChanged signal, so he invented his own
-    _translateNewSignals: function(proxy, signal, params) {
+    _translateNewSignals: function(proxy, sender, signal, params) {
         if (signal.substr(0, 3) == 'New') {
             let prop = signal.substr(3)
 
-            if (this._proxy.propertyWhitelist.indexOf(prop) > -1)
-                this._proxy.invalidateProperty(prop)
+            if (this._proxyPropertyList.indexOf(prop) > -1)
+                Util.refreshPropertyOnProxy(this._proxy, prop)
 
-            if (this._proxy.propertyWhitelist.indexOf(prop + 'Pixmap') > -1)
-                this._proxy.invalidateProperty(prop + 'Pixmap')
+            if (this._proxyPropertyList.indexOf(prop + 'Pixmap') > -1)
+                Util.refreshPropertyOnProxy(this._proxy, prop + 'Pixmap')
 
-            if (this._proxy.propertyWhitelist.indexOf(prop + 'Name') > -1)
-                this._proxy.invalidateProperty(prop + 'Name')
+            if (this._proxyPropertyList.indexOf(prop + 'Name') > -1)
+                Util.refreshPropertyOnProxy(this._proxy, prop + 'Name')
         } else if (signal == 'XAyatanaNewLabel') {
             // and the ayatana guys made sure to invent yet another way of composing these signals...
-            this._proxy.invalidateProperty('XAyatanaLabel')
+            Util.refreshPropertyOnProxy(this._proxy, 'XAyatanaLabel')
         }
     },
 
     //public property getters
     get title() {
-        return this._proxy.cachedProperties.Title;
+        return this._proxy.Title;
     },
     get id() {
-        return this._proxy.cachedProperties.Id;
+        return this._proxy.Id;
     },
     get uniqueId() {
         return this._uniqueId;
     },
     get status() {
-        return this._proxy.cachedProperties.Status;
+        return this._proxy.Status;
     },
     get label() {
-        return this._proxy.cachedProperties.XAyatanaLabel;
+        let v = this._proxy.get_cached_property('XAyatanaLabel');
+
+        if (v) return v.deep_unpack()
+        else   return null
     },
     get menuPath() {
-        return this._proxy.cachedProperties.Menu || "/MenuBar"
+        return this._proxy.Menu || "/MenuBar"
     },
 
     get attentionIcon() {
         return [
-            this._proxy.cachedProperties.AttentionIconName,
-            this._proxy.cachedProperties.AttentionIconPixmap,
-            this._proxy.cachedProperties.IconThemePath
+            this._proxy.AttentionIconName,
+            this._proxy.AttentionIconPixmap,
+            this._proxy.IconThemePath
         ]
     },
 
     get icon() {
         return [
-            this._proxy.cachedProperties.IconName,
-            this._proxy.cachedProperties.IconPixmap,
-            this._proxy.cachedProperties.IconThemePath
+            this._proxy.IconName,
+            this._proxy.IconPixmap,
+            this._proxy.IconThemePath
         ]
     },
 
     get overlayIcon() {
         return [
-            this._proxy.cachedProperties.OverlayIconName,
-            this._proxy.cachedProperties.OverlayIconPixmap,
-            this._proxy.cachedProperties.IconThemePath
+            this._proxy.OverlayIconName,
+            this._proxy.OverlayIconPixmap,
+            this._proxy.IconThemePath
         ]
     },
 
-    _onPropertyChanged: function(proxy, property, newValue) {
-        // some property changes require updates on our part,
-        // a few need to be passed down to the displaying code
+    _onPropertiesChanged: function(proxy, changed, invalidated) {
+        let props = Object.keys(changed.deep_unpack())
 
-        // all these can mean that the icon has to be changed
-        if (property == 'Status' || property.substr(0, 4) == 'Icon' || property.substr(0, 13) == 'AttentionIcon')
-            this.emit('icon')
+        props.forEach(function(property) {
+            // some property changes require updates on our part,
+            // a few need to be passed down to the displaying code
 
-        // same for overlays
-        if (property.substr(0, 11) == 'OverlayIcon')
-            this.emit('overlay-icon')
+            // all these can mean that the icon has to be changed
+            if (property == 'Status' || property.substr(0, 4) == 'Icon' || property.substr(0, 13) == 'AttentionIcon')
+                this.emit('icon')
 
-        // this may make all of our icons invalid
-        if (property == 'IconThemePath') {
-            this.emit('icon')
-            this.emit('overlay-icon')
-        }
+            // same for overlays
+            if (property.substr(0, 11) == 'OverlayIcon')
+                this.emit('overlay-icon')
 
-        // the label will be handled elsewhere
-        if (property == 'XAyatanaLabel')
-            this.emit('label')
+            // this may make all of our icons invalid
+            if (property == 'IconThemePath') {
+                this.emit('icon')
+                this.emit('overlay-icon')
+            }
 
-        // status updates are important for the StatusNotifierDispatcher
-        if (property == 'Status')
-            this.emit('status')
+            // the label will be handled elsewhere
+            if (property == 'XAyatanaLabel')
+                this.emit('label')
+
+            // status updates may cause the indicator to be hidden
+            if (property == 'Status')
+                this.emit('status')
+        }, this);
     },
 
-    // triggers a reload of all properties
-    reset: function(triggerReady) {
-        this._proxy.invalidateAllProperties(this.emit.bind(this, 'reset'))
+    reset: function() {
+        //TODO: reload all properties, or do some other useful things
+        this.emit('reset')
     },
 
     destroy: function() {
         this.emit('destroy')
 
         this.disconnectAll()
-        this._proxy.destroy()
+        delete this._proxy
     },
 
     open: function() {
@@ -194,28 +199,15 @@ const AppIndicator = new Lang.Class({
         // nor can we call any X11 functions. Luckily, the Activate method usually works fine.
         // parameters are "an hint to the item where to show eventual windows" [sic]
         // ... and don't seem to have any effect.
-        this._proxy.call({
-            name: 'Activate',
-            paramTypes: 'ii',
-            paramValues: [0, 0]
-            // we don't care about the result
-        })
+        this._proxy.ActivateRemote(0, 0)
     },
 
     scroll: function(dx, dy) {
         if (dx != 0)
-            this._proxy.call({
-                name: 'Scroll',
-                paramTypes: 'is',
-                paramValues: [ Math.floor(dx), 'horizontal' ]
-            })
+            this._proxy.ScrollRemote(Math.floor(dx), 'horizontal')
 
         if (dy != 0)
-            this._proxy.call({
-                name: 'Scroll',
-                paramTypes: 'is',
-                paramValues: [ Math.floor(dy), 'vertical' ]
-            })
+            this._proxy.ScrollRemote(Math.floor(dy), 'vertical')
     }
 });
 Signals.addSignalMethods(AppIndicator.prototype);
