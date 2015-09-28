@@ -482,20 +482,14 @@ const MenuItemFactory = {
         }
 
         // now, connect various events
-        Util.connectAndRemoveOnDestroy(dbusItem, {
-            'property-changed':   MenuItemFactory._onPropertyChanged.bind(shellItem),
-            'child-added':        MenuItemFactory._onChildAdded.bind(shellItem),
-            'child-removed':      MenuItemFactory._onChildRemoved.bind(shellItem),
-            'child-moved':        MenuItemFactory._onChildMoved.bind(shellItem)
-        }, shellItem)
-        Util.connectAndRemoveOnDestroy(shellItem, {
-            'activate':  MenuItemFactory._onActivate.bind(shellItem)
-        })
+        Util.connectSmart(dbusItem, 'property-changed', shellItem, MenuItemFactory._onPropertyChanged)
+        Util.connectSmart(dbusItem, 'child-added',      shellItem, MenuItemFactory._onChildAdded)
+        Util.connectSmart(dbusItem, 'child-removed',    shellItem, MenuItemFactory._onChildRemoved)
+        Util.connectSmart(dbusItem, 'child-moved',      shellItem, MenuItemFactory._onChildMoved)
+        Util.connectSmart(shellItem, 'activate',        shellItem, MenuItemFactory._onActivate)
 
         if (shellItem.menu)
-            Util.connectAndRemoveOnDestroy(shellItem.menu, {
-                "open-state-changed": MenuItemFactory._onOpenStateChanged.bind(shellItem)
-            })
+            Util.connectSmart(shellItem.menu, "open-state-changed", shellItem,  MenuItemFactory._onOpenStateChanged)
 
         return shellItem
     },
@@ -684,10 +678,6 @@ const Client = new Lang.Class({
         this._client   = new DBusClient(busName, path)
         this._rootMenu = null // the shell menu
         this._rootItem = null // the DbusMenuItem for the root
-
-        this._rootItemDisconnectHandlers = []
-        this._menuDisconnectHandlers     = []
-        this._rootChangedHandler         = null
     },
 
     // this will attach the client to an already existing menu that will be used as the root menu.
@@ -703,15 +693,12 @@ const Client = new Lang.Class({
             menu._setOpenedSubMenu = this._setOpenedSubmenu.bind(this)
 
         // connect handlers
-        Util.connectAndSaveId(menu, {
-            'open-state-changed': this._onMenuOpened.bind(this),
-            'destroy'           : this.destroy.bind(this)
-        }, this._menuDisconnectHandlers)
-        Util.connectAndSaveId(this._rootItem, {
-            "child-added"   : this._onRootChildAdded.bind(this),
-            "child-removed" : this._onRootChildRemoved.bind(this),
-            "child-moved"   : this._onRootChildMoved.bind(this)
-        }, this._rootItemDisconnectHandlers)
+        Util.connectSmart(menu, 'open-state-changed', this, '_onMenuOpened')
+        Util.connectSmart(menu, 'destroy',            this, 'destroy')
+
+        Util.connectSmart(this._rootItem, 'child-added',   this, '_onRootChildAdded')
+        Util.connectSmart(this._rootItem, 'child-removed', this, '_onRootChildRemoved')
+        Util.connectSmart(this._rootItem, 'child-moved',   this, '_onRootChildMoved')
 
         // fill the menu for the first time
         this._rootItem.get_children().forEach(function(child) {
@@ -767,11 +754,7 @@ const Client = new Lang.Class({
     },
 
     destroy: function() {
-        if (this._rootMenu)
-            Util.disconnectArray(this._rootMenu, this._menuDisconnectHandlers)
-
-        if (this._rootItem)
-            Util.disconnectArray(this._rootItem, this._rootItemDisconnectHandlers)
+        this.emit('destroy')
 
         if (this._client)
             this._client.destroy()
@@ -781,3 +764,4 @@ const Client = new Lang.Class({
         this._rootMenu = null
     }
 })
+Signals.addSignalMethods(Client.prototype)

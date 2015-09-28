@@ -232,17 +232,13 @@ const IconActor = new Lang.Class({
         this.add_actor(this._mainIcon)
         this.add_actor(this._overlayIcon)
 
-        Util.connectAndRemoveOnDestroy(this._indicator, {
-            'icon':         this._updateIcon.bind(this),
-            'overlay-icon': this._updateOverlayIcon.bind(this),
-            'ready':        this._invalidateIcon.bind(this)
-        }, this)
-        Util.connectAndRemoveOnDestroy(this, {
-            'scroll-event': this._handleScrollEvent.bind(this)
-        })
-        Util.connectAndRemoveOnDestroy(Gtk.IconTheme.get_default(), {
-            'changed': this._invalidateIcon.bind(this)
-        }, this)
+        Util.connectSmart(this._indicator, 'icon',         this, '_updateIcon')
+        Util.connectSmart(this._indicator, 'overlay-icon', this, '_updateOverlayIcon')
+        Util.connectSmart(this._indicator, 'ready',        this, '_invalidateIcon')
+
+        Util.connectSmart(this, 'scroll-event', this, '_handleScrollEvent')
+
+        Util.connectSmart(Gtk.IconTheme.get_default(), 'changed', this, '_invalidateIcon')
 
         if (indicator.isReady)
             this._invalidateIcon()

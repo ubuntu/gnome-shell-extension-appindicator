@@ -46,17 +46,13 @@ const IndicatorStatusIcon = new Lang.Class({
 
         this._box.destroy_all_children();
         this._box.add_actor(this._iconBox);
-        Util.connectAndRemoveOnDestroy(this.actor, {
-            'button-press-event': this._boxClicked.bind(this)
-        })
+        Util.connectSmart(this.actor, 'button-press-event', this, '_boxClicked')
 
         Util.Logger.debug("Adding indicator as status menu");
 
-        Util.connectAndRemoveOnDestroy(this._indicator, {
-            'ready': this._display.bind(this),
-            'label': this._updateLabel.bind(this),
-            'status': this._updateStatus.bind(this)
-        }, this)
+        Util.connectSmart(this._indicator, 'ready',  this, '_display')
+        Util.connectSmart(this._indicator, 'label',  this, '_updateLabel')
+        Util.connectSmart(this._indicator, 'status', this, '_updateStatus')
 
         if (this._indicator.isReady)
             this._display()
