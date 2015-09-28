@@ -482,8 +482,6 @@ const IconActor = new Lang.Class({
     destroy: function() {
         this._iconCache.destroy()
 
-        Util.Logger.debug("Destroying icon actor")
-
         this.parent()
     }
 })

@@ -102,13 +102,11 @@ const NameWatchdog = {
     },
     
     _appeared_handler: function() {
-        Util.Logger.debug("bus name appeared");
         this.isPresent = true;
         if (this.onAppeared) this.onAppeared();
     },
     
     _vanished_handler: function() {
-        Util.Logger.debug("bus name vanished");
         this.isPresent = false;
         if (this.onVanished) this.onVanished();
     }

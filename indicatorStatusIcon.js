@@ -48,8 +48,6 @@ const IndicatorStatusIcon = new Lang.Class({
         this._box.add_actor(this._iconBox);
         Util.connectSmart(this.actor, 'button-press-event', this, '_boxClicked')
 
-        Util.Logger.debug("Adding indicator as status menu");
-
         Util.connectSmart(this._indicator, 'ready',  this, '_display')
         Util.connectSmart(this._indicator, 'label',  this, '_updateLabel')
         Util.connectSmart(this._indicator, 'status', this, '_updateStatus')
@@ -88,8 +86,6 @@ const IndicatorStatusIcon = new Lang.Class({
     },
     
     destroy: function() {
-        Util.Logger.debug('destroying '+this._indicator.id+'...')
-
         // destroy stuff owned by us
         if (this._menuClient)
             this._menuClient.destroy()

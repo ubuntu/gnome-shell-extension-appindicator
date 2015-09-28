@@ -99,7 +99,7 @@ const StatusNotifierWatcher = new Lang.Class({
 
             this._items[id].reset();
         } else {
-            Util.Logger.debug("registering "+id+" for the first time.");
+            Util.Logger.debug("Registering StatusNotifierItem "+id);
 
             let indicator = new AppIndicator.AppIndicator(bus_name, obj_path);
             let visual = new IndicatorStatusIcon.IndicatorStatusIcon(indicator);
@@ -112,8 +112,6 @@ const StatusNotifierWatcher = new Lang.Class({
                                                                 this._itemVanished.bind(this));
 
             this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems', GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
-
-            Util.Logger.debug("done registering");
         }
         invocation.return_value(null);
     },
