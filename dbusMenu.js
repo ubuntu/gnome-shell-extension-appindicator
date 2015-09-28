@@ -124,14 +124,9 @@ const DbusMenuItem = new Lang.Class({
     },
 
     property_set: function(prop, value) {
-        let old_value = this._propStore.get(prop)
-
         this._propStore.set(prop, value)
 
-        let new_value = this._propStore.get(prop)
-
-        if (new_value && !old_value || old_value && !new_value || old_value.compare(new_value) != 0)
-            this.emit('property-changed', prop, this.property_get_variant(prop))
+        this.emit('property-changed', prop, this.property_get_variant(prop))
     },
 
     get_children_ids: function() {
