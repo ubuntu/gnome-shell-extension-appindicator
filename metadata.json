@@ -1,9 +1,7 @@
 {
     "shell-version": ["3.16", "3.17.91", "3.18"],
     "uuid": "appindicatorsupport@rgcjonas.gmail.com", 
-    "name": "AppIndicator Support", 
-    "description": "Adds AppIndicator support to gnome shell",
-    "settings-schema": "org.gnome.shell.extensions.appindicator-support",
-    "gettext-domain": "gnome-shell-appindicator-support",
+    "name": "KStatusNotifierItem/AppIndicator Support",
+    "description": "Adds KStatusNotifierItem support to the Shell",
     "url": "https://github.com/rgcjonas/gnome-shell-extension-appindicator"
 }
