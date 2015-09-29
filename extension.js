@@ -17,14 +17,12 @@ const Gio = imports.gi.Gio
 const GLib = imports.gi.GLib
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension()
-const ExtensionSystem = imports.ui.extensionSystem
 
 const StatusNotifierWatcher = Extension.imports.statusNotifierWatcher
 const Util = Extension.imports.util
 
 let statusNotifierWatcher = null;
 let isEnabled = false;
-let detectExtensionsID = null;
 
 function init() {
     NameWatchdog.init();
@@ -48,19 +46,8 @@ function init() {
 // monitor the bus manually to find out when the name vanished so we can reclaim it again.
 function maybe_enable_after_name_available() {
     // by the time we get called whe might not be enabled
-    if (isEnabled && !NameWatchdog.isPresent && statusNotifierWatcher === null) {
+    if (isEnabled && !NameWatchdog.isPresent && statusNotifierWatcher === null)
         statusNotifierWatcher = new StatusNotifierWatcher.StatusNotifierWatcher();
-
-    //connect to dash-to-dock extension changes. Compatibility with this extension allows
-    //to place indicators in the dash-to-dock
-    detectExtensionsID = ExtensionSystem.connect('extension-state-changed',
-        function (obj, extension) {
-            if (extension.uuid == 'dash-to-dock@micxgx.gmail.com') {
-                //re-add all indicators if dash-to-dock changes its status
-                StatusNotifierDispatcher.IndicatorDispatcher.instance._settingsChanged(null,null);
-            }
-        });
-    }
 }
 
 function enable() {
