@@ -60,11 +60,6 @@ function disable() {
     if (statusNotifierWatcher !== null) {
         statusNotifierWatcher.destroy();
         statusNotifierWatcher = null;
-
-        if (detectExtensionsID) {
-            ExtensionSystem.disconnect(detectExtensionsID);
-            detectExtensionsID = null;
-        }
     }
 }
 
