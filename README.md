@@ -1,13 +1,3 @@
-
----
-
-***IN SEARCH OF NEW MAINTAINER - SEE [BUG REPORT](https://github.com/rgcjonas/gnome-shell-extension-appindicator/issues/56)***
-
-Until someone takes over, I will maintain a heavily stripped-down version.
-Please do not complain about removed features.
-
----
-
 # AppIndicator/KStatusNotifierItem support for GNOME Shell
 This extension integrates Ubuntu AppIndicators and KStatusNotifierItems (KDE's blessed successor of the systray) into GNOME Shell.
 
