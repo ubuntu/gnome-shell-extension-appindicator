@@ -358,7 +358,7 @@ const IconActor = new Lang.Class({
             try {
                 let image = new Clutter.Image()
                 image.set_bytes(bytes,
-                                Cogl.PixelFormat.ABGR_8888,
+                                Cogl.PixelFormat.ARGB_8888,
                                 width,
                                 height,
                                 rowstride)
