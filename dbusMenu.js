@@ -700,6 +700,9 @@ const Client = new Lang.Class({
         Util.connectSmart(this._rootItem, 'child-removed', this, '_onRootChildRemoved')
         Util.connectSmart(this._rootItem, 'child-moved',   this, '_onRootChildMoved')
 
+        // Dropbox requires us to call AboutToShow(0) first
+        this._rootItem.send_about_to_show()
+
         // fill the menu for the first time
         this._rootItem.get_children().forEach(function(child) {
             this._rootMenu.addMenuItem(MenuItemFactory.createItem(this, child))
