@@ -219,8 +219,9 @@ const IconActor = new Lang.Class({
 
     _init: function(indicator, icon_size) {
         this.parent({ reactive: true })
-        this.width  = icon_size
-        this.height = icon_size
+        let scale_factor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+        this.width  = icon_size * scale_factor
+        this.height = icon_size * scale_factor
 
         this._indicator     = indicator
         this._iconSize      = icon_size
