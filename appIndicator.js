@@ -286,9 +286,6 @@ const IconActor = new Lang.Class({
             // we manually look up the icon instead of letting st.icon do it for us
             // this allows us to sneak in an indicator provided search path and to avoid ugly upscaled icons
 
-            // indicator-application looks up a special "panel" variant, we just replicate that here
-            icon_name = icon_name + "-panel"
-
             // icon info as returned by the lookup
             var icon_info = null
 
@@ -305,6 +302,11 @@ const IconActor = new Lang.Class({
             }
 
             // try to look up the icon in the icon theme
+            // indicator-application looks up a special "panel" variant, we just replicate that here
+            if (icon_theme.has_icon(icon_name + "-panel")) {
+                icon_name = icon_name + "-panel"
+            }
+
             icon_info = icon_theme.lookup_icon(icon_name, icon_size,
                                                Gtk.IconLookupFlags.GENERIC_FALLBACK)
 
