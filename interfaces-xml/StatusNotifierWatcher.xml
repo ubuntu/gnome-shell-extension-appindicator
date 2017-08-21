@@ -12,10 +12,10 @@
     <method name="IsNotificationHostRegistered">
         <arg type="b" direction="out" />
     </method>
-    <signal name="ServiceRegistered">
+    <signal name="StatusNotifierItemRegistered">
         <arg type="s" direction="out" />
     </signal>
-    <signal name="ServiceUnregistered">
+    <signal name="StatusNotifierItemUnregistered">
         <arg type="s" direction="out" />
     </signal>
     <property name="IsStatusNotifierHostRegistered" type="b" access="read" />
