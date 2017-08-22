@@ -1,0 +1,5 @@
+gnome-shell-extension-appindicator (17.10) UNRELEASED; urgency=medium
+
+  * Initial release of appindicator extension.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Tue, 22 Aug 2017 08:51:13 +0200

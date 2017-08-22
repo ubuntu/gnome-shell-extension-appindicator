@@ -1,0 +1,16 @@
+#!/usr/bin/make -f
+#export DH_VERBOSE = 1
+
+%:
+	dh $@
+
+# we only copy the files in .install
+override_dh_auto_build:
+
+
+dest = debian/gnome-shell-extension-appindicator/usr/share/gnome-shell/extensions/ubuntu-appindicators@ubuntu.com
+override_dh_install:
+	mkdir -p $(dest)
+	for f in *.js *.json interfaces-xml; do \
+	    cp -rp $$f $(dest)/; \
+	done

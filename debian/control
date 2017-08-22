@@ -1,0 +1,16 @@
+Source: gnome-shell-extension-appindicator
+Section: gnome
+Priority: optional
+Maintainer: Ubuntu Desktop team <ubuntu-desktop@lists.ubuntu.com>
+Build-Depends: debhelper (>= 10),
+Standards-Version: 4.0.0
+Homepage: https://github.com/ubuntu/gnome-shell-extension-appindicator/tree/ubuntu
+
+Package: gnome-shell-extension-appindicator
+Architecture: all
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+Description: App indicators for GNOME Shell
+ Support app indicators in top panel, as the default Ubuntu experience.
+ .
+ System update of KStatusNotifierItem/AppIndicator extension.
