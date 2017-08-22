@@ -1,4 +1,4 @@
-gnome-shell-extension-appindicator (17.10) UNRELEASED; urgency=medium
+gnome-shell-extension-appindicator (17.10) artful; urgency=medium
 
   * Initial release of appindicator extension.
 
