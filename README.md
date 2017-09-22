@@ -7,7 +7,7 @@ It's based on patches made by Giovanni Campagna: https://bugzilla.gnome.org/show
 * Show indicator icons in the panel.
 * Reveal indicator menus upon click.
 * Double clicking an icon will activate the application window (if implemented by the indicator).
-* Middle mouse click an icon to send a 'SecondaryActivate' event to the application. Support need to be implemented in the application. [Info 1](https://bugs.launchpad.net/unity/+bug/812933), [Info 2](https://developer.ubuntu.com/api/devel/ubuntu-13.10/c/AppIndicator3-0.1.html).
+* Middle mouse click an icon to send a 'SecondaryActivate' event to the application. Support needs to be implemented in the application. [Info 1](https://bugs.launchpad.net/unity/+bug/812933), [Info 2](https://developer.ubuntu.com/api/devel/ubuntu-13.10/c/AppIndicator3-0.1.html).
 
 ## Missing features
 * Tooltips: Not implemented in `libappindicator` nor in Unity and I've yet to see any indicator using it for anything relevant (KDE ones maybe?). Also, the GNOME designers decided not to have tooltips in the shell and I'd like to honor that decision.
