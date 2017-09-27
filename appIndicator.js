@@ -370,10 +370,15 @@ const IconActor = new Lang.Class({
                                 height,
                                 rowstride)
 
+                let scale_factor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+
                 return new Clutter.Actor({
                     width: Math.min(width, iconSize),
                     height: Math.min(height, iconSize),
-                    content: image
+                    content: image,
+                    scale_x: scale_factor,
+                    scale_y: scale_factor,
+                    pivot_point: new Clutter.Point({ x: .5, y: .5 })
                 })
             } catch (e) {
                 // the image data was probably bogus. We don't really know why, but it _does_ happen.
