@@ -371,8 +371,8 @@ const IconActor = new Lang.Class({
                                 rowstride)
 
                 let scale_factor = 1
-                if (width != 0)
-                    scale_factor = iconSize / width
+                if (height != 0)
+                    scale_factor = iconSize / height
                 else
                     scale_factor = St.ThemeContext.get_for_stage(global.stage).scale_factor
 
