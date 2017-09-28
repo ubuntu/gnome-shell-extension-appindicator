@@ -228,7 +228,7 @@ const IconActor = new Lang.Class({
         this.height = icon_size * scale_factor
 
         this._indicator     = indicator
-        this._iconSize      = icon_size
+        this._iconSize      = icon_size * scale_factor
         this._iconCache     = new IconCache.IconCache()
 
         this._mainIcon    = new St.Bin()
@@ -370,7 +370,11 @@ const IconActor = new Lang.Class({
                                 height,
                                 rowstride)
 
-                let scale_factor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+                let scale_factor = 1
+                if (width != 0)
+                    scale_factor = iconSize / width
+                else
+                    scale_factor = St.ThemeContext.get_for_stage(global.stage).scale_factor
 
                 return new Clutter.Actor({
                     width: Math.min(width, iconSize),
