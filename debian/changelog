@@ -1,9 +1,9 @@
-gnome-shell-extension-appindicator (17.10.1) UNRELEASED; urgency=medium
+gnome-shell-extension-appindicator (17.10.1) artful; urgency=medium
 
   * Fix telegram icon not scaled is not properly scaled on hidpi setups.
     Thanks Andrea (LP: #1720143)
 
- -- Didier Roche <didrocks@ubuntu.com>  Thu, 05 Oct 2017 10:27:43 +0200
+ -- Didier Roche <didrocks@ubuntu.com>  Thu, 05 Oct 2017 10:29:46 +0200
 
 gnome-shell-extension-appindicator (17.10) artful; urgency=medium
 
