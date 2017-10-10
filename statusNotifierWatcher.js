@@ -35,8 +35,6 @@ const Util = Extension.imports.util
 
 // TODO: replace with org.freedesktop and /org/freedesktop when approved
 const KDE_PREFIX = 'org.kde';
-const AYATANA_PREFIX = 'org.ayatana';
-const AYATANA_PATH_PREFIX = '/org/ayatana';
 
 const WATCHER_BUS_NAME = KDE_PREFIX + '.StatusNotifierWatcher';
 const WATCHER_INTERFACE = WATCHER_BUS_NAME;
@@ -119,18 +117,26 @@ const StatusNotifierWatcher = new Lang.Class({
         // instead, ayatana patched gnome apps to send a path
         // while kde apps send a bus name
         let [service] = params;
-        let bus_name, obj_path;
+        let bus_name = null, obj_path = null;
 
         if (service.charAt(0) == '/') { // looks like a path
             bus_name = invocation.get_sender();
             obj_path = service;
-        } else { // we hope it is a bus name
+        } else if (service.match(/([a-zA-Z0-9._-]+\.[a-zA-Z0-9.-]+)|(:[0-9]+\.[0-9]+)$/)) {
             bus_name = Util.getUniqueBusNameSync(invocation.get_connection(), service);
-            bus_name = service;
             obj_path = DEFAULT_ITEM_OBJECT_PATH;
         }
 
-        print("AppIndicatorSupport-PRINT Registering",bus_name,obj_path)
+        if (!bus_name || !obj_path) {
+            let error = "Impossible to register an indicator for parameters '"+
+                        service.toString()+"'";
+            Util.Logger.warn(error);
+
+            invocation.return_dbus_error('org.gnome.gjs.JSError.ValueError',
+                                         error);
+            return;
+        }
+
         this._ensureItemRegistered(service, bus_name, obj_path);
 
         invocation.return_value(null);
