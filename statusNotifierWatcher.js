@@ -51,6 +51,7 @@ const StatusNotifierWatcher = new Lang.Class({
     _init: function() {
         this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(Interfaces.StatusNotifierWatcher, this);
         this._dbusImpl.export(Gio.DBus.session, WATCHER_OBJECT);
+        this._cancellable = new Gio.Cancellable;
         this._everAcquiredName = false;
         this._ownName = Gio.DBus.session.own_name(WATCHER_BUS_NAME,
                                   Gio.BusNameOwnerFlags.NONE,
@@ -58,6 +59,8 @@ const StatusNotifierWatcher = new Lang.Class({
                                   Lang.bind(this, this._lostName));
         this._items = { };
         this._nameWatcher = { };
+
+        this._seekStatusNotifierItems();
     },
 
     _acquiredName: function() {
@@ -110,6 +113,26 @@ const StatusNotifierWatcher = new Lang.Class({
         }
 
         this._registerItem(service, bus_name, obj_path)
+    },
+
+    _seekStatusNotifierItems: function() {
+        // Some indicators (*coff*, dropbox, *coff*) do not re-register again
+        // when the plugin is enabled/disabled, thus we need to manually look
+        // for the objects in the session bus that implements the
+        // StatusNotifierItem interface...
+        let self = this;
+        Util.traverseBusNames(Gio.DBus.session, this._cancellable, function(bus, name, cancellable) {
+            Util.introspectBusObject(bus, name, cancellable, function(node_info) {
+                return Util.dbusNodeImplementsInterfaces(node_info, ["org.kde.StatusNotifierItem"]);
+            },
+            function(name, path) {
+                let id = self._getItemId(name, path);
+                if (!self._items[id]) {
+                    Util.Logger.debug("Using Brute-force mode for StatusNotifierItem "+id);
+                    self._registerItem(path, name, path);
+                }
+            })
+        });
     },
 
     RegisterStatusNotifierItemAsync: function(params, invocation) {
@@ -188,6 +211,7 @@ const StatusNotifierWatcher = new Lang.Class({
             // this doesn't do any sync operation and doesn't allow us to hook up the event of being finished
             // which results in our unholy debounce hack (see extension.js)
             Gio.DBus.session.unown_name(this._ownName);
+            this._cancellable.cancel();
             this._dbusImpl.unexport();
             for (var i in this._nameWatcher) {
                 Gio.DBus.session.unwatch_name(this._nameWatcher[i]);
