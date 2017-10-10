@@ -125,6 +125,7 @@ const StatusNotifierWatcher = new Lang.Class({
             bus_name = invocation.get_sender();
             obj_path = service;
         } else { // we hope it is a bus name
+            bus_name = Util.getUniqueBusNameSync(invocation.get_connection(), service);
             bus_name = service;
             obj_path = DEFAULT_ITEM_OBJECT_PATH;
         }

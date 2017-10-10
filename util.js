@@ -47,6 +47,23 @@ const refreshPropertyOnProxy = function(proxy, property_name) {
                             })
 }
 
+const getUniqueBusNameSync = function(bus, name) {
+    if (name[0] == ':')
+        return name;
+
+    if (!bus)
+        bus = Gio.DBus.session;
+
+    let variant_name = new GLib.Variant("(s)", [name]);
+    let [unique] = bus.call_sync("org.freedesktop.DBus", "/", "org.freedesktop.DBus",
+                                 "GetNameOwner", variant_name, null,
+                                 Gio.DBusCallFlags.NONE, -1, null).deep_unpack();
+
+    Logger.debug("Unique name of "+name+" is "+unique);
+
+    return unique;
+}
+
 const connectSmart3A = function(src, signal, handler) {
     let id = src.connect(signal, handler)
 
