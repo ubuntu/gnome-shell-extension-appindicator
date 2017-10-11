@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2014 Jonas Kümmerlin <rgcjonas@gmail.com>
+// This file is part of the AppIndicator/KStatusNotifierItem GNOME Shell extension
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -69,25 +69,25 @@ function disable() {
 const NameWatchdog = {
     onAppeared: null,
     onVanished: null,
-    
+
     _watcher_id: null,
-    
+
     isPresent: false, //will be set in the handlers which are guaranteed to be called at least once
-    
+
     init: function() {
         this._watcher_id = Gio.DBus.session.watch_name("org.kde.StatusNotifierWatcher", 0,
             this._appeared_handler.bind(this), this._vanished_handler.bind(this));
     },
-    
+
     destroy: function() {
         Gio.DBus.session.unwatch_name(this._watcher_id);
     },
-    
+
     _appeared_handler: function() {
         this.isPresent = true;
         if (this.onAppeared) this.onAppeared();
     },
-    
+
     _vanished_handler: function() {
         this.isPresent = false;
         if (this.onVanished) this.onVanished();

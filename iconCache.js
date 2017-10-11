@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2014 Jonas Kümmerlin <rgcjonas@gmail.com>
+// This file is part of the AppIndicator/KStatusNotifierItem GNOME Shell extension
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -30,16 +30,16 @@ const Util = imports.misc.extensionUtils.getCurrentExtension().imports.util;
 // how to use: see IconCache.add, IconCache.get
 const IconCache = new Lang.Class({
     Name: 'IconCache',
-    
+
     LIFETIME_TIMESPAN: 5000, //5s
     GC_INTERVAL: 10000, //10s
-    
+
     _init: function() {
         this._cache = {};
         this._lifetime = {}; //we don't want to attach lifetime to the object
         this._gc();
     },
-    
+
     add: function(id, o) {
         //Util.Logger.debug("IconCache: adding "+id);
         if (!(o && id)) return null;
@@ -49,14 +49,14 @@ const IconCache = new Lang.Class({
         this._lifetime[id] = new Date().getTime() + this.LIFETIME_TIMESPAN;
         return o;
     },
-    
+
     _remove: function(id) {
         //Util.Logger.debug('IconCache: removing '+id);
         if ('destroy' in this._cache[id]) this._cache[id].destroy();
         delete this._cache[id];
         delete this._lifetime[id];
     },
-    
+
     forceDestroy: function(id) {
         this._remove(id);
     },
@@ -66,7 +66,7 @@ const IconCache = new Lang.Class({
         for (let id in this._cache)
             this._remove(id)
     },
-    
+
     // returns an object from the cache, or null if it can't be found.
     get: function(id) {
         if (id in this._cache) {
@@ -76,7 +76,7 @@ const IconCache = new Lang.Class({
         }
         else return null;
     },
-    
+
     _gc: function() {
         var time = new Date().getTime();
         for (var id in this._cache) {
@@ -92,7 +92,7 @@ const IconCache = new Lang.Class({
         if (!this._stopGc) Mainloop.timeout_add(this.GC_INTERVAL, Lang.bind(this, this._gc));
         return false; //we just added our timeout again.
     },
-    
+
     destroy: function() {
         this._stopGc = true;
         this.clear();

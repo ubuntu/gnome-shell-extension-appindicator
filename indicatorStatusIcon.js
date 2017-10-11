@@ -1,4 +1,4 @@
-// Copyright (C) 2014 Jonas Kümmerlin <rgcjonas@gmail.com>
+// This file is part of the AppIndicator/KStatusNotifierItem GNOME Shell extension
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -34,12 +34,12 @@ const Util = Extension.imports.util;
 const IndicatorStatusIcon = new Lang.Class({
     Name: 'IndicatorStatusIcon',
     Extends: PanelMenu.Button,
-    
+
     _init: function(indicator) {
         this.parent(null, 'FIXME'); //no name yet (?)
-        
+
         this._indicator = indicator;
-        
+
         this._iconBox = new AppIndicator.IconActor(indicator, Panel.PANEL_ICON_SIZE);
         if (!this._box) // Gnome Shell 3.10
             this.actor.add_actor(this._box = new St.BoxLayout());
@@ -55,7 +55,7 @@ const IndicatorStatusIcon = new Lang.Class({
         if (this._indicator.isReady)
             this._display()
     },
-    
+
     _updateLabel: function() {
         var label = this._indicator.label;
         if (label) {
@@ -84,7 +84,7 @@ const IndicatorStatusIcon = new Lang.Class({
         else
             this.actor.hide()
     },
-    
+
     destroy: function() {
         // destroy stuff owned by us
         if (this._menuClient)
@@ -93,11 +93,11 @@ const IndicatorStatusIcon = new Lang.Class({
         this._iconBox.destroy()
 
         this._box.destroy_all_children()
-        
+
         //call parent
         this.parent()
     },
-    
+
     _display: function() {
         this._updateLabel()
         this._updateStatus()
@@ -109,7 +109,7 @@ const IndicatorStatusIcon = new Lang.Class({
 
         Main.panel.addToStatusArea("appindicator-"+this._indicator.uniqueId, this, 1, 'right')
     },
-    
+
     _boxClicked: function(actor, event) {
         // if middle mouse button clicked send SecondaryActivate dbus event and do not show appindicator menu
         if (event.get_button() == 2) {

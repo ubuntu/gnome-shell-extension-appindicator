@@ -1,5 +1,4 @@
-// Copyright (C) 2013-2014 Jonas Kümmerlin <rgcjonas@gmail.com>
-// Copyright (C) 2017 Canonical Ltd.
+// This file is part of the AppIndicator/KStatusNotifierItem GNOME Shell extension
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License

@@ -1,8 +1,6 @@
 # AppIndicator/KStatusNotifierItem support for GNOME Shell
 This extension integrates Ubuntu AppIndicators and KStatusNotifierItems (KDE's blessed successor of the systray) into GNOME Shell.
 
-It's based on patches made by Giovanni Campagna: https://bugzilla.gnome.org/show_bug.cgi?id=652122
-
 ## Features
 * Show indicator icons in the panel.
 * Reveal indicator menus upon click.
