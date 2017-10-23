@@ -40,7 +40,7 @@ const IndicatorStatusIcon = new Lang.Class({
 
         this._indicator = indicator;
 
-        this._iconBox = new AppIndicator.IconActor(indicator, Panel.PANEL_ICON_SIZE);
+        this._iconBox = new AppIndicator.IconActor(indicator, Panel.PANEL_ICON_SIZE + 2);
         if (!this._box) // Gnome Shell 3.10
             this.actor.add_actor(this._box = new St.BoxLayout());
 
