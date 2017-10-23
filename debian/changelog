@@ -1,9 +1,9 @@
-gnome-shell-extension-appindicator (17.10.2) UNRELEASED; urgency=medium
+gnome-shell-extension-appindicator (17.10.2) artful; urgency=medium
 
   * Fix icons from qt applications disappearing after screen lock/sleep.
     Thanks Marco (LP: #1712866)
 
- -- Didier Roche <didrocks@ubuntu.com>  Mon, 23 Oct 2017 10:14:08 +0200
+ -- Didier Roche <didrocks@ubuntu.com>  Mon, 23 Oct 2017 10:15:12 +0200
 
 gnome-shell-extension-appindicator (17.10.1) artful; urgency=medium
 
