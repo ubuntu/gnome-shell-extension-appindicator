@@ -1,4 +1,5 @@
 // Copyright (C) 2013-2014 Jonas Kümmerlin <rgcjonas@gmail.com>
+// Copyright (C) 2017 Canonical Ltd.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -45,6 +46,92 @@ const refreshPropertyOnProxy = function(proxy, property_name) {
                                     //Logger.debug("While refreshing property "+property_name+": "+e)
                                 }
                             })
+}
+
+const getUniqueBusNameSync = function(bus, name) {
+    if (name[0] == ':')
+        return name;
+
+    if (typeof bus === "undefined" || !bus)
+        bus = Gio.DBus.session;
+
+    let variant_name = new GLib.Variant("(s)", [name]);
+    let [unique] = bus.call_sync("org.freedesktop.DBus", "/", "org.freedesktop.DBus",
+                                 "GetNameOwner", variant_name, null,
+                                 Gio.DBusCallFlags.NONE, -1, null).deep_unpack();
+
+    return unique;
+}
+
+const traverseBusNames = function(bus, cancellable, callback) {
+    if (typeof bus === "undefined" || !bus)
+        bus = Gio.DBus.session;
+
+    if (typeof(callback) !== "function")
+        throw new Error("No traversal callback provided");
+
+    bus.call("org.freedesktop.DBus", "/", "org.freedesktop.DBus",
+             "ListNames", null, new GLib.VariantType("(as)"), 0, -1, cancellable,
+             function (bus, task) {
+                if (task.had_error())
+                    return;
+
+                let [names] = bus.call_finish(task).deep_unpack();
+                let unique_names = [];
+
+                for (let name of names) {
+                    let unique = getUniqueBusNameSync(bus, name);
+                    if (unique_names.indexOf(unique) == -1)
+                        unique_names.push(unique);
+                }
+
+                for (let name of unique_names)
+                    callback(bus, name, cancellable);
+            });
+}
+
+const introspectBusObject = function(bus, name, cancellable, filterFunction, targetCallback, path) {
+    if (typeof path === "undefined" || !path)
+        path = "/";
+
+    if (typeof targetCallback !== "function")
+        throw new Error("No introspection callback defined");
+
+    bus.call (name, path, "org.freedesktop.DBus.Introspectable", "Introspect",
+              null, new GLib.VariantType("(s)"), Gio.DBusCallFlags.NONE, -1,
+              cancellable, function (bus, task) {
+                if (task.had_error())
+                    return;
+
+                let introspection = bus.call_finish(task).deep_unpack().toString();
+                let node_info = Gio.DBusNodeInfo.new_for_xml(introspection);
+
+                if ((typeof filterFunction === "function" && filterFunction(node_info) === true) ||
+                    typeof filterFunction === "undefined" || !filterFunction) {
+                    targetCallback(name, path);
+                }
+
+                if (path === "/")
+                    path = ""
+
+                for (let sub_nodes of node_info.nodes) {
+                    let sub_path = path+"/"+sub_nodes.path;
+                    introspectBusObject (bus, name, cancellable, filterFunction,
+                                         targetCallback, sub_path);
+                }
+            });
+}
+
+const dbusNodeImplementsInterfaces = function(node_info, interfaces) {
+    if (!(node_info instanceof Gio.DBusNodeInfo) || !Array.isArray(interfaces))
+        return false;
+
+    for (let iface of interfaces) {
+        if (node_info.lookup_interface(iface) !== null)
+            return true;
+    }
+
+    return false;
 }
 
 const connectSmart3A = function(src, signal, handler) {

@@ -111,6 +111,13 @@ const IndicatorStatusIcon = new Lang.Class({
     },
     
     _boxClicked: function(actor, event) {
+        // if middle mouse button clicked send SecondaryActivate dbus event and do not show appindicator menu
+        if (event.get_button() == 2) {
+            Main.panel.menuManager._closeMenu(true, Main.panel.menuManager.activeMenu);
+            this._indicator.secondaryActivate();
+            return;
+        }
+
         //HACK: event should be a ClutterButtonEvent but we get only a ClutterEvent (why?)
         //      because we can't access click_count, we'll create our own double click detector.
         var treshold = Clutter.Settings.get_default().double_click_time;

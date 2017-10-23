@@ -202,6 +202,10 @@ const AppIndicator = new Lang.Class({
         this._proxy.ActivateRemote(0, 0)
     },
 
+    secondaryActivate: function () {
+        this._proxy.SecondaryActivateRemote(0, 0)
+    },
+
     scroll: function(dx, dy) {
         if (dx != 0)
             this._proxy.ScrollRemote(Math.floor(dx), 'horizontal')

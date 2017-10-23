@@ -36,6 +36,10 @@
         <arg name="x" type="i" direction="in"/>
         <arg name="y" type="i" direction="in"/>
     </method>
+    <method name="SecondaryActivate">
+        <arg name="x" type="i" direction="in"/>
+        <arg name="y" type="i" direction="in"/>
+    </method>
     <method name="Scroll">
         <arg name="delta" type="i" direction="in"/>
         <arg name="dir"   type="s" direction="in"/>
