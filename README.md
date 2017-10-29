@@ -1,18 +1,36 @@
 # AppIndicator/KStatusNotifierItem support for GNOME Shell
 This extension integrates Ubuntu AppIndicators and KStatusNotifierItems (KDE's blessed successor of the systray) into GNOME Shell.
 
+Table of Content (ToC)
+======================
+
+* [Features](#features)
+* [Missing Features](#missing-features)
+* [Known Issues](#known-issues)
+* [Installation](#installation)
+* [Guidelines For Bug Reports](#guidelines-for-bug-reports)
+* [Release Process](#release-process)
+
+---
+
 ## Features
 * Show indicator icons in the panel.
 * Reveal indicator menus upon click.
 * Double clicking an icon will activate the application window (if implemented by the indicator).
 * Middle mouse click an icon to send a 'SecondaryActivate' event to the application. Support needs to be implemented in the application. [Info 1](https://bugs.launchpad.net/unity/+bug/812933), [Info 2](https://developer.ubuntu.com/api/devel/ubuntu-13.10/c/AppIndicator3-0.1.html).
 
+---
+
 ## Missing features
 * Tooltips: Not implemented in `libappindicator` nor in Unity and I've yet to see any indicator using it for anything relevant (KDE ones maybe?). Also, the GNOME designers decided not to have tooltips in the shell and I'd like to honor that decision.
 * Oversized icons like the ones used by `indicator-multiload` are unsupported. They will be shrunk to normal size.
 
+---
+
 ## Known issues
 * ClassicMenu Indicator takes ages to load and has been reported to freeze the shell forever. This is probably caused by the insane amount of embedded PNG icons. Try at your own risk.
+
+---
 
 ## Installation
 Normal users are recommended to get the extension from [extensions.gnome.org](https://extensions.gnome.org/extension/615/appindicator-support/).
@@ -28,6 +46,8 @@ gnome-shell-extension-tool -e appindicatorsupport@rgcjonas.gmail.com
 You may need to restart GNOME Shell (<kbd>Alt</kbd>+<kbd>F2</kbd>, <kbd>r</kbd>, <kbd>⏎</kbd>)
 after that.
 
+---
+
 ## Guidelines for bug reports
 Unfortunately, this extension is not completely bug free and will probably never be.
 In order to successfully resolve remaining issues, you need to provide some data:
@@ -37,6 +57,8 @@ In order to successfully resolve remaining issues, you need to provide some data
 * Instructions how to reproduce it. **This is the single most important point**. Bugs which [cannot be reproduced](http://xkcd.com/583/) cannot be fixed.
 
 Bug reports which do not provide the necessary information may be closed as "invalid" without prior notice.
+
+---
 
 ## Release process
 This section serves as reminder for the current maintainer and as instruction set for an eventual sucessor.
@@ -49,3 +71,7 @@ This section serves as reminder for the current maintainer and as instruction se
 * Only if it passed, it is uploaded to `extensions.gnome.org` and the tag is pushed.
 
 This release process has been in place since v9.
+
+---
+
+<img src="https://avatars3.githubusercontent.com/u/4604537?s=200&v=4" width="50"></img>
