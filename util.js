@@ -62,7 +62,7 @@ const getUniqueBusNameSync = function(bus, name) {
     return unique;
 }
 
-const traverseBusNames = function(bus, cancellable, callback) {
+var traverseBusNames = function(bus, cancellable, callback) {
     if (typeof bus === "undefined" || !bus)
         bus = Gio.DBus.session;
 
@@ -89,7 +89,7 @@ const traverseBusNames = function(bus, cancellable, callback) {
             });
 }
 
-const introspectBusObject = function(bus, name, cancellable, filterFunction, targetCallback, path) {
+var introspectBusObject = function(bus, name, cancellable, filterFunction, targetCallback, path) {
     if (typeof path === "undefined" || !path)
         path = "/";
 
@@ -121,7 +121,7 @@ const introspectBusObject = function(bus, name, cancellable, filterFunction, tar
             });
 }
 
-const dbusNodeImplementsInterfaces = function(node_info, interfaces) {
+var dbusNodeImplementsInterfaces = function(node_info, interfaces) {
     if (!(node_info instanceof Gio.DBusNodeInfo) || !Array.isArray(interfaces))
         return false;
 
@@ -173,7 +173,7 @@ const connectSmart4A = function(src, signal, target, method) {
  * or
  *      Util.connectSmart(srcOb, 'signal', function() { ... })
  */
-const connectSmart = function() {
+var connectSmart = function() {
     if (arguments.length == 4)
         return connectSmart4A.apply(null, arguments)
     else
@@ -183,7 +183,7 @@ const connectSmart = function() {
 /**
  * Helper class for logging stuff
  */
-const Logger = {
+var Logger = {
     _log: function(prefix, message) {
         global.log("[AppIndicatorSupport-"+prefix+"] "+message)
     },
@@ -210,7 +210,7 @@ const Logger = {
  *
  * Will append the given name with a number to distinguish code loaded later from the last loaded version
  */
-const WORKAROUND_RELOAD_TYPE_REGISTER = function(name) {
+var WORKAROUND_RELOAD_TYPE_REGISTER = function(name) {
     return 'Gjs_' + name + '__' + global['--appindicator-loaded-count']
 }
 

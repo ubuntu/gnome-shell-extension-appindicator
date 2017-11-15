@@ -43,7 +43,7 @@ const DEFAULT_ITEM_OBJECT_PATH = '/StatusNotifierItem';
 /*
  * The StatusNotifierWatcher class implements the StatusNotifierWatcher dbus object
  */
-const StatusNotifierWatcher = new Lang.Class({
+var StatusNotifierWatcher = new Lang.Class({
     Name: 'StatusNotifierWatcher',
 
     _init: function() {

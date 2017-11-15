@@ -31,7 +31,7 @@ const Util = Extension.imports.util;
 /*
  * IndicatorStatusIcon implements an icon in the system status area
  */
-const IndicatorStatusIcon = new Lang.Class({
+var IndicatorStatusIcon = new Lang.Class({
     Name: 'IndicatorStatusIcon',
     Extends: PanelMenu.Button,
 

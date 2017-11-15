@@ -28,7 +28,7 @@ const Lang = imports.lang
 const Signals = imports.signals
 
 const DBusMenu = Extension.imports.dbusMenu;
-const IconCache = Extension.imports.iconCache;
+var IconCache = Extension.imports.iconCache;
 const Util = Extension.imports.util;
 const Interfaces = Extension.imports.interfaces;
 
@@ -39,7 +39,7 @@ const SNICategory = {
     HARDWARE: 'Hardware'
 };
 
-const SNIStatus = {
+var SNIStatus = {
     PASSIVE: 'Passive',
     ACTIVE: 'Active',
     NEEDS_ATTENTION: 'NeedsAttention'
@@ -49,7 +49,7 @@ const SNIStatus = {
  * the AppIndicator class serves as a generic container for indicator information and functions common
  * for every displaying implementation (IndicatorMessageSource and IndicatorStatusIcon)
  */
-const AppIndicator = new Lang.Class({
+var AppIndicator = new Lang.Class({
     Name: 'AppIndicator',
 
     _init: function(bus_name, object) {
@@ -215,7 +215,7 @@ const AppIndicator = new Lang.Class({
 });
 Signals.addSignalMethods(AppIndicator.prototype);
 
-const IconActor = new Lang.Class({
+var IconActor = new Lang.Class({
     Name: 'AppIndicatorIconActor',
     Extends: Shell.Stack,
     GTypeName: Util.WORKAROUND_RELOAD_TYPE_REGISTER('AppIndicatorIconActor'),

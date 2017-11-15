@@ -667,7 +667,7 @@ const MenuUtils = {
  *
  * Something like a mini-god-object
  */
-const Client = new Lang.Class({
+var Client = new Lang.Class({
     Name: 'DbusMenuClient',
 
     _init: function(busName, path) {

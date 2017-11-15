@@ -28,7 +28,7 @@ const Util = imports.misc.extensionUtils.getCurrentExtension().imports.util;
 // The presence of an inUse property set to true on the icon will extend the lifetime.
 
 // how to use: see IconCache.add, IconCache.get
-const IconCache = new Lang.Class({
+var IconCache = new Lang.Class({
     Name: 'IconCache',
 
     LIFETIME_TIMESPAN: 5000, //5s
