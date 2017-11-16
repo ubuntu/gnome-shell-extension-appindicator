@@ -1,4 +1,4 @@
-gnome-shell-extension-appindicator (18.04) UNRELEASED; urgency=medium
+gnome-shell-extension-appindicator (18.04) bionic; urgency=medium
 
   * Rebase on latest upstream release:
     - Fix icon are too small with some tray icons such as Telegram
