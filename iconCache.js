@@ -28,7 +28,7 @@ const Util = imports.misc.extensionUtils.getCurrentExtension().imports.util;
 // The presence of an inUse property set to true on the icon will extend the lifetime.
 
 const LIFETIME_TIMESPAN = 5000; // milli-seconds
-const GC_INTERVAL = 10000; // milli-seconds
+const GC_INTERVAL = 10; // seconds
 
 // how to use: see IconCache.add, IconCache.get
 var IconCache = new Lang.Class({
@@ -117,12 +117,18 @@ var IconCache = new Lang.Class({
                 //Util.Logger.debug("IconCache: " + id + " survived this round.");
             }
         }
-        if (!this._stopGc) Mainloop.timeout_add(this.GC_INTERVAL, Lang.bind(this, this._gc));
+
+        this._gcTimeout =
+            Mainloop.timeout_add_seconds(this.GC_INTERVAL, this._gc.bind(this));
         return false; //we just added our timeout again.
     },
 
     destroy: function() {
-        this._stopGc = true;
         this.clear();
+
+        if (this._gcTimeout) {
+            GLib.Source.remove(this._gcTimeout);
+            this._gcTimeout = 0;
+        }
     }
 });
