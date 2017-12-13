@@ -27,34 +27,61 @@ const Util = imports.misc.extensionUtils.getCurrentExtension().imports.util;
 // If the lifetime of an icon is over, the cache will destroy the icon. (!)
 // The presence of an inUse property set to true on the icon will extend the lifetime.
 
+const LIFETIME_TIMESPAN = 5000; // milli-seconds
+const GC_INTERVAL = 10000; // milli-seconds
+
 // how to use: see IconCache.add, IconCache.get
 var IconCache = new Lang.Class({
     Name: 'IconCache',
 
-    LIFETIME_TIMESPAN: 5000, //5s
-    GC_INTERVAL: 10000, //10s
-
     _init: function() {
         this._cache = {};
         this._lifetime = {}; //we don't want to attach lifetime to the object
+        this._destroyNotify = {};
         this._gc();
     },
 
     add: function(id, o) {
-        //Util.Logger.debug("IconCache: adding "+id);
-        if (!(o && id)) return null;
-        if (id in this._cache && this._cache[id] !== o)
+        if (!(o && id))
+            return null;
+
+        if (!(id in this._cache) || this._cache[id] !== o) {
             this._remove(id);
-        this._cache[id] = o;
-        this._lifetime[id] = new Date().getTime() + this.LIFETIME_TIMESPAN;
+
+            //Util.Logger.debug("IconCache: adding "+id,o);
+            this._cache[id] = o;
+
+            if (typeof this._cache[id].destroy === 'function') {
+                this._destroyNotify[id] = o.connect('destroy', () => {
+                    this._remove(id);
+                });
+            }
+        }
+
+        this._renewLifetime(id);
+
         return o;
     },
 
     _remove: function(id) {
+        if (!(id in this._cache))
+            return;
+
         //Util.Logger.debug('IconCache: removing '+id);
-        if ('destroy' in this._cache[id]) this._cache[id].destroy();
+
+        if (typeof this._cache[id].destroy === 'function') {
+            this._cache[id].disconnect(this._destroyNotify[id]);
+            this._cache[id].destroy();
+        }
+
         delete this._cache[id];
         delete this._lifetime[id];
+        delete this._destroyNotify[id];
+    },
+
+    _renewLifetime: function(id) {
+        if (id in this._cache)
+            this._lifetime[id] = new Date().getTime() + LIFETIME_TIMESPAN;
     },
 
     forceDestroy: function(id) {
@@ -71,17 +98,18 @@ var IconCache = new Lang.Class({
     get: function(id) {
         if (id in this._cache) {
             //Util.Logger.debug('IconCache: retrieving '+id);
-            this._lifetime[id] = new Date().getTime() + this.LIFETIME_TIMESPAN; //renew lifetime
+            this._renewLifetime(id);
             return this._cache[id];
         }
-        else return null;
+
+        return null;
     },
 
     _gc: function() {
         var time = new Date().getTime();
         for (var id in this._cache) {
             if (this._cache[id].inUse) {
-                //Util.Logger.debug ("IconCache: " + id + " is in use.");
+                //Util.Logger.debug("IconCache: " + id + " is in use.");
                 continue;
             } else if (this._lifetime[id] < time) {
                 this._remove(id);
