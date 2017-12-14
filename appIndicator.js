@@ -77,18 +77,37 @@ var AppIndicator = new Lang.Class({
                 }
             }).bind(this))
 
-        this._proxyPropertyList = interface_info.properties.map(function(propinfo) { return propinfo.name })
-
+        this._proxyPropertyList = interface_info.properties.map((propinfo) => { return propinfo.name })
+        this._addExtraProperty('XAyatanaLabel');
+        this._addExtraProperty('XAyatanaLabelGuide');
+        this._addExtraProperty('XAyatanaOrderingIndex');
 
         Util.connectSmart(this._proxy, 'g-properties-changed', this, '_onPropertiesChanged')
         Util.connectSmart(this._proxy, 'g-signal', this, '_translateNewSignals')
     },
 
+    _addExtraProperty: function(name) {
+        let propertyProps = { configurable: false, enumerable: true };
+
+        propertyProps.get = () => {
+            let v = this._proxy.get_cached_property(name);
+            return v ? v.deep_unpack() : null
+        };
+
+        Object.defineProperty(this._proxy, name, propertyProps);
+        this._proxyPropertyList.push(name);
+    },
+
     // The Author of the spec didn't like the PropertiesChanged signal, so he invented his own
     _translateNewSignals: function(proxy, sender, signal, params) {
-        if (signal.substr(0, 3) == 'New') {
-            let prop = signal.substr(3)
+        let prop = null;
 
+        if (signal.substr(0, 3) == 'New')
+            prop = signal.substr(3)
+        else if (signal.substr(0, 11) == 'XAyatanaNew')
+            prop = 'XAyatana' + signal.substr(11)
+
+        if (prop) {
             if (this._proxyPropertyList.indexOf(prop) > -1)
                 Util.refreshPropertyOnProxy(this._proxy, prop)
 
@@ -97,9 +116,6 @@ var AppIndicator = new Lang.Class({
 
             if (this._proxyPropertyList.indexOf(prop + 'Name') > -1)
                 Util.refreshPropertyOnProxy(this._proxy, prop + 'Name')
-        } else if (signal == 'XAyatanaNewLabel') {
-            // and the ayatana guys made sure to invent yet another way of composing these signals...
-            Util.refreshPropertyOnProxy(this._proxy, 'XAyatanaLabel')
         }
     },
 
@@ -117,10 +133,7 @@ var AppIndicator = new Lang.Class({
         return this._proxy.Status;
     },
     get label() {
-        let v = this._proxy.get_cached_property('XAyatanaLabel');
-
-        if (v) return v.deep_unpack()
-        else   return null
+        return this._proxy.XAyatanaLabel;
     },
     get menuPath() {
         return this._proxy.Menu || "/MenuBar"
