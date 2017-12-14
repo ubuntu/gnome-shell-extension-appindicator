@@ -15,6 +15,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 const GLib = imports.gi.GLib
+const GObject = imports.gi.GObject
 
 const Lang = imports.lang
 const Mainloop = imports.mainloop
@@ -50,7 +51,7 @@ var IconCache = new Lang.Class({
             //Util.Logger.debug("IconCache: adding "+id,o);
             this._cache[id] = o;
 
-            if (typeof this._cache[id].destroy === 'function') {
+            if ((o instanceof GObject.Object) && GObject.signal_lookup('destroy', o)) {
                 this._destroyNotify[id] = o.connect('destroy', () => {
                     this._remove(id);
                 });
@@ -69,10 +70,13 @@ var IconCache = new Lang.Class({
 
         //Util.Logger.debug('IconCache: removing '+id);
 
-        if (typeof this._cache[id].destroy === 'function') {
-            this._cache[id].disconnect(this._destroyNotify[id]);
-            this._cache[id].destroy();
-        }
+        let object = this._cache[id];
+
+        if ((object instanceof GObject.Object) && GObject.signal_lookup('destroy', object))
+            object.disconnect(this._destroyNotify[id]);
+
+        if (typeof object.destroy === 'function')
+            object.destroy();
 
         delete this._cache[id];
         delete this._lifetime[id];
