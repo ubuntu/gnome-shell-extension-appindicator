@@ -38,7 +38,6 @@ var IconCache = new Lang.Class({
         this._cache = {};
         this._lifetime = {}; //we don't want to attach lifetime to the object
         this._destroyNotify = {};
-        this._gc();
     },
 
     add: function(id, o) {
@@ -59,6 +58,7 @@ var IconCache = new Lang.Class({
         }
 
         this._renewLifetime(id);
+        this._checkGC();
 
         return o;
     },
@@ -77,6 +77,8 @@ var IconCache = new Lang.Class({
         delete this._cache[id];
         delete this._lifetime[id];
         delete this._destroyNotify[id];
+
+        this._checkGC();
     },
 
     _renewLifetime: function(id) {
@@ -92,6 +94,8 @@ var IconCache = new Lang.Class({
     clear: function() {
         for (let id in this._cache)
             this._remove(id)
+
+        this._checkGC();
     },
 
     // returns an object from the cache, or null if it can't be found.
@@ -103,6 +107,20 @@ var IconCache = new Lang.Class({
         }
 
         return null;
+    },
+
+    _checkGC: function() {
+        let cacheIsEmpty = (Object.keys(this._cache).length === 0);
+
+        if (!cacheIsEmpty && !this._gcTimeout) {
+            //Util.Logger.debug("IconCache: garbage collector started");
+            this._gcTimeout = Mainloop.timeout_add_seconds(GC_INTERVAL,
+                                                           this._gc.bind(this));
+        } else if (cacheIsEmpty && this._gcTimeout) {
+            //Util.Logger.debug("IconCache: garbage collector stopped");
+            GLib.Source.remove(this._gcTimeout);
+            this._gcTimeout = 0;
+        }
     },
 
     _gc: function() {
@@ -118,17 +136,10 @@ var IconCache = new Lang.Class({
             }
         }
 
-        this._gcTimeout =
-            Mainloop.timeout_add_seconds(this.GC_INTERVAL, this._gc.bind(this));
-        return false; //we just added our timeout again.
+        return true;
     },
 
     destroy: function() {
         this.clear();
-
-        if (this._gcTimeout) {
-            GLib.Source.remove(this._gcTimeout);
-            this._gcTimeout = 0;
-        }
     }
 });
