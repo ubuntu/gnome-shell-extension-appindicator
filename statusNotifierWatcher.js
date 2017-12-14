@@ -118,16 +118,14 @@ var StatusNotifierWatcher = new Lang.Class({
         // when the plugin is enabled/disabled, thus we need to manually look
         // for the objects in the session bus that implements the
         // StatusNotifierItem interface...
-        let self = this;
-        Util.traverseBusNames(Gio.DBus.session, this._cancellable, function(bus, name, cancellable) {
-            Util.introspectBusObject(bus, name, cancellable, function(node_info) {
-                return Util.dbusNodeImplementsInterfaces(node_info, ["org.kde.StatusNotifierItem"]);
-            },
-            function(name, path) {
-                let id = self._getItemId(name, path);
-                if (!self._items[id]) {
+        Util.traverseBusNames(Gio.DBus.session, this._cancellable, (bus, name, cancellable) => {
+            Util.introspectBusObject(bus, name, cancellable, (node_info) => {
+                return Util.dbusNodeImplementsInterfaces(node_info, ['org.kde.StatusNotifierItem']);
+            }, (name, path) => {
+                let id = this._getItemId(name, path);
+                if (!this._items[id]) {
                     Util.Logger.debug("Using Brute-force mode for StatusNotifierItem "+id);
-                    self._registerItem(path, name, path);
+                    this._registerItem(path, name, path);
                 }
             })
         });
