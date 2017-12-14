@@ -20,7 +20,7 @@ const GObject = imports.gi.GObject
 const Lang = imports.lang
 const Signals = imports.signals
 
-const refreshPropertyOnProxy = function(proxy, property_name) {
+var refreshPropertyOnProxy = function(proxy, property_name) {
     proxy.g_connection.call(proxy.g_name,
                             proxy.g_object_path,
                             'org.freedesktop.DBus.Properties',
@@ -47,7 +47,7 @@ const refreshPropertyOnProxy = function(proxy, property_name) {
                             })
 }
 
-const getUniqueBusNameSync = function(bus, name) {
+var getUniqueBusNameSync = function(bus, name) {
     if (name[0] == ':')
         return name;
 
@@ -189,6 +189,7 @@ var Logger = {
     },
 
     debug: function(message) {
+        // CHeck the shell env variable to get what level to use
         Logger._log("DEBUG", message);
     },
 
