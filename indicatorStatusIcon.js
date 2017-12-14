@@ -52,6 +52,13 @@ var IndicatorStatusIcon = new Lang.Class({
         Util.connectSmart(this._indicator, 'label',  this, '_updateLabel')
         Util.connectSmart(this._indicator, 'status', this, '_updateStatus')
 
+        this.connect('destroy', () => {
+            if (this._menuClient) {
+                this._menuClient.destroy();
+                this._menuClient = null;
+            }
+        })
+
         if (this._indicator.isReady)
             this._display()
     },
@@ -83,19 +90,6 @@ var IndicatorStatusIcon = new Lang.Class({
             this.actor.show()
         else
             this.actor.hide()
-    },
-
-    destroy: function() {
-        // destroy stuff owned by us
-        if (this._menuClient)
-            this._menuClient.destroy()
-
-        this._iconBox.destroy()
-
-        this._box.destroy_all_children()
-
-        //call parent
-        this.parent()
     },
 
     _display: function() {
