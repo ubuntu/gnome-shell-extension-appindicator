@@ -227,7 +227,7 @@ var IconActor = new Lang.Class({
         this.height = icon_size * scale_factor
 
         this._indicator     = indicator
-        this._iconSize      = icon_size * scale_factor
+        this._iconSize      = icon_size
         this._iconCache     = new IconCache.IconCache()
 
         this._mainIcon    = new St.Bin()
@@ -335,6 +335,8 @@ var IconActor = new Lang.Class({
     },
 
     _createIconFromPixmap: function(iconSize, iconPixmapArray) {
+        let scale_factor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+        iconSize = iconSize * scale_factor
         // the pixmap actually is an array of pixmaps with different sizes
         // we use the one that is smaller or equal the iconSize
 
