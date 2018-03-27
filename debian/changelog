@@ -1,10 +1,10 @@
-gnome-shell-extension-appindicator (18.10) UNRELEASED; urgency=medium
+gnome-shell-extension-appindicator (18.04.1) bionic; urgency=medium
 
   * Rebase on latest upstream with those fixes:
     - Fix icons vertically stretched on HDPI screen
     - Fix warnings from GNOME Shell 3.26
 
- -- Didier Roche <didrocks@ubuntu.com>  Mon, 26 Mar 2018 19:47:35 +0200
+ -- Didier Roche <didrocks@ubuntu.com>  Tue, 27 Mar 2018 09:26:22 +0200
 
 gnome-shell-extension-appindicator (18.04) bionic; urgency=medium
 
