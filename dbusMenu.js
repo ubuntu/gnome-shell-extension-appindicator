@@ -297,7 +297,7 @@ const DBusClient = new Lang.Class({
 
     _endLayoutUpdate: function(result, error) {
         if (error) {
-            Util.Logger.warn("While reading menu layout: "+error)
+            Util.Logger.warn("While reading menu layout on proxy '"+this._proxy.g_name_owner+": "+error)
             return
         }
 
