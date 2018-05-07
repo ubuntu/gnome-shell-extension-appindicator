@@ -1,0 +1,5 @@
+gnome-shell-extension-appindicator (22-1) UNRELEASED; urgency=medium
+
+  * Initial release (Closes: #999999)
+
+ -- Matteo F. Vescovi <mfv@debian.org>  Sat, 24 Feb 2018 17:45:29 +0100
