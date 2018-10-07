@@ -326,10 +326,8 @@ var IconActor = new Lang.Class({
             icon_info = icon_theme.lookup_icon(icon_name, icon_size,
                                                Gtk.IconLookupFlags.GENERIC_FALLBACK)
 
-            // no icon? that's bad!
-            if (icon_info === null) {
-                Util.Logger.fatal("unable to lookup icon for "+icon_name);
-            } else { // we have an icon
+            // we have an icon
+            if (icon_info !== null) {
                 // the icon size may not match the requested size, especially with custom themes
                 if (icon_info.get_base_size() < icon_size) {
                     // stretched icons look very ugly, we avoid that and just show the smaller icon
@@ -443,6 +441,11 @@ var IconActor = new Lang.Class({
                 newIcon = this._createIconFromPixmap(this._iconSize, pixmap)
         }
 
+        if (!newIcon) {
+            Util.Logger.fatal("unable to update icon");
+            return;
+        }
+
         this._mainIcon.set_child(newIcon)
     },
 
@@ -474,6 +477,11 @@ var IconActor = new Lang.Class({
 
         if (!newIcon && pixmap)
             newIcon = this._createIconFromPixmap(iconSize, pixmap)
+
+        if (!newIcon) {
+            Util.Logger.fatal("unable to update overlay icon");
+            return;
+        }
 
         this._overlayIcon.set_child(newIcon)
     },
