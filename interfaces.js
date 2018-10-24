@@ -35,6 +35,8 @@ function loadInterfaceXml(filename) {
         // Otherwise, it will try to check `instanceof XML` and fail miserably because there
         // is no `XML` on very recent SpiderMonkey releases (or, if SpiderMonkey is old enough,
         // will spit out a TypeError soon).
+        if (contents instanceof Uint8Array)
+           contents = imports.byteArray.toString(contents);
         return "<node>" + contents + "</node>"
     } else {
         throw new Error("AppIndicatorSupport: Could not load file: "+filename)
