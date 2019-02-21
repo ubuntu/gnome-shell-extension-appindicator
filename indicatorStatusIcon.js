@@ -14,9 +14,9 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 const Clutter = imports.gi.Clutter;
+const GObject = imports.gi.GObject;
 const St = imports.gi.St;
 
-const Lang = imports.lang;
 const Main = imports.ui.main;
 const Panel = imports.ui.panel;
 const PanelMenu = imports.ui.panelMenu;
@@ -31,13 +31,10 @@ const Util = Extension.imports.util;
 /*
  * IndicatorStatusIcon implements an icon in the system status area
  */
-var IndicatorStatusIcon = new Lang.Class({
-    Name: 'IndicatorStatusIcon',
-    Extends: PanelMenu.Button,
-
-    _init: function(indicator) {
-        this.parent(null, 'FIXME'); //no name yet (?)
-
+var IndicatorStatusIcon = GObject.registerClass(
+class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
+    _init(indicator) {
+        super._init(null, indicator._uniqueId);
         this._indicator = indicator;
 
         this._iconBox = new AppIndicator.IconActor(indicator, Panel.PANEL_ICON_SIZE + 6);
@@ -61,9 +58,9 @@ var IndicatorStatusIcon = new Lang.Class({
 
         if (this._indicator.isReady)
             this._display()
-    },
+    }
 
-    _updateLabel: function() {
+    _updateLabel() {
         var label = this._indicator.label;
         if (label) {
             if (!this._label || !this._labelBin) {
@@ -83,16 +80,16 @@ var IndicatorStatusIcon = new Lang.Class({
                 delete this._label;
             }
         }
-    },
+    }
 
-    _updateStatus: function() {
+    _updateStatus() {
         if (this._indicator.status != AppIndicator.SNIStatus.PASSIVE)
             this.actor.show()
         else
             this.actor.hide()
-    },
+    }
 
-    _display: function() {
+    _display() {
         this._updateLabel()
         this._updateStatus()
 
@@ -102,9 +99,9 @@ var IndicatorStatusIcon = new Lang.Class({
         }
 
         Main.panel.addToStatusArea("appindicator-"+this._indicator.uniqueId, this, 1, 'right')
-    },
+    }
 
-    _boxClicked: function(actor, event) {
+    _boxClicked(actor, event) {
         // if middle mouse button clicked send SecondaryActivate dbus event and do not show appindicator menu
         if (event.get_button() == 2) {
             Main.panel.menuManager._closeMenu(true, Main.panel.menuManager.activeMenu);
