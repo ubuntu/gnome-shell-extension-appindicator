@@ -1,4 +1,4 @@
-gnome-shell-extension-appindicator (19.04) UNRELEASED; urgency=medium
+gnome-shell-extension-appindicator (19.04) disco; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
   * New version: 19.04
@@ -22,7 +22,7 @@ gnome-shell-extension-appindicator (19.04) UNRELEASED; urgency=medium
   [ Andrea Azzarone ]
   * interfaces: Explicitly convert raw data to strings
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 21 Feb 2019 16:49:46 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 21 Feb 2019 16:53:52 +0100
 
 gnome-shell-extension-appindicator (18.04.1) bionic; urgency=medium
 
