@@ -1,6 +1,6 @@
 {
     "name": "Ubuntu AppIndicators",
-    "version": "17.10",
+    "version": "19.04",
     "description": "Support app indicators in top panel, as the default Ubuntu experience. System update of KStatusNotifierItem/AppIndicator extension.",
     "uuid": "ubuntu-appindicators@ubuntu.com",
     "url": "https://github.com/ubuntu/gnome-shell-extension-appindicator",
