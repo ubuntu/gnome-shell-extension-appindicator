@@ -18,6 +18,8 @@ gnome-shell-extension-appindicator (23-1) UNRELEASED; urgency=medium
   * metadata: set supported shell versions to 3.30+
   * debian/control: update Homepage and Vcs-* flags
   * debian/gbp.conf: add debian-tag option
+  * debian/patches/metadata-use-appindicator-namespace-and-naming.patch:
+    - Use ubuntu appindicator namespace, update description
 
   [ Andrea Azzarone ]
   * interfaces: Explicitly convert raw data to strings
