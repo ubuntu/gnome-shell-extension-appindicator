@@ -1,5 +1,68 @@
+gnome-shell-extension-appindicator (23-1) UNRELEASED; urgency=medium
+
+  [ Marco Trevisan (Treviño) ]
+  * New upstream version: v23
+  * iconCache: don't add an icon multiple times and remove it on destruction
+  * iconCache: use seconds granulated timeout for garbage collector
+  * iconCache: only run the garbage collector when we've icons
+  * Util: use var to define module functions
+  * statusNotifierWatcher: use nicer lambda functions in traverseBusNames
+  * iconCache: connect to destroy signal if the object has it
+  * indicatorStatusIcon: don't override the destroy, react on 'destroy' signal instead
+  * appIndicator: don't treat XAyatana* properties as 2nd clas citizen
+  * dbusMenu: add better logging on errors
+  * metadata: update url
+  * statusNotifierWatcher: return extension UUID
+  * appIndicators: use arrow functions in lambdas
+  * appindicators: rewrite classes using pure ES6 classes
+  * metadata: set supported shell versions to 3.30+
+  * debian/control: update Homepage and Vcs-* flags
+  * debian/gbp.conf: add debian-tag option
+
+  [ Andrea Azzarone ]
+  * interfaces: Explicitly convert raw data to strings
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 21 Feb 2019 16:49:46 +0100
+
 gnome-shell-extension-appindicator (22-1) unstable; urgency=medium
 
   * Initial release (Closes: #898144)
 
  -- Matteo F. Vescovi <mfv@debian.org>  Mon, 07 May 2018 23:37:59 +0200
+
+gnome-shell-extension-appindicator (18.04.1) bionic; urgency=medium
+
+  * Rebase on latest upstream with those fixes:
+    - Fix icons vertically stretched on HDPI screen
+    - Fix warnings from GNOME Shell 3.26
+
+ -- Didier Roche <didrocks@ubuntu.com>  Tue, 27 Mar 2018 09:26:22 +0200
+
+gnome-shell-extension-appindicator (18.04) bionic; urgency=medium
+
+  * Rebase on latest upstream release:
+    - Fix icon are too small with some tray icons such as Telegram
+      (LP: #1730406)
+    - Fix warning with latest GJS.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Thu, 16 Nov 2017 15:40:48 +0100
+
+gnome-shell-extension-appindicator (17.10.2) artful; urgency=medium
+
+  * Fix icons from qt applications disappearing after screen lock/sleep.
+    Thanks Marco (LP: #1712866)
+
+ -- Didier Roche <didrocks@ubuntu.com>  Mon, 23 Oct 2017 10:15:12 +0200
+
+gnome-shell-extension-appindicator (17.10.1) artful; urgency=medium
+
+  * Fix telegram icon not scaled is not properly scaled on hidpi setups.
+    Thanks Andrea (LP: #1720143)
+
+ -- Didier Roche <didrocks@ubuntu.com>  Thu, 05 Oct 2017 10:29:46 +0200
+
+gnome-shell-extension-appindicator (17.10) artful; urgency=medium
+
+  * Initial release of appindicator extension.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Tue, 22 Aug 2017 08:51:13 +0200
