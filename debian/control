@@ -4,7 +4,9 @@ Priority: optional
 Maintainer: Ubuntu Desktop team <ubuntu-desktop@lists.ubuntu.com>
 Build-Depends: debhelper (>= 10),
 Standards-Version: 4.0.0
-Homepage: https://github.com/ubuntu/gnome-shell-extension-appindicator/tree/ubuntu
+Homepage: https://github.com/ubuntu/gnome-shell-extension-appindicator/blob/ubuntu/README.md
+Vcs-Git: https://github.com/ubuntu/gnome-shell-extension-appindicator.git -b ubuntu-dock
+Vcs-Browser: https://github.com/ubuntu/gnome-shell-extension-appindicator/tree/ubuntu-dock
 
 Package: gnome-shell-extension-appindicator
 Architecture: all
