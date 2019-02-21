@@ -14,10 +14,10 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-const StatusNotifierItem = loadInterfaceXml("StatusNotifierItem.xml")
+var StatusNotifierItem = loadInterfaceXml("StatusNotifierItem.xml")
 const Properties = loadInterfaceXml("Properties.xml")
-const StatusNotifierWatcher = loadInterfaceXml("StatusNotifierWatcher.xml")
-const DBusMenu = loadInterfaceXml("DBusMenu.xml")
+var StatusNotifierWatcher = loadInterfaceXml("StatusNotifierWatcher.xml")
+var DBusMenu = loadInterfaceXml("DBusMenu.xml")
 
 // loads a xml file into an in-memory string
 function loadInterfaceXml(filename) {
@@ -35,6 +35,8 @@ function loadInterfaceXml(filename) {
         // Otherwise, it will try to check `instanceof XML` and fail miserably because there
         // is no `XML` on very recent SpiderMonkey releases (or, if SpiderMonkey is old enough,
         // will spit out a TypeError soon).
+        if (contents instanceof Uint8Array)
+           contents = imports.byteArray.toString(contents);
         return "<node>" + contents + "</node>"
     } else {
         throw new Error("AppIndicatorSupport: Could not load file: "+filename)

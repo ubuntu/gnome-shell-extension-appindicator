@@ -19,16 +19,16 @@ const Cogl = imports.gi.Cogl
 const GdkPixbuf = imports.gi.GdkPixbuf
 const Gio = imports.gi.Gio
 const GLib = imports.gi.GLib
+const GObject = imports.gi.GObject
 const Gtk = imports.gi.Gtk
 const St = imports.gi.St
 const Shell = imports.gi.Shell
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
-const Lang = imports.lang
 const Signals = imports.signals
 
 const DBusMenu = Extension.imports.dbusMenu;
-const IconCache = Extension.imports.iconCache;
+var IconCache = Extension.imports.iconCache;
 const Util = Extension.imports.util;
 const Interfaces = Extension.imports.interfaces;
 
@@ -39,7 +39,7 @@ const SNICategory = {
     HARDWARE: 'Hardware'
 };
 
-const SNIStatus = {
+var SNIStatus = {
     PASSIVE: 'Passive',
     ACTIVE: 'Active',
     NEEDS_ATTENTION: 'NeedsAttention'
@@ -49,10 +49,9 @@ const SNIStatus = {
  * the AppIndicator class serves as a generic container for indicator information and functions common
  * for every displaying implementation (IndicatorMessageSource and IndicatorStatusIcon)
  */
-const AppIndicator = new Lang.Class({
-    Name: 'AppIndicator',
+var AppIndicator = class AppIndicators_AppIndicator {
 
-    _init: function(bus_name, object) {
+    constructor(bus_name, object) {
         this.busName = bus_name
         this._uniqueId = bus_name + object
 
@@ -66,7 +65,7 @@ const AppIndicator = new Lang.Class({
                                           g_name: bus_name,
                                           g_object_path: object,
                                           g_flags: Gio.DBusProxyFlags.GET_INVALIDATED_PROPERTIES })
-        this._proxy.init_async(GLib.PRIORITY_DEFAULT, null, (function(initable, result) {
+        this._proxy.init_async(GLib.PRIORITY_DEFAULT, null, ((initable, result) => {
                 try {
                     initable.init_finish(result);
 
@@ -75,20 +74,39 @@ const AppIndicator = new Lang.Class({
                 } catch(e) {
                     Util.Logger.warn("While intializing proxy for "+bus_name+object+": "+e)
                 }
-            }).bind(this))
+            }))
 
-        this._proxyPropertyList = interface_info.properties.map(function(propinfo) { return propinfo.name })
-
+        this._proxyPropertyList = interface_info.properties.map((propinfo) => { return propinfo.name })
+        this._addExtraProperty('XAyatanaLabel');
+        this._addExtraProperty('XAyatanaLabelGuide');
+        this._addExtraProperty('XAyatanaOrderingIndex');
 
         Util.connectSmart(this._proxy, 'g-properties-changed', this, '_onPropertiesChanged')
         Util.connectSmart(this._proxy, 'g-signal', this, '_translateNewSignals')
-    },
+    }
+
+    _addExtraProperty(name) {
+        let propertyProps = { configurable: false, enumerable: true };
+
+        propertyProps.get = () => {
+            let v = this._proxy.get_cached_property(name);
+            return v ? v.deep_unpack() : null
+        };
+
+        Object.defineProperty(this._proxy, name, propertyProps);
+        this._proxyPropertyList.push(name);
+    }
 
     // The Author of the spec didn't like the PropertiesChanged signal, so he invented his own
-    _translateNewSignals: function(proxy, sender, signal, params) {
-        if (signal.substr(0, 3) == 'New') {
-            let prop = signal.substr(3)
+    _translateNewSignals(proxy, sender, signal, params) {
+        let prop = null;
 
+        if (signal.substr(0, 3) == 'New')
+            prop = signal.substr(3)
+        else if (signal.substr(0, 11) == 'XAyatanaNew')
+            prop = 'XAyatana' + signal.substr(11)
+
+        if (prop) {
             if (this._proxyPropertyList.indexOf(prop) > -1)
                 Util.refreshPropertyOnProxy(this._proxy, prop)
 
@@ -97,34 +115,28 @@ const AppIndicator = new Lang.Class({
 
             if (this._proxyPropertyList.indexOf(prop + 'Name') > -1)
                 Util.refreshPropertyOnProxy(this._proxy, prop + 'Name')
-        } else if (signal == 'XAyatanaNewLabel') {
-            // and the ayatana guys made sure to invent yet another way of composing these signals...
-            Util.refreshPropertyOnProxy(this._proxy, 'XAyatanaLabel')
         }
-    },
+    }
 
     //public property getters
     get title() {
         return this._proxy.Title;
-    },
+    }
     get id() {
         return this._proxy.Id;
-    },
+    }
     get uniqueId() {
         return this._uniqueId;
-    },
+    }
     get status() {
         return this._proxy.Status;
-    },
+    }
     get label() {
-        let v = this._proxy.get_cached_property('XAyatanaLabel');
-
-        if (v) return v.deep_unpack()
-        else   return null
-    },
+        return this._proxy.XAyatanaLabel;
+    }
     get menuPath() {
         return this._proxy.Menu || "/MenuBar"
-    },
+    }
 
     get attentionIcon() {
         return [
@@ -132,7 +144,7 @@ const AppIndicator = new Lang.Class({
             this._proxy.AttentionIconPixmap,
             this._proxy.IconThemePath
         ]
-    },
+    }
 
     get icon() {
         return [
@@ -140,7 +152,7 @@ const AppIndicator = new Lang.Class({
             this._proxy.IconPixmap,
             this._proxy.IconThemePath
         ]
-    },
+    }
 
     get overlayIcon() {
         return [
@@ -148,12 +160,12 @@ const AppIndicator = new Lang.Class({
             this._proxy.OverlayIconPixmap,
             this._proxy.IconThemePath
         ]
-    },
+    }
 
-    _onPropertiesChanged: function(proxy, changed, invalidated) {
+    _onPropertiesChanged(proxy, changed, invalidated) {
         let props = Object.keys(changed.deep_unpack())
 
-        props.forEach(function(property) {
+        props.forEach((property) => {
             // some property changes require updates on our part,
             // a few need to be passed down to the displaying code
 
@@ -179,55 +191,55 @@ const AppIndicator = new Lang.Class({
             if (property == 'Status')
                 this.emit('status')
         }, this);
-    },
+    }
 
-    reset: function() {
+    reset() {
         //TODO: reload all properties, or do some other useful things
         this.emit('reset')
-    },
+    }
 
-    destroy: function() {
+    destroy() {
         this.emit('destroy')
 
         this.disconnectAll()
         delete this._proxy
-    },
+    }
 
-    open: function() {
+    open() {
         // we can't use WindowID because we're not able to get the x11 window id from a MetaWindow
         // nor can we call any X11 functions. Luckily, the Activate method usually works fine.
         // parameters are "an hint to the item where to show eventual windows" [sic]
         // ... and don't seem to have any effect.
         this._proxy.ActivateRemote(0, 0)
-    },
+    }
 
-    secondaryActivate: function () {
+    secondaryActivate() {
         this._proxy.SecondaryActivateRemote(0, 0)
-    },
+    }
 
-    scroll: function(dx, dy) {
+    scroll(dx, dy) {
         if (dx != 0)
             this._proxy.ScrollRemote(Math.floor(dx), 'horizontal')
 
         if (dy != 0)
             this._proxy.ScrollRemote(Math.floor(dy), 'vertical')
     }
-});
+};
 Signals.addSignalMethods(AppIndicator.prototype);
 
-const IconActor = new Lang.Class({
-    Name: 'AppIndicatorIconActor',
-    Extends: Shell.Stack,
-    GTypeName: Util.WORKAROUND_RELOAD_TYPE_REGISTER('AppIndicatorIconActor'),
+var IconActor = GObject.registerClass(
+class AppIndicators_IconActor extends Shell.Stack {
 
-    _init: function(indicator, icon_size) {
-        this.parent({ reactive: true })
+    _init(indicator, icon_size) {
+        super._init({ reactive: true })
+        this.name = this.constructor.name;
+
         let scale_factor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
         this.width  = icon_size * scale_factor
         this.height = icon_size * scale_factor
 
         this._indicator     = indicator
-        this._iconSize      = icon_size * scale_factor
+        this._iconSize      = icon_size
         this._iconCache     = new IconCache.IconCache()
 
         this._mainIcon    = new St.Bin()
@@ -246,7 +258,11 @@ const IconActor = new Lang.Class({
 
         if (indicator.isReady)
             this._invalidateIcon()
-    },
+
+        this.connect('destroy', () => {
+            this._iconCache.destroy();
+        });
+    }
 
     // Will look the icon up in the cache, if it's found
     // it will return it. Otherwise, it will create it and cache it.
@@ -254,7 +270,7 @@ const IconActor = new Lang.Class({
     // the returned icon anymore, make sure to check the .inUse property
     // and set it to false if needed so that it can be picked up by the garbage
     // collector.
-    _cacheOrCreateIconByName: function(iconSize, iconName, themePath) {
+    _cacheOrCreateIconByName(iconSize, iconName, themePath) {
         let id = iconName + '@' + iconSize + (themePath ? '##' + themePath : '')
 
         let icon = this._iconCache.get(id) || this._createIconByName(iconSize, iconName, themePath)
@@ -265,9 +281,9 @@ const IconActor = new Lang.Class({
         }
 
         return icon
-    },
+    }
 
-    _createIconByName: function(icon_size, icon_name, themePath) {
+    _createIconByName(icon_size, icon_name, themePath) {
         // real_icon_size will contain the actual icon size in contrast to the requested icon size
         var real_icon_size = icon_size
         var gicon = null
@@ -295,7 +311,7 @@ const IconActor = new Lang.Class({
             // we try to avoid messing with the default icon theme, so we'll create a new one if needed
             if (themePath) {
                 var icon_theme = new Gtk.IconTheme()
-                Gtk.IconTheme.get_default().get_search_path().forEach(function(path) {
+                Gtk.IconTheme.get_default().get_search_path().forEach((path) => {
                     icon_theme.append_search_path(path)
                 });
                 icon_theme.append_search_path(themePath)
@@ -332,9 +348,11 @@ const IconActor = new Lang.Class({
             return new St.Icon({ gicon: gicon, icon_size: real_icon_size })
         else
             return null
-    },
+    }
 
-    _createIconFromPixmap: function(iconSize, iconPixmapArray) {
+    _createIconFromPixmap(iconSize, iconPixmapArray) {
+        let scale_factor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+        iconSize = iconSize * scale_factor
         // the pixmap actually is an array of pixmaps with different sizes
         // we use the one that is smaller or equal the iconSize
 
@@ -342,7 +360,7 @@ const IconActor = new Lang.Class({
         if (!iconPixmapArray || iconPixmapArray.length < 1)
             return null
 
-            let sortedIconPixmapArray = iconPixmapArray.sort(function(pixmapA, pixmapB) {
+            let sortedIconPixmapArray = iconPixmapArray.sort((pixmapA, pixmapB) => {
                 // we sort biggest to smallest
                 let areaA = pixmapA[0] * pixmapA[1]
                 let areaB = pixmapB[0] * pixmapB[1]
@@ -350,7 +368,7 @@ const IconActor = new Lang.Class({
                 return areaB - areaA
             })
 
-            let qualifiedIconPixmapArray = sortedIconPixmapArray.filter(function(pixmap) {
+            let qualifiedIconPixmapArray = sortedIconPixmapArray.filter((pixmap) => {
                 // we disqualify any pixmap that is bigger than our requested size
                 return pixmap[0] <= iconSize && pixmap[1] <= iconSize
             })
@@ -388,10 +406,10 @@ const IconActor = new Lang.Class({
                 // we could log it here, but that doesn't really help in tracking it down.
                 return null
             }
-    },
+    }
 
     // updates the base icon
-    _updateIcon: function() {
+    _updateIcon() {
         // remove old icon
         if (this._mainIcon.get_child()) {
             let child = this._mainIcon.get_child()
@@ -429,9 +447,9 @@ const IconActor = new Lang.Class({
         }
 
         this._mainIcon.set_child(newIcon)
-    },
+    }
 
-    _updateOverlayIcon: function() {
+    _updateOverlayIcon() {
         // remove old icon
         if (this._overlayIcon.get_child()) {
             let child = this._overlayIcon.get_child()
@@ -461,9 +479,9 @@ const IconActor = new Lang.Class({
             newIcon = this._createIconFromPixmap(iconSize, pixmap)
 
         this._overlayIcon.set_child(newIcon)
-    },
+    }
 
-    _handleScrollEvent: function(actor, event) {
+    _handleScrollEvent(actor, event) {
         if (actor != this)
             return Clutter.EVENT_PROPAGATE
 
@@ -484,19 +502,13 @@ const IconActor = new Lang.Class({
         }
 
         return Clutter.EVENT_STOP
-    },
+    }
 
     // called when the icon theme changes
-    _invalidateIcon: function() {
+    _invalidateIcon() {
         this._iconCache.clear()
 
         this._updateIcon()
         this._updateOverlayIcon()
-    },
-
-    destroy: function() {
-        this._iconCache.destroy()
-
-        this.parent()
     }
-})
+});
