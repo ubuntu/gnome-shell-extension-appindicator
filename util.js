@@ -17,7 +17,6 @@ const Gio = imports.gi.Gio
 const GLib = imports.gi.GLib
 const GObject = imports.gi.GObject
 
-const Lang = imports.lang
 const Signals = imports.signals
 
 var refreshPropertyOnProxy = function(proxy, property_name) {
@@ -183,40 +182,25 @@ var connectSmart = function() {
 /**
  * Helper class for logging stuff
  */
-var Logger = {
-    _log: function(prefix, message) {
+var Logger = class AppIndicators_Logger {
+    static _log(prefix, message) {
         global.log("[AppIndicatorSupport-"+prefix+"] "+message)
-    },
+    }
 
-    debug: function(message) {
+    static debug(message) {
         // CHeck the shell env variable to get what level to use
         Logger._log("DEBUG", message);
-    },
+    }
 
-    warn: function(message) {
+    static warn(message) {
         Logger._log("WARN", message);
-    },
+    }
 
-    error: function(message) {
+    static error(message) {
         Logger._log("ERROR", message);
-    },
+    }
 
-    fatal: function(message) {
+    static fatal(message) {
         Logger._log("FATAL", message);
     }
 };
-
-/**
- * Workaround for https://bugzilla.gnome.org/show_bug.cgi?id=734071
- *
- * Will append the given name with a number to distinguish code loaded later from the last loaded version
- */
-var WORKAROUND_RELOAD_TYPE_REGISTER = function(name) {
-    return 'Gjs_' + name + '__' + global['--appindicator-loaded-count']
-}
-
-// this will only execute once when the extension is loaded
-if (!global['--appindicator-loaded-count'])
-    global['--appindicator-loaded-count'] = 1
-else
-    global['--appindicator-loaded-count']++
