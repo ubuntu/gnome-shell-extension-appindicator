@@ -59,7 +59,7 @@ var StatusNotifierWatcher = new Lang.Class({
         this._nameWatcher = { };
 
         this._seekStatusNotifierItems();
-    },
+    }
 
     _acquiredName: function() {
         this._everAcquiredName = true;

@@ -9,7 +9,7 @@ const Gtk = imports.gi.Gtk;
 const AppIndicator = imports.gi.AppIndicator3;
 const GLib = imports.gi.GLib;
 
-(function() {
+(() => {
 
 var app = new Gtk.Application({
     application_id: null
@@ -17,11 +17,11 @@ var app = new Gtk.Application({
 
 var window = null;
 
-app.connect("activate", function(){
+app.connect("activate", () => {
     window.present();
 });
 
-app.connect("startup", function() {
+app.connect("startup", () => {
     window = new Gtk.ApplicationWindow({
         title: "test",
         application: app
@@ -97,13 +97,13 @@ app.connect("startup", function() {
     menu.append(item);
 
     item = Gtk.MenuItem.new_with_label("Set Label");
-    item.connect('activate', function() {
+    item.connect('activate', () => {
         indicator.set_label(''+new Date().getSeconds(), 'Blub');
     });
     menu.append(item);
 
     item = Gtk.MenuItem.new_with_label("Unset Label");
-    item.connect('activate', function() {
+    item.connect('activate', () => {
         indicator.set_label('', '');
     })
     menu.append(item);
@@ -112,9 +112,9 @@ app.connect("startup", function() {
     menu.append(item);
 
     item = Gtk.MenuItem.new_with_label("Hide for some time");
-    item.connect('activate', function() {
+    item.connect('activate', () => {
         indicator.set_status(AppIndicator.IndicatorStatus.PASSIVE);
-        GLib.timeout_add(0, 5000, function() {
+        GLib.timeout_add(0, 5000, () => {
             indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE);
             return false;
         });
@@ -122,8 +122,8 @@ app.connect("startup", function() {
     menu.append(item);
 
     item = Gtk.MenuItem.new_with_label("Close in 5 seconds");
-    item.connect('activate', function() {
-        GLib.timeout_add(0, 5000, function() {
+    item.connect('activate', () => {
+        GLib.timeout_add(0, 5000, () => {
             app.quit();
             return false;
         });

@@ -178,7 +178,7 @@ const DbusMenuItem = new Lang.Class({
     },
 
     get_children: function() {
-        return this._children_ids.map(function(el) {
+        return this._children_ids.map((el) => {
             return this._client.get_item(el)
         }, this)
     },
@@ -238,7 +238,7 @@ const DBusClient = new Lang.Class({
         if (this._propertiesRequestedFor.length < 1)
             GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, this._beginRequestProperties.bind(this))
 
-        if (this._propertiesRequestedFor.filter(function(e) { return e === id }).length == 0)
+        if (this._propertiesRequestedFor.filter((e) => { return e === id }).length == 0)
             this._propertiesRequestedFor.push(id)
 
     },
@@ -258,7 +258,7 @@ const DBusClient = new Lang.Class({
         }
 
         // for some funny reason, the result array is hidden in an array
-        result[0].forEach(function([id, properties]) {
+        result[0].forEach(([id, properties]) => {
             if (!(id in this._items))
                 return
 
@@ -314,8 +314,8 @@ const DBusClient = new Lang.Class({
     _doLayoutUpdate: function(item) {
         let [ id, properties, children ] = item
 
-        let children_unpacked = children.map(function(child) { return child.deep_unpack() })
-        let children_ids = children_unpacked.map(function(child) { return child[0] })
+        let children_unpacked = children.map((child) => { return child.deep_unpack() })
+        let children_ids = children_unpacked.map((child) => { return child[0] })
 
         // make sure all our children exist
         children_unpacked.forEach(this._doLayoutUpdate, this)
@@ -349,7 +349,7 @@ const DBusClient = new Lang.Class({
             }
 
             // remove any old children that weren't reused
-            old_children_ids.forEach(function(child_id) { this._items[id].remove_child(child_id) }, this)
+            old_children_ids.forEach((child_id) => { this._items[id].remove_child(child_id) }, this)
         } else {
             // we don't, so let's create us
             this._items[id] = new DbusMenuItem(this, id, properties, children_ids)
@@ -382,12 +382,12 @@ const DBusClient = new Lang.Class({
 
     // we don't need to cache and burst-send that since it will not happen that frequently
     send_about_to_show: function(id) {
-        this._proxy.AboutToShowRemote(id, (function(result, error) {
+        this._proxy.AboutToShowRemote(id, ((result, error) => {
             if (error)
                 Util.Logger.warn("while calling AboutToShow: "+error)
             else if (result && result[0])
                 this._requestLayoutUpdate()
-        }).bind(this))
+        }))
     },
 
     send_event: function(id, event, params, timestamp) {
@@ -402,18 +402,18 @@ const DBusClient = new Lang.Class({
     },
 
     _onPropertiesUpdated: function(proxy, name, [changed, removed]) {
-        changed.forEach(function([id, props]) {
+        changed.forEach(([id, props]) => {
             if (!(id in this._items))
                 return
 
             for (let prop in props)
                 this._items[id].property_set(prop, props[prop])
         }, this)
-        removed.forEach(function([id, propNames]) {
+        removed.forEach(([id, propNames]) => {
             if (!(id in this._items))
                 return
 
-            propNames.forEach(function(propName) {
+            propNames.forEach((propName) => {
                 this._items[id].property_set(propName, null)
             }, this)
         }, this)
@@ -556,7 +556,7 @@ const MenuItemFactory = {
             MenuItemFactory._replaceSelf.call(this)
         } else {
             // find it!
-            this.menu._getMenuItems().forEach(function(item) {
+            this.menu._getMenuItems().forEach((item) => {
                 if (item._dbusItem == child)
                     item.destroy()
             })
@@ -703,7 +703,7 @@ var Client = new Lang.Class({
         this._rootItem.send_about_to_show()
 
         // fill the menu for the first time
-        this._rootItem.get_children().forEach(function(child) {
+        this._rootItem.get_children().forEach((child) => {
             this._rootMenu.addMenuItem(MenuItemFactory.createItem(this, child))
         }, this)
     },
@@ -731,7 +731,7 @@ var Client = new Lang.Class({
     _onRootChildRemoved: function(dbusItem, child) {
         // children like to play hide and seek
         // but we know how to find it for sure!
-        this._rootMenu._getMenuItems().forEach(function(item) {
+        this._rootMenu._getMenuItems().forEach((item) => {
             if (item._dbusItem == child)
                 item.destroy()
         })
