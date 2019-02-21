@@ -66,7 +66,7 @@ var AppIndicator = new Lang.Class({
                                           g_name: bus_name,
                                           g_object_path: object,
                                           g_flags: Gio.DBusProxyFlags.GET_INVALIDATED_PROPERTIES })
-        this._proxy.init_async(GLib.PRIORITY_DEFAULT, null, (function(initable, result) {
+        this._proxy.init_async(GLib.PRIORITY_DEFAULT, null, ((initable, result) => {
                 try {
                     initable.init_finish(result);
 
@@ -75,7 +75,7 @@ var AppIndicator = new Lang.Class({
                 } catch(e) {
                     Util.Logger.warn("While intializing proxy for "+bus_name+object+": "+e)
                 }
-            }).bind(this))
+            }))
 
         this._proxyPropertyList = interface_info.properties.map((propinfo) => { return propinfo.name })
         this._addExtraProperty('XAyatanaLabel');
@@ -166,7 +166,7 @@ var AppIndicator = new Lang.Class({
     _onPropertiesChanged: function(proxy, changed, invalidated) {
         let props = Object.keys(changed.deep_unpack())
 
-        props.forEach(function(property) {
+        props.forEach((property) => {
             // some property changes require updates on our part,
             // a few need to be passed down to the displaying code
 
@@ -308,7 +308,7 @@ var IconActor = new Lang.Class({
             // we try to avoid messing with the default icon theme, so we'll create a new one if needed
             if (themePath) {
                 var icon_theme = new Gtk.IconTheme()
-                Gtk.IconTheme.get_default().get_search_path().forEach(function(path) {
+                Gtk.IconTheme.get_default().get_search_path().forEach((path) => {
                     icon_theme.append_search_path(path)
                 });
                 icon_theme.append_search_path(themePath)
@@ -357,7 +357,7 @@ var IconActor = new Lang.Class({
         if (!iconPixmapArray || iconPixmapArray.length < 1)
             return null
 
-            let sortedIconPixmapArray = iconPixmapArray.sort(function(pixmapA, pixmapB) {
+            let sortedIconPixmapArray = iconPixmapArray.sort((pixmapA, pixmapB) => {
                 // we sort biggest to smallest
                 let areaA = pixmapA[0] * pixmapA[1]
                 let areaB = pixmapB[0] * pixmapB[1]
@@ -365,7 +365,7 @@ var IconActor = new Lang.Class({
                 return areaB - areaA
             })
 
-            let qualifiedIconPixmapArray = sortedIconPixmapArray.filter(function(pixmap) {
+            let qualifiedIconPixmapArray = sortedIconPixmapArray.filter((pixmap) => {
                 // we disqualify any pixmap that is bigger than our requested size
                 return pixmap[0] <= iconSize && pixmap[1] <= iconSize
             })

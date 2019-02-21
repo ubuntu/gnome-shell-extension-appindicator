@@ -34,7 +34,7 @@ function init() {
     if (typeof global['--appindicator-extension-on-reload'] == 'function')
         global['--appindicator-extension-on-reload']()
 
-    global['--appindicator-extension-on-reload'] = function() {
+    global['--appindicator-extension-on-reload'] = () => {
         Util.Logger.debug("Reload detected, destroying old watchdog")
         NameWatchdog.destroy()
     }

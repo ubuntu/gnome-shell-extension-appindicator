@@ -137,7 +137,7 @@ const connectSmart3A = function(src, signal, handler) {
     let id = src.connect(signal, handler)
 
     if (src.connect && (!(src instanceof GObject.Object) || GObject.signal_lookup('destroy', src))) {
-        let destroy_id = src.connect('destroy', function() {
+        let destroy_id = src.connect('destroy', () => {
             src.disconnect(id)
             src.disconnect(destroy_id)
         })
@@ -171,7 +171,7 @@ const connectSmart4A = function(src, signal, target, method) {
  * Usage:
  *      Util.connectSmart(srcOb, 'signal', tgtObj, 'handler')
  * or
- *      Util.connectSmart(srcOb, 'signal', function() { ... })
+ *      Util.connectSmart(srcOb, 'signal', () => { ... })
  */
 var connectSmart = function() {
     if (arguments.length == 4)
