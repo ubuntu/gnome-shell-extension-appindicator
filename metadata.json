@@ -5,7 +5,8 @@
     "uuid": "ubuntu-appindicators@ubuntu.com",
     "url": "https://github.com/ubuntu/gnome-shell-extension-appindicator",
     "shell-version": [
-        "3.24",
-        "3.26"
+        "3.30",
+        "3.31",
+        "3.32"
     ]
 }
