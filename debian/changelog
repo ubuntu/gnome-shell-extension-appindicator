@@ -1,3 +1,29 @@
+gnome-shell-extension-appindicator (19.04) UNRELEASED; urgency=medium
+
+  [ Marco Trevisan (Treviño) ]
+  * New version: 19.04
+  * iconCache: don't add an icon multiple times and remove it on destruction
+  * iconCache: use seconds granulated timeout for garbage collector
+  * iconCache: only run the garbage collector when we've icons
+  * Util: use var to define module functions
+  * statusNotifierWatcher: use nicer lambda functions in traverseBusNames
+  * iconCache: connect to destroy signal if the object has it
+  * indicatorStatusIcon: don't override the destroy, react on 'destroy' signal instead
+  * appIndicator: don't treat XAyatana* properties as 2nd clas citizen
+  * dbusMenu: add better logging on errors
+  * metadata: update url
+  * statusNotifierWatcher: return extension UUID
+  * appIndicators: use arrow functions in lambdas
+  * appindicators: rewrite classes using pure ES6 classes
+  * metadata: set supported shell versions to 3.30+
+  * debian/control: update Homepage and Vcs-* flags
+  * debian/gbp.conf: add debian-tag option
+
+  [ Andrea Azzarone ]
+  * interfaces: Explicitly convert raw data to strings
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 21 Feb 2019 16:49:46 +0100
+
 gnome-shell-extension-appindicator (18.04.1) bionic; urgency=medium
 
   * Rebase on latest upstream with those fixes:
