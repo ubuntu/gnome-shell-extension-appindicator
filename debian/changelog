@@ -1,4 +1,4 @@
-gnome-shell-extension-appindicator (23-1) UNRELEASED; urgency=medium
+gnome-shell-extension-appindicator (23-1) experimental; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
   * New upstream version: v23
@@ -26,7 +26,7 @@ gnome-shell-extension-appindicator (23-1) UNRELEASED; urgency=medium
   [ Andrea Azzarone ]
   * interfaces: Explicitly convert raw data to strings
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 21 Feb 2019 16:49:46 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 22 Feb 2019 08:54:12 +0000
 
 gnome-shell-extension-appindicator (22-1) unstable; urgency=medium
 
