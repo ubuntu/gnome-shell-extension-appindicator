@@ -1,3 +1,10 @@
+gnome-shell-extension-appindicator (23-2) experimental; urgency=medium
+
+  * Depend on gnome-shell 3.31—3.32. Despite what metadata.json says this
+    extension doesn't actually work with 3.30. (LP: #1817490)
+
+ -- Iain Lane <laney@debian.org>  Mon, 25 Feb 2019 16:15:10 +0000
+
 gnome-shell-extension-appindicator (23-1) experimental; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
