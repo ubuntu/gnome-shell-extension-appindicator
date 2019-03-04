@@ -1,3 +1,14 @@
+gnome-shell-extension-appindicator (23.1-1) UNRELEASED; urgency=medium
+
+  [ Matteo F. Vescovi ]
+  * debian/patches/: patchset refreshed against v23.1
+  * debian/control: S-V bump 4.2.1 -> 4.3.0 (no changes needed)
+
+  [ Marco Trevisan (Treviño) ]
+  * metadata: remove 3.30 from the supported versions. Fixes #161
+
+ -- Matteo F. Vescovi <mfv@debian.org>  Mon, 04 Mar 2019 22:00:01 +0100
+
 gnome-shell-extension-appindicator (23-2) experimental; urgency=medium
 
   * Depend on gnome-shell 3.31—3.32. Despite what metadata.json says this
