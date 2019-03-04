@@ -1,24 +1,18 @@
-From: Debian GNOME Maintainers
- <pkg-gnome-maintainers@lists.alioth.debian.org>
-Date: Thu, 21 Feb 2019 18:01:46 +0100
-Subject: metadata: use appindicator namespace and naming
-
----
- metadata.json | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+Description: metadata: use appindicator namespace and naming
+Author: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
+Date: Mon, 04 Mar 2019 21:55:48 +0100
 
 diff --git a/metadata.json b/metadata.json
-index c148922..89db0e6 100644
+index 0916f6d..1280e87 100644
 --- a/metadata.json
 +++ b/metadata.json
-@@ -1,11 +1,11 @@
+@@ -1,10 +1,10 @@
  {
 +    "name": "Ubuntu AppIndicators",
 +    "description": "Support app indicators in top panel, as the default Ubuntu experience. System update of KStatusNotifierItem/AppIndicator extension.",
 +    "uuid": "ubuntu-appindicators@ubuntu.com",
 +    "url": "https://github.com/ubuntu/gnome-shell-extension-appindicator",
      "shell-version": [
-         "3.30",
          "3.31",
          "3.32"
 -    ],
