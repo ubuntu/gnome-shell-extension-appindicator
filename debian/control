@@ -5,7 +5,7 @@ Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.
 Uploaders: Matteo F. Vescovi <mfv@debian.org>
 Build-Depends:
  debhelper (>= 11)
-Standards-Version: 4.2.1
+Standards-Version: 4.3.0
 Homepage: https://github.com/ubuntu/gnome-shell-extension-appindicator
 Vcs-Browser: https://salsa.debian.org/gnome-team/shell-extensions/gnome-shell-extension-appindicator
 Vcs-Git: https://salsa.debian.org/gnome-team/shell-extensions/gnome-shell-extension-appindicator.git
