@@ -23,6 +23,7 @@ const GObject = imports.gi.GObject
 const Gtk = imports.gi.Gtk
 const St = imports.gi.St
 const Shell = imports.gi.Shell
+const Mainloop = imports.mainloop
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Signals = imports.signals
@@ -69,6 +70,14 @@ var AppIndicator = class AppIndicators_AppIndicator {
                 try {
                     initable.init_finish(result);
                     this._checkIfReady();
+
+                    if (!this.isReady && !this.menuPath) {
+                        let checks = 0;
+                        this._delayCheck = Mainloop.timeout_add_seconds(1, () => {
+                            Util.refreshPropertyOnProxy(this._proxy, 'Menu');
+                            return !this.isReady && ++checks < 3;
+                        });
+                    }
                 } catch(e) {
                     Util.Logger.warn("While intializing proxy for "+bus_name+object+": "+e)
                 }
@@ -94,6 +103,11 @@ var AppIndicator = class AppIndicators_AppIndicator {
         this.isReady = isReady;
 
         if (this.isReady && !wasReady) {
+            if (this._delayCheck) {
+                GLib.Source.remove(this._delayCheck);
+                delete this._delayCheck;
+            }
+
             this.emit('ready');
             return true;
         }
@@ -232,6 +246,11 @@ var AppIndicator = class AppIndicators_AppIndicator {
 
         this.disconnectAll()
         delete this._proxy
+
+        if (this._delayCheck) {
+            GLib.Source.remove(this._delayCheck);
+            delete this._delayCheck;
+        }
     }
 
     open() {
