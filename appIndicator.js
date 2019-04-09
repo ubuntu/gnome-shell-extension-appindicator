@@ -22,6 +22,7 @@ const GLib = imports.gi.GLib
 const Gtk = imports.gi.Gtk
 const St = imports.gi.St
 const Shell = imports.gi.Shell
+const Mainloop = imports.mainloop
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Lang = imports.lang
@@ -70,6 +71,14 @@ var AppIndicator = new Lang.Class({
                 try {
                     initable.init_finish(result);
                     this._checkIfReady();
+
+                    if (!this.isReady && !this.menuPath) {
+                        let checks = 0;
+                        this._delayCheck = Mainloop.timeout_add_seconds(1, () => {
+                            Util.refreshPropertyOnProxy(this._proxy, 'Menu');
+                            return !this.isReady && ++checks < 3;
+                        });
+                    }
                 } catch(e) {
                     Util.Logger.warn("While intializing proxy for "+bus_name+object+": "+e)
                 }
@@ -95,6 +104,11 @@ var AppIndicator = new Lang.Class({
         this.isReady = isReady;
 
         if (this.isReady && !wasReady) {
+            if (this._delayCheck) {
+                GLib.Source.remove(this._delayCheck);
+                delete this._delayCheck;
+            }
+
             this.emit('ready');
             return true;
         }
@@ -233,6 +247,11 @@ var AppIndicator = new Lang.Class({
 
         this.disconnectAll()
         delete this._proxy
+
+        if (this._delayCheck) {
+            GLib.Source.remove(this._delayCheck);
+            delete this._delayCheck;
+        }
     },
 
     open: function() {
