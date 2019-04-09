@@ -216,6 +216,15 @@ var DBusClient = class AppIndicators_DBusClient {
 
         // property requests are queued
         this._propertiesRequestedFor = [ /* ids */ ]
+
+        Util.connectSmart(this._proxy, 'notify::g-name-owner', this, () => {
+            if (this.isReady)
+                this._requestLayoutUpdate();
+        });
+    }
+
+    get isReady() {
+        return !!this._proxy.g_name_owner;
     }
 
     get_root() {
@@ -358,7 +367,7 @@ var DBusClient = class AppIndicators_DBusClient {
     _clientReady(result, error) {
         if (error) {
             Util.Logger.warn("Could not initialize menu proxy: "+error)
-            //FIXME: show message to the user?
+            return;
         }
 
         this._requestLayoutUpdate()
@@ -683,6 +692,10 @@ var Client = class AppIndicators_Client {
         this._client   = new DBusClient(busName, path)
         this._rootMenu = null // the shell menu
         this._rootItem = null // the DbusMenuItem for the root
+    }
+
+    get isReady() {
+        return this._client.isReady;
     }
 
     // this will attach the client to an already existing menu that will be used as the root menu.
