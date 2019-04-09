@@ -120,6 +120,10 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
             return;
         }
 
+        /* Ignore activation clicks if we have a menu */
+        if (this._menuClient && this._menuClient.isReady)
+            return;
+
         //HACK: event should be a ClutterButtonEvent but we get only a ClutterEvent (why?)
         //      because we can't access click_count, we'll create our own double click detector.
         var treshold = Clutter.Settings.get_default().double_click_time;
