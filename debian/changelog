@@ -57,8 +57,6 @@ gnome-shell-extension-appindicator (23-1) experimental; urgency=medium
   * debian/gbp.conf: add debian-tag option
   * debian/patches/metadata-use-appindicator-namespace-and-naming.patch:
     - Use ubuntu appindicator namespace, update description
-  * debian/gbp.conf:
-    - Use default gbp gnome configurations, and set proper upstream-vcs-tag
 
   [ Andrea Azzarone ]
   * interfaces: Explicitly convert raw data to strings
