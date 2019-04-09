@@ -283,9 +283,9 @@ var IconActor = new Lang.Class({
 
     _init: function(indicator, icon_size) {
         this.parent({ reactive: true })
-        let scale_factor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
-        this.width  = icon_size * scale_factor
-        this.height = icon_size * scale_factor
+        let themeContext = St.ThemeContext.get_for_stage(global.stage);
+        this.width = icon_size * themeContext.scale_factor;
+        this.height = icon_size * themeContext.scale_factor;
 
         this._indicator     = indicator
         this._iconSize      = icon_size
@@ -301,12 +301,19 @@ var IconActor = new Lang.Class({
         Util.connectSmart(this._indicator, 'overlay-icon', this, '_updateOverlayIcon')
         Util.connectSmart(this._indicator, 'ready',        this, '_invalidateIcon')
 
-        Util.connectSmart(this, 'scroll-event', this, '_handleScrollEvent')
+        Util.connectSmart(themeContext, 'notify::scale-factor', this, '_updateScaleFactor')
 
         Util.connectSmart(Gtk.IconTheme.get_default(), 'changed', this, '_invalidateIcon')
 
         if (indicator.isReady)
             this._invalidateIcon()
+    },
+
+    _updateScaleFactor: function(themeContext) {
+        this.width = this._iconSize * themeContext.scale_factor;
+        this.height = this._iconSize * themeContext.scale_factor;
+        this._updateIcon();
+        this._updateOverlayIcon();
     },
 
     // Will look the icon up in the cache, if it's found
@@ -394,7 +401,8 @@ var IconActor = new Lang.Class({
     },
 
     _createIconFromPixmap: function(iconSize, iconPixmapArray) {
-        let scale_factor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+        let themeContext = St.ThemeContext.get_for_stage(global.stage);
+        let scale_factor = themeContext.scale_factor;
         iconSize = iconSize * scale_factor
         // the pixmap actually is an array of pixmaps with different sizes
         // we use the one that is smaller or equal the iconSize
@@ -430,11 +438,9 @@ var IconActor = new Lang.Class({
                                 height,
                                 rowstride)
 
-                let scale_factor = 1
+                let scale_factor = themeContext.scale_factor;
                 if (height != 0)
                     scale_factor = iconSize / height
-                else
-                    scale_factor = St.ThemeContext.get_for_stage(global.stage).scale_factor
 
                 return new Clutter.Actor({
                     width: Math.min(width, iconSize),
