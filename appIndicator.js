@@ -23,6 +23,7 @@ const GObject = imports.gi.GObject
 const Gtk = imports.gi.Gtk
 const St = imports.gi.St
 const Shell = imports.gi.Shell
+const Mainloop = imports.mainloop
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Signals = imports.signals
@@ -68,9 +69,15 @@ var AppIndicator = class AppIndicators_AppIndicator {
         this._proxy.init_async(GLib.PRIORITY_DEFAULT, null, ((initable, result) => {
                 try {
                     initable.init_finish(result);
+                    this._checkIfReady();
 
-                    this.isReady = true
-                    this.emit('ready')
+                    if (!this.isReady && !this.menuPath) {
+                        let checks = 0;
+                        this._delayCheck = Mainloop.timeout_add_seconds(1, () => {
+                            Util.refreshPropertyOnProxy(this._proxy, 'Menu');
+                            return !this.isReady && ++checks < 3;
+                        });
+                    }
                 } catch(e) {
                     Util.Logger.warn("While intializing proxy for "+bus_name+object+": "+e)
                 }
@@ -83,6 +90,34 @@ var AppIndicator = class AppIndicators_AppIndicator {
 
         Util.connectSmart(this._proxy, 'g-properties-changed', this, '_onPropertiesChanged')
         Util.connectSmart(this._proxy, 'g-signal', this, '_translateNewSignals')
+        Util.connectSmart(this._proxy, 'notify::g-name-owner', this, '_nameOwnerChanged')
+    }
+
+    _checkIfReady() {
+        let wasReady = this.isReady;
+        let isReady = false;
+
+        if (this._proxy.g_name_owner && this.menuPath)
+            isReady = true;
+
+        this.isReady = isReady;
+
+        if (this.isReady && !wasReady) {
+            if (this._delayCheck) {
+                GLib.Source.remove(this._delayCheck);
+                delete this._delayCheck;
+            }
+
+            this.emit('ready');
+            return true;
+        }
+
+        return false;
+    }
+
+    _nameOwnerChanged() {
+        if (!this._proxy.g_name_owner)
+            this._checkIfReady();
     }
 
     _addExtraProperty(name) {
@@ -135,7 +170,10 @@ var AppIndicator = class AppIndicators_AppIndicator {
         return this._proxy.XAyatanaLabel;
     }
     get menuPath() {
-        return this._proxy.Menu || "/MenuBar"
+        if (this._proxy.Menu == '/NO_DBUSMENU')
+            return null;
+
+        return this._proxy.Menu || '/MenuBar';
     }
 
     get attentionIcon() {
@@ -187,6 +225,11 @@ var AppIndicator = class AppIndicators_AppIndicator {
             if (property == 'XAyatanaLabel')
                 this.emit('label')
 
+            if (property == 'Menu') {
+                if (!this._checkIfReady() && this.isReady)
+                    this.emit('menu')
+            }
+
             // status updates may cause the indicator to be hidden
             if (property == 'Status')
                 this.emit('status')
@@ -203,6 +246,11 @@ var AppIndicator = class AppIndicators_AppIndicator {
 
         this.disconnectAll()
         delete this._proxy
+
+        if (this._delayCheck) {
+            GLib.Source.remove(this._delayCheck);
+            delete this._delayCheck;
+        }
     }
 
     open() {
@@ -234,9 +282,9 @@ class AppIndicators_IconActor extends Shell.Stack {
         super._init({ reactive: true })
         this.name = this.constructor.name;
 
-        let scale_factor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
-        this.width  = icon_size * scale_factor
-        this.height = icon_size * scale_factor
+        let themeContext = St.ThemeContext.get_for_stage(global.stage);
+        this.width  = icon_size * themeContext.scale_factor;
+        this.height = icon_size * themeContext.scale_factor;
 
         this._indicator     = indicator
         this._iconSize      = icon_size
@@ -252,7 +300,12 @@ class AppIndicators_IconActor extends Shell.Stack {
         Util.connectSmart(this._indicator, 'overlay-icon', this, '_updateOverlayIcon')
         Util.connectSmart(this._indicator, 'ready',        this, '_invalidateIcon')
 
-        Util.connectSmart(this, 'scroll-event', this, '_handleScrollEvent')
+        Util.connectSmart(themeContext, 'notify::scale-factor', this, (tc) => {
+            this.width = icon_size * tc.scale_factor;
+            this.height = icon_size * tc.scale_factor;
+            this._updateIcon();
+            this._updateOverlayIcon();
+        });
 
         Util.connectSmart(Gtk.IconTheme.get_default(), 'changed', this, '_invalidateIcon')
 
@@ -329,10 +382,8 @@ class AppIndicators_IconActor extends Shell.Stack {
             icon_info = icon_theme.lookup_icon(icon_name, icon_size,
                                                Gtk.IconLookupFlags.GENERIC_FALLBACK)
 
-            // no icon? that's bad!
-            if (icon_info === null) {
-                Util.Logger.fatal("unable to lookup icon for "+icon_name);
-            } else { // we have an icon
+            // we have an icon
+            if (icon_info !== null) {
                 // the icon size may not match the requested size, especially with custom themes
                 if (icon_info.get_base_size() < icon_size) {
                     // stretched icons look very ugly, we avoid that and just show the smaller icon
@@ -351,7 +402,8 @@ class AppIndicators_IconActor extends Shell.Stack {
     }
 
     _createIconFromPixmap(iconSize, iconPixmapArray) {
-        let scale_factor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+        let themeContext = St.ThemeContext.get_for_stage(global.stage);
+        let scale_factor = themeContext.scale_factor;
         iconSize = iconSize * scale_factor
         // the pixmap actually is an array of pixmaps with different sizes
         // we use the one that is smaller or equal the iconSize
@@ -387,11 +439,9 @@ class AppIndicators_IconActor extends Shell.Stack {
                                 height,
                                 rowstride)
 
-                let scale_factor = 1
+                let scale_factor = themeContext.scale_factor;
                 if (height != 0)
                     scale_factor = iconSize / height
-                else
-                    scale_factor = St.ThemeContext.get_for_stage(global.stage).scale_factor
 
                 return new Clutter.Actor({
                     width: Math.min(width, iconSize),
@@ -446,6 +496,11 @@ class AppIndicators_IconActor extends Shell.Stack {
                 newIcon = this._createIconFromPixmap(this._iconSize, pixmap)
         }
 
+        if (!newIcon) {
+            Util.Logger.fatal("unable to update icon");
+            return;
+        }
+
         this._mainIcon.set_child(newIcon)
     }
 
@@ -477,6 +532,11 @@ class AppIndicators_IconActor extends Shell.Stack {
 
         if (!newIcon && pixmap)
             newIcon = this._createIconFromPixmap(iconSize, pixmap)
+
+        if (!newIcon) {
+            Util.Logger.fatal("unable to update overlay icon");
+            return;
+        }
 
         this._overlayIcon.set_child(newIcon)
     }
