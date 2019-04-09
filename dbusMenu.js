@@ -382,12 +382,24 @@ const DBusClient = new Lang.Class({
 
     // we don't need to cache and burst-send that since it will not happen that frequently
     send_about_to_show: function(id) {
-        this._proxy.AboutToShowRemote(id, (function(result, error) {
-            if (error)
-                Util.Logger.warn("while calling AboutToShow: "+error)
-            else if (result && result[0])
-                this._requestLayoutUpdate()
-        }).bind(this))
+        /* Some indicators (you, dropbox!) don't use the right signature
+         * and don't return a boolean, so we need to support both cases */
+        let connection = this._proxy.get_connection();
+        connection.call(this._proxy.get_name(), this._proxy.get_object_path(),
+                        this._proxy.get_interface_name(), 'AboutToShow',
+                        new GLib.Variant("(i)", [id]), null,
+                        Gio.DBusCallFlags.NONE, -1, null, (proxy, res) => {
+            try {
+                let ret = proxy.call_finish(res);
+                if ((ret.is_of_type(new GLib.VariantType('(b)')) &&
+                        ret.get_child_value(0).get_boolean()) ||
+                    ret.is_of_type(new GLib.VariantType('()'))) {
+                    this._requestLayoutUpdate();
+                }
+            } catch (e) {
+                Util.Logger.warn("Impossible to send about-to-show to menu: " + e);
+            }
+        });
     },
 
     send_event: function(id, event, params, timestamp) {
