@@ -1,3 +1,22 @@
+gnome-shell-extension-appindicator (28-1) UNRELEASED; urgency=medium
+
+  [ Marco Trevisan (Treviño) ]
+  * New upstream release
+  * indicatorStatusIcon: Ignore indicators with no menus, monitoring changes
+    (LP: #1714504)
+  * appIndicator: Retry getting a valid menu path (LP: #1714504)
+  * dbusMenu: Ignore error on invalid return in AboutToShow
+  * appIndicator: Update icon actor size on scale factor change (LP: #1730071)
+  * dbusMenu: add isReady property when the menu is available on bus
+  * indicatorStatusIcon: Don't support activation if we have a menu
+    (LP: #1714191, LP: #1716056)
+  * d/p/metadata-use-appindicator-namespace-and-naming.patch:
+    - refresh and reduce diff with upstream
+  * debian/.gitignore:
+    - Ignore debian-built files, apply at sub-folder scope only
+
+ -- Matteo F. Vescovi <mfv@debian.org>  Tue, 09 Apr 2019 22:00:26 +0200
+
 gnome-shell-extension-appindicator (23.1-1) experimental; urgency=medium
 
   [ Matteo F. Vescovi ]
