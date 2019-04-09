@@ -12,10 +12,8 @@ gnome-shell-extension-appindicator (28-1) UNRELEASED; urgency=medium
     (LP: #1714191, LP: #1716056)
   * d/p/metadata-use-appindicator-namespace-and-naming.patch:
     - refresh and reduce diff with upstream
-  * debian/.gitignore:
-    - Ignore debian-built files, apply at sub-folder scope only
 
- -- Matteo F. Vescovi <mfv@debian.org>  Tue, 09 Apr 2019 22:00:26 +0200
+ -- Matteo F. Vescovi <mfv@debian.org>  Tue, 09 Apr 2019 22:27:26 +0200
 
 gnome-shell-extension-appindicator (23.1-1) experimental; urgency=medium
 
