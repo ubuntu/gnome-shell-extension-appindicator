@@ -68,9 +68,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
         this._proxy.init_async(GLib.PRIORITY_DEFAULT, null, ((initable, result) => {
                 try {
                     initable.init_finish(result);
-
-                    this.isReady = true
-                    this.emit('ready')
+                    this._checkIfReady();
                 } catch(e) {
                     Util.Logger.warn("While intializing proxy for "+bus_name+object+": "+e)
                 }
@@ -83,6 +81,29 @@ var AppIndicator = class AppIndicators_AppIndicator {
 
         Util.connectSmart(this._proxy, 'g-properties-changed', this, '_onPropertiesChanged')
         Util.connectSmart(this._proxy, 'g-signal', this, '_translateNewSignals')
+        Util.connectSmart(this._proxy, 'notify::g-name-owner', this, '_nameOwnerChanged')
+    }
+
+    _checkIfReady() {
+        let wasReady = this.isReady;
+        let isReady = false;
+
+        if (this._proxy.g_name_owner && this.menuPath)
+            isReady = true;
+
+        this.isReady = isReady;
+
+        if (this.isReady && !wasReady) {
+            this.emit('ready');
+            return true;
+        }
+
+        return false;
+    }
+
+    _nameOwnerChanged() {
+        if (!this._proxy.g_name_owner)
+            this._checkIfReady();
     }
 
     _addExtraProperty(name) {
@@ -135,7 +156,10 @@ var AppIndicator = class AppIndicators_AppIndicator {
         return this._proxy.XAyatanaLabel;
     }
     get menuPath() {
-        return this._proxy.Menu || "/MenuBar"
+        if (this._proxy.Menu == '/NO_DBUSMENU')
+            return null;
+
+        return this._proxy.Menu || '/MenuBar';
     }
 
     get attentionIcon() {
@@ -186,6 +210,11 @@ var AppIndicator = class AppIndicators_AppIndicator {
             // the label will be handled elsewhere
             if (property == 'XAyatanaLabel')
                 this.emit('label')
+
+            if (property == 'Menu') {
+                if (!this._checkIfReady() && this.isReady)
+                    this.emit('menu')
+            }
 
             // status updates may cause the indicator to be hidden
             if (property == 'Status')
