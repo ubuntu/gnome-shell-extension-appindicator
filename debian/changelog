@@ -1,4 +1,4 @@
-gnome-shell-extension-appindicator (28-1) UNRELEASED; urgency=medium
+gnome-shell-extension-appindicator (28-1) experimental; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
   * New upstream release
@@ -13,7 +13,7 @@ gnome-shell-extension-appindicator (28-1) UNRELEASED; urgency=medium
   * d/p/metadata-use-appindicator-namespace-and-naming.patch:
     - refresh and reduce diff with upstream
 
- -- Matteo F. Vescovi <mfv@debian.org>  Tue, 09 Apr 2019 22:27:26 +0200
+ -- Matteo F. Vescovi <mfv@debian.org>  Tue, 09 Apr 2019 22:28:45 +0200
 
 gnome-shell-extension-appindicator (23.1-1) experimental; urgency=medium
 
