@@ -216,6 +216,15 @@ var DBusClient = class AppIndicators_DBusClient {
 
         // property requests are queued
         this._propertiesRequestedFor = [ /* ids */ ]
+
+        Util.connectSmart(this._proxy, 'notify::g-name-owner', this, () => {
+            if (this.isReady)
+                this._requestLayoutUpdate();
+        });
+    }
+
+    get isReady() {
+        return !!this._proxy.g_name_owner;
     }
 
     get_root() {
@@ -358,7 +367,7 @@ var DBusClient = class AppIndicators_DBusClient {
     _clientReady(result, error) {
         if (error) {
             Util.Logger.warn("Could not initialize menu proxy: "+error)
-            //FIXME: show message to the user?
+            return;
         }
 
         this._requestLayoutUpdate()
@@ -378,12 +387,24 @@ var DBusClient = class AppIndicators_DBusClient {
 
     // we don't need to cache and burst-send that since it will not happen that frequently
     send_about_to_show(id) {
-        this._proxy.AboutToShowRemote(id, ((result, error) => {
-            if (error)
-                Util.Logger.warn("while calling AboutToShow: "+error)
-            else if (result && result[0])
-                this._requestLayoutUpdate()
-        }))
+        /* Some indicators (you, dropbox!) don't use the right signature
+         * and don't return a boolean, so we need to support both cases */
+        let connection = this._proxy.get_connection();
+        connection.call(this._proxy.get_name(), this._proxy.get_object_path(),
+                        this._proxy.get_interface_name(), 'AboutToShow',
+                        new GLib.Variant("(i)", [id]), null,
+                        Gio.DBusCallFlags.NONE, -1, null, (proxy, res) => {
+            try {
+                let ret = proxy.call_finish(res);
+                if ((ret.is_of_type(new GLib.VariantType('(b)')) &&
+                        ret.get_child_value(0).get_boolean()) ||
+                    ret.is_of_type(new GLib.VariantType('()'))) {
+                    this._requestLayoutUpdate();
+                }
+            } catch (e) {
+                Util.Logger.warn("Impossible to send about-to-show to menu: " + e);
+            }
+        });
     }
 
     send_event(id, event, params, timestamp) {
@@ -671,6 +692,10 @@ var Client = class AppIndicators_Client {
         this._client   = new DBusClient(busName, path)
         this._rootMenu = null // the shell menu
         this._rootItem = null // the DbusMenuItem for the root
+    }
+
+    get isReady() {
+        return this._client.isReady;
     }
 
     // this will attach the client to an already existing menu that will be used as the root menu.

@@ -1,7 +1,42 @@
-gnome-shell-extension-appindicator (19.04) disco; urgency=medium
+gnome-shell-extension-appindicator (28-1) experimental; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
-  * New version: 19.04
+  * New upstream release
+  * indicatorStatusIcon: Ignore indicators with no menus, monitoring changes
+    (LP: #1714504)
+  * appIndicator: Retry getting a valid menu path (LP: #1714504)
+  * dbusMenu: Ignore error on invalid return in AboutToShow
+  * appIndicator: Update icon actor size on scale factor change (LP: #1730071)
+  * dbusMenu: add isReady property when the menu is available on bus
+  * indicatorStatusIcon: Don't support activation if we have a menu
+    (LP: #1714191, LP: #1716056)
+  * d/p/metadata-use-appindicator-namespace-and-naming.patch:
+    - refresh and reduce diff with upstream
+
+ -- Matteo F. Vescovi <mfv@debian.org>  Tue, 09 Apr 2019 22:28:45 +0200
+
+gnome-shell-extension-appindicator (23.1-1) experimental; urgency=medium
+
+  [ Matteo F. Vescovi ]
+  * debian/patches/: patchset refreshed against v23.1
+  * debian/control: S-V bump 4.2.1 -> 4.3.0 (no changes needed)
+
+  [ Marco Trevisan (Treviño) ]
+  * metadata: remove 3.30 from the supported versions. Fixes #161
+
+ -- Matteo F. Vescovi <mfv@debian.org>  Mon, 04 Mar 2019 22:01:30 +0100
+
+gnome-shell-extension-appindicator (23-2) experimental; urgency=medium
+
+  * Depend on gnome-shell 3.31—3.32. Despite what metadata.json says this
+    extension doesn't actually work with 3.30. (LP: #1817490)
+
+ -- Iain Lane <laney@debian.org>  Mon, 25 Feb 2019 16:15:10 +0000
+
+gnome-shell-extension-appindicator (23-1) experimental; urgency=medium
+
+  [ Marco Trevisan (Treviño) ]
+  * New upstream version: v23
   * iconCache: don't add an icon multiple times and remove it on destruction
   * iconCache: use seconds granulated timeout for garbage collector
   * iconCache: only run the garbage collector when we've icons
@@ -18,11 +53,19 @@ gnome-shell-extension-appindicator (19.04) disco; urgency=medium
   * metadata: set supported shell versions to 3.30+
   * debian/control: update Homepage and Vcs-* flags
   * debian/gbp.conf: add debian-tag option
+  * debian/patches/metadata-use-appindicator-namespace-and-naming.patch:
+    - Use ubuntu appindicator namespace, update description
 
   [ Andrea Azzarone ]
   * interfaces: Explicitly convert raw data to strings
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 21 Feb 2019 16:53:52 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 22 Feb 2019 08:54:12 +0000
+
+gnome-shell-extension-appindicator (22-1) unstable; urgency=medium
+
+  * Initial release (Closes: #898144)
+
+ -- Matteo F. Vescovi <mfv@debian.org>  Mon, 07 May 2018 23:37:59 +0200
 
 gnome-shell-extension-appindicator (18.04.1) bionic; urgency=medium
 

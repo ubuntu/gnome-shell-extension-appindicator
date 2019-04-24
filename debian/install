@@ -1,0 +1,3 @@
+*.js usr/share/gnome-shell/extensions/ubuntu-appindicators@ubuntu.com/
+metadata.json usr/share/gnome-shell/extensions/ubuntu-appindicators@ubuntu.com/
+interfaces-xml/ usr/share/gnome-shell/extensions/ubuntu-appindicators@ubuntu.com/

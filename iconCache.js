@@ -120,7 +120,7 @@ var IconCache = class AppIndicators_IconCache {
         } else if (cacheIsEmpty && this._gcTimeout) {
             //Util.Logger.debug("IconCache: garbage collector stopped");
             GLib.Source.remove(this._gcTimeout);
-            this._gcTimeout = 0;
+            delete this._gcTimeout;
         }
     }
 

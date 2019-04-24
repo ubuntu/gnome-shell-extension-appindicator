@@ -1,18 +1,31 @@
 Source: gnome-shell-extension-appindicator
 Section: gnome
 Priority: optional
-Maintainer: Ubuntu Desktop team <ubuntu-desktop@lists.ubuntu.com>
-Build-Depends: debhelper (>= 10),
-Standards-Version: 4.0.0
-Homepage: https://github.com/ubuntu/gnome-shell-extension-appindicator/blob/ubuntu/README.md
-Vcs-Git: https://github.com/ubuntu/gnome-shell-extension-appindicator.git -b ubuntu-dock
-Vcs-Browser: https://github.com/ubuntu/gnome-shell-extension-appindicator/tree/ubuntu-dock
+Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
+Uploaders: Matteo F. Vescovi <mfv@debian.org>
+Build-Depends:
+ debhelper (>= 11)
+Standards-Version: 4.3.0
+Homepage: https://github.com/ubuntu/gnome-shell-extension-appindicator
+Vcs-Browser: https://salsa.debian.org/gnome-team/shell-extensions/gnome-shell-extension-appindicator
+Vcs-Git: https://salsa.debian.org/gnome-team/shell-extensions/gnome-shell-extension-appindicator.git
 
 Package: gnome-shell-extension-appindicator
 Architecture: all
-Depends: ${shlibs:Depends},
-         ${misc:Depends},
-Description: App indicators for GNOME Shell
- Support app indicators in top panel, as the default Ubuntu experience.
+Depends:
+ gnome-shell (>= 3.31),
+ gnome-shell (<< 3.33),
+ ${shlibs:Depends},
+ ${misc:Depends}
+Description: AppIndicator/KStatusNotifierItem support for GNOME Shell
+ This extension integrates Ubuntu AppIndicators and KStatusNotifierItems
+ (KDE's blessed successor of the systray) into GNOME Shell.
  .
- System update of KStatusNotifierItem/AppIndicator extension.
+ Features:
+ .
+  - show indicator icons in the panel
+  - reveal indicator menus upon click
+  - double clicking an icon will activate the application window
+    (if implemented by the indicator)
+  - middle mouse click an icon to send a 'SecondaryActivate' event
+    to the application. Support needs to be implemented in the application

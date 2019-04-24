@@ -46,6 +46,7 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
         Util.connectSmart(this.actor, 'button-press-event', this, '_boxClicked')
 
         Util.connectSmart(this._indicator, 'ready',  this, '_display')
+        Util.connectSmart(this._indicator, 'menu',  this, '_updateMenu')
         Util.connectSmart(this._indicator, 'label',  this, '_updateLabel')
         Util.connectSmart(this._indicator, 'status', this, '_updateStatus')
 
@@ -89,14 +90,24 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
             this.actor.hide()
     }
 
-    _display() {
-        this._updateLabel()
-        this._updateStatus()
-
-        if (!this._menuClient) {
-            this._menuClient = new DBusMenu.Client(this._indicator.busName, this._indicator.menuPath)
-            this._menuClient.attachToMenu(this.menu)
+    _updateMenu() {
+        if (this._menuClient) {
+            this._menuClient.destroy();
+            this._menuClient = null;
+            this.menu.removeAll();
         }
+
+        if (this._indicator.menuPath) {
+            this._menuClient = new DBusMenu.Client(this._indicator.busName,
+                                                   this._indicator.menuPath);
+            this._menuClient.attachToMenu(this.menu);
+        }
+    }
+
+    _display() {
+        this._updateLabel();
+        this._updateStatus();
+        this._updateMenu();
 
         Main.panel.addToStatusArea("appindicator-"+this._indicator.uniqueId, this, 1, 'right')
     }
@@ -108,6 +119,10 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
             this._indicator.secondaryActivate();
             return;
         }
+
+        /* Ignore activation clicks if we have a menu */
+        if (this._menuClient && this._menuClient.isReady)
+            return;
 
         //HACK: event should be a ClutterButtonEvent but we get only a ClutterEvent (why?)
         //      because we can't access click_count, we'll create our own double click detector.

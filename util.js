@@ -50,7 +50,7 @@ var getUniqueBusNameSync = function(bus, name) {
     if (name[0] == ':')
         return name;
 
-    if (typeof bus === "undefined" || !bus)
+    if (!bus)
         bus = Gio.DBus.session;
 
     let variant_name = new GLib.Variant("(s)", [name]);
@@ -62,7 +62,7 @@ var getUniqueBusNameSync = function(bus, name) {
 }
 
 var traverseBusNames = function(bus, cancellable, callback) {
-    if (typeof bus === "undefined" || !bus)
+    if (!bus)
         bus = Gio.DBus.session;
 
     if (typeof(callback) !== "function")
@@ -89,7 +89,7 @@ var traverseBusNames = function(bus, cancellable, callback) {
 }
 
 var introspectBusObject = function(bus, name, cancellable, filterFunction, targetCallback, path) {
-    if (typeof path === "undefined" || !path)
+    if (!path)
         path = "/";
 
     if (typeof targetCallback !== "function")
@@ -105,7 +105,7 @@ var introspectBusObject = function(bus, name, cancellable, filterFunction, targe
                 let node_info = Gio.DBusNodeInfo.new_for_xml(introspection);
 
                 if ((typeof filterFunction === "function" && filterFunction(node_info) === true) ||
-                    typeof filterFunction === "undefined" || !filterFunction) {
+                    !filterFunction) {
                     targetCallback(name, path);
                 }
 
