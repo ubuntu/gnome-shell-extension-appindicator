@@ -1,11 +1,11 @@
-gnome-shell-extension-appindicator (28-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell-extension-appindicator (28-1ubuntu1) eoan; urgency=medium
 
   * debian/patches/appIndicator-Connect-to-scroll-event-signal.patch:
     - appIndicator: Connect to scroll-event signal (LP: #1825447)
   * debian/control:
     - Update maintainer to Ubuntu
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 24 Apr 2019 19:53:53 -0500
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 24 Apr 2019 19:56:34 -0500
 
 gnome-shell-extension-appindicator (28-1) experimental; urgency=medium
 
