@@ -108,6 +108,17 @@ app.connect("startup", () => {
     })
     menu.append(item);
 
+    item = Gtk.MenuItem.new_with_label("Toggle Attention");
+    item.connect('activate', (item) => {
+        indicator.set_status(indicator.get_status() != AppIndicator.IndicatorStatus.ATTENTION ?
+                             AppIndicator.IndicatorStatus.ATTENTION :
+                             AppIndicator.IndicatorStatus.ACTIVE);
+    });
+    menu.append(item);
+
+    item = new Gtk.SeparatorMenuItem();
+    menu.append(item);
+
     item = new Gtk.SeparatorMenuItem();
     menu.append(item);
 
@@ -136,6 +147,7 @@ app.connect("startup", () => {
 
     indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE);
     indicator.set_icon("gnome-run");
+    indicator.set_attention_icon("emoji-travel-symbolic");
     indicator.set_menu(menu);
 });
 app.run(ARGV);
