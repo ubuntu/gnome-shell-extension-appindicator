@@ -149,6 +149,28 @@ app.connect("startup", () => {
     indicator.set_icon("gnome-run");
     indicator.set_attention_icon("emoji-travel-symbolic");
     indicator.set_menu(menu);
+
+    indicator.connect("connection-changed", (indicator, connected) => {
+        print(`Signal \"connection-changed\" emitted. Connected: ${connected}`);
+    });
+    indicator.connect("new-attention-icon", (indicator) => {
+        print(`Signal \"new-attention-icon\" emitted.`);
+    });
+    indicator.connect("new-icon", (indicator) => {
+        print(`Signal \"new-icon\" emitted.`);
+    });
+    indicator.connect("new-icon-theme-path", (indicator, path) => {
+        print(`Signal \"new-icon-theme-path\" emitted. Path: ${path}`);
+    });
+    indicator.connect("new-label", (indicator, label, guide) => {
+        print(`Signal \"new-label\" emitted. Label: ${label}, Guide: ${guide}`);
+    });
+    indicator.connect("new-status", (indicator, status) => {
+        print(`Signal \"new-status\" emitted. Status: ${status}`);
+    });
+    indicator.connect("scroll-event", (indicator, steps, direction) => {
+        print(`Signal \"scroll-event\" emitted. Steps: ${steps}, Direction: ${direction}`);
+    });
 });
 app.run(ARGV);
 
