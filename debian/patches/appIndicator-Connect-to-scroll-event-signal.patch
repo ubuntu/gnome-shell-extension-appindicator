@@ -1,0 +1,21 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Wed, 24 Apr 2019 19:40:58 -0500
+Subject: appIndicator: Connect to scroll-event signal
+
+Fixes #169
+---
+ appIndicator.js | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/appIndicator.js b/appIndicator.js
+index ffeb41e..4721763 100644
+--- a/appIndicator.js
++++ b/appIndicator.js
+@@ -299,6 +299,7 @@ class AppIndicators_IconActor extends Shell.Stack {
+         Util.connectSmart(this._indicator, 'icon',         this, '_updateIcon')
+         Util.connectSmart(this._indicator, 'overlay-icon', this, '_updateOverlayIcon')
+         Util.connectSmart(this._indicator, 'ready',        this, '_invalidateIcon')
++        Util.connectSmart(this, 'scroll-event',            this, '_handleScrollEvent')
+ 
+         Util.connectSmart(themeContext, 'notify::scale-factor', this, (tc) => {
+             this.width = icon_size * tc.scale_factor;

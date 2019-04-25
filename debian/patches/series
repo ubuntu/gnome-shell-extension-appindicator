@@ -1,1 +1,2 @@
 metadata-use-appindicator-namespace-and-naming.patch
+appIndicator-Connect-to-scroll-event-signal.patch
