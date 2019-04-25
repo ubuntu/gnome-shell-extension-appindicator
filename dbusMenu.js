@@ -397,7 +397,7 @@ var DBusClient = class AppIndicators_DBusClient {
             try {
                 let ret = proxy.call_finish(res);
                 if ((ret.is_of_type(new GLib.VariantType('(b)')) &&
-                        ret.get_child_value(0).get_boolean()) ||
+                     ret.get_child_value(0).get_boolean()) ||
                     ret.is_of_type(new GLib.VariantType('()'))) {
                     this._requestLayoutUpdate();
                 }

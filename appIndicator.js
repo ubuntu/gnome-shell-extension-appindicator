@@ -299,6 +299,7 @@ class AppIndicators_IconActor extends Shell.Stack {
         Util.connectSmart(this._indicator, 'icon',         this, '_updateIcon')
         Util.connectSmart(this._indicator, 'overlay-icon', this, '_updateOverlayIcon')
         Util.connectSmart(this._indicator, 'ready',        this, '_invalidateIcon')
+        Util.connectSmart(this, 'scroll-event',            this, '_handleScrollEvent')
 
         Util.connectSmart(themeContext, 'notify::scale-factor', this, (tc) => {
             this.width = icon_size * tc.scale_factor;
