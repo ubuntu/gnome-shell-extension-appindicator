@@ -26,7 +26,7 @@ app.connect("startup", () => {
         title: "test",
         application: app
     });
-    
+
     var menu = new Gtk.Menu();
 
     var item = Gtk.MenuItem.new_with_label("A standard item");
@@ -34,11 +34,11 @@ app.connect("startup", () => {
 
     item = Gtk.MenuItem.new_with_label("Foo");
     menu.append(item);
-    
+
     item = Gtk.ImageMenuItem.new_with_label("Calculator");
     item.image = Gtk.Image.new_from_icon_name("gnome-calculator", Gtk.IconSize.MENU);
     menu.append(item);
-    
+
     item = Gtk.CheckMenuItem.new_with_label("Check me!");
     menu.append(item);
 
@@ -49,7 +49,7 @@ app.connect("startup", () => {
 
     item = Gtk.MenuItem.new_with_label("Blubdablub");
     sub.append(item);
-    
+
     item = new Gtk.SeparatorMenuItem();
     menu.append(item);
 
@@ -79,12 +79,12 @@ app.connect("startup", () => {
 
     item = Gtk.MenuItem.new_with_label("abcdefg");
     submenu2.append(item);
-    
+
     item = new Gtk.SeparatorMenuItem();
     menu.append(item);
 
     var group = [];
-    
+
     for (let i = 0; i < 5; ++i) {
         item = Gtk.RadioMenuItem.new_with_label(group, "Example Radio "+i);
         group = Gtk.RadioMenuItem.prototype.get_group.apply(item)//.get_group();
