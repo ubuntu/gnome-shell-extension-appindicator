@@ -1,4 +1,4 @@
-gnome-shell-extension-appindicator (29-1) UNRELEASED; urgency=medium
+gnome-shell-extension-appindicator (29-1) experimental; urgency=medium
 
   [ Matteo F. Vescovi ]
   * New upstream release
@@ -11,7 +11,7 @@ gnome-shell-extension-appindicator (29-1) UNRELEASED; urgency=medium
   * appIndicator: Connect to scroll-event signal.
     Fixes #169
 
- -- Matteo F. Vescovi <mfv@debian.org>  Thu, 25 Apr 2019 14:32:10 +0200
+ -- Matteo F. Vescovi <mfv@debian.org>  Thu, 25 Apr 2019 14:35:24 +0200
 
 gnome-shell-extension-appindicator (28-1) experimental; urgency=medium
 
