@@ -47,8 +47,8 @@ function init() {
 // monitor the bus manually to find out when the name vanished so we can reclaim it again.
 function maybe_enable_after_name_available() {
     // by the time we get called whe might not be enabled
-    if (isEnabled && !watchDog.isPresent && statusNotifierWatcher === null)
-        statusNotifierWatcher = new StatusNotifierWatcher.StatusNotifierWatcher();
+    if (isEnabled && (!watchDog.nameAcquired || !watchDog.isPresent) && statusNotifierWatcher === null)
+        statusNotifierWatcher = new StatusNotifierWatcher.StatusNotifierWatcher(watchDog);
 }
 
 function enable() {
@@ -75,9 +75,15 @@ var NameWatchdog = class AppIndicators_NameWatchdog {
 
         // will be set in the handlers which are guaranteed to be called at least once
         this.isPresent = false;
+        // Assume the name was acquired...we'll be told otherwise if necessary
+        this.nameAcquired = true;
 
         this._watcher_id = Gio.DBus.session.watch_name("org.kde.StatusNotifierWatcher", 0,
             this._appeared_handler.bind(this), this._vanished_handler.bind(this));
+    }
+
+    setNameAcquired(acquired) {
+        this.nameAcquired = acquired;
     }
 
     destroy() {
