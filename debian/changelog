@@ -1,8 +1,8 @@
-gnome-shell-extension-appindicator (29-2) UNRELEASED; urgency=medium
+gnome-shell-extension-appindicator (29-2) unstable; urgency=medium
 
   * Upload to unstable
 
- -- Matteo F. Vescovi <mfv@debian.org>  Mon, 08 Jul 2019 14:40:19 +0200
+ -- Matteo F. Vescovi <mfv@debian.org>  Mon, 08 Jul 2019 14:40:53 +0200
 
 gnome-shell-extension-appindicator (29-1) experimental; urgency=medium
 
