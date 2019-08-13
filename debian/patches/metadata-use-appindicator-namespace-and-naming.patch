@@ -1,6 +1,6 @@
 From: Debian GNOME Maintainers
  <pkg-gnome-maintainers@lists.alioth.debian.org>
-Date: Tue, 9 Apr 2019 11:29:45 -0500
+Date: Tue, 13 Aug 2019 22:37:50 +0200
 Subject: metadata-use-appindicator-namespace-and-naming
 
 ---
@@ -12,8 +12,8 @@ index 0916f6d..2752272 100644
 --- a/metadata.json
 +++ b/metadata.json
 @@ -3,8 +3,8 @@
-         "3.31",
-         "3.32"
+         "3.33",
+         "3.34"
      ],
 -    "uuid": "appindicatorsupport@rgcjonas.gmail.com",
 -    "name": "KStatusNotifierItem/AppIndicator Support",
