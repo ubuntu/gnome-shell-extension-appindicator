@@ -478,7 +478,7 @@ const MenuItemFactory = {
 
         if (shellItem instanceof PopupMenu.PopupMenuItem) {
             shellItem._icon = new St.Icon({ style_class: 'popup-menu-icon', x_align: St.Align.END })
-            shellItem.actor.add(shellItem._icon, { x_align: St.Align.END })
+            shellItem.add(shellItem._icon, { x_align: St.Align.END })
             shellItem.label.get_parent().child_set(shellItem.label, { expand: true })
         }
 
@@ -619,7 +619,7 @@ const MenuItemFactory = {
     },
 
     _updateVisible() {
-        this.actor.visible = this._dbusItem.property_get_bool("visible")
+        this.visible = this._dbusItem.property_get_bool("visible")
     },
 
     _updateSensitive() {
@@ -663,13 +663,13 @@ const MenuUtils = {
         for (let i = 0; i < family.length; ++i) {
             if (family[i]._dbusItem == dbusItem) {
                 // now, remove it
-                menu.box.remove_child(family[i].actor)
+                menu.box.remove_child(family[i])
 
                 // and add it again somewhere else
                 if (newpos < family.length && family[newpos] != family[i])
-                    menu.box.insert_child_below(family[i].actor, family[newpos].actor)
+                    menu.box.insert_child_below(family[i], family[newpos])
                 else
-                    menu.box.add(family[i].actor)
+                    menu.box.add(family[i])
 
                 // skip the rest
                 return

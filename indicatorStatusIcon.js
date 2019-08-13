@@ -39,11 +39,11 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
 
         this._iconBox = new AppIndicator.IconActor(indicator, Panel.PANEL_ICON_SIZE + 6);
         if (!this._box) // Gnome Shell 3.10
-            this.actor.add_actor(this._box = new St.BoxLayout());
+            this.add_actor(this._box = new St.BoxLayout());
 
         this._box.destroy_all_children();
         this._box.add_actor(this._iconBox);
-        Util.connectSmart(this.actor, 'button-press-event', this, '_boxClicked')
+        Util.connectSmart(this, 'button-press-event', this, '_boxClicked')
 
         Util.connectSmart(this._indicator, 'ready',  this, '_display')
         Util.connectSmart(this._indicator, 'menu',  this, '_updateMenu')
@@ -84,10 +84,7 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
     }
 
     _updateStatus() {
-        if (this._indicator.status != AppIndicator.SNIStatus.PASSIVE)
-            this.actor.show()
-        else
-            this.actor.hide()
+        this.visible = this._indicator.status != AppIndicator.SNIStatus.PASSIVE;
     }
 
     _updateMenu() {
@@ -119,10 +116,6 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
             this._indicator.secondaryActivate();
             return;
         }
-
-        /* Ignore activation clicks if we have a menu */
-        if (this._menuClient && this._menuClient.isReady)
-            return;
 
         //HACK: event should be a ClutterButtonEvent but we get only a ClutterEvent (why?)
         //      because we can't access click_count, we'll create our own double click detector.
