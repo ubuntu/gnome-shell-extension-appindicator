@@ -88,7 +88,7 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
 
         let indicator = new AppIndicator.AppIndicator(bus_name, obj_path);
         let visual = new IndicatorStatusIcon.IndicatorStatusIcon(indicator);
-        indicator.connect('destroy', visual.destroy.bind(visual));
+        indicator.connect('destroy', () => visual.destroy());
 
         this._items[id] = indicator;
 
