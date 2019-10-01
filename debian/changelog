@@ -1,3 +1,9 @@
+gnome-shell-extension-appindicator (30-2) UNRELEASED; urgency=medium
+
+  * Upload to unstable
+
+ -- Matteo F. Vescovi <mfv@debian.org>  Tue, 01 Oct 2019 20:26:21 +0200
+
 gnome-shell-extension-appindicator (30-1) experimental; urgency=medium
 
   * New upstream release
