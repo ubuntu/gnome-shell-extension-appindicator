@@ -534,11 +534,6 @@ class AppIndicators_IconActor extends Shell.Stack {
         if (!newIcon && pixmap)
             newIcon = this._createIconFromPixmap(iconSize, pixmap)
 
-        if (!newIcon) {
-            Util.Logger.fatal("unable to update overlay icon");
-            return;
-        }
-
         this._overlayIcon.set_child(newIcon)
     }
 
