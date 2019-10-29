@@ -1,0 +1,63 @@
+# TopIcons Plus Turkish Translate.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# Serdar Sağlam <teknomobil@yandex.com>, 2019.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-08-27 21:59+0200\n"
+"PO-Revision-Date: 2019-02-09 00:28+0300\n"
+"Language-Team: Serdar Sağlam <teknomobil@yandex.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.2.1\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"Last-Translator: \n"
+"Language: tr\n"
+
+#: prefs.js:60
+msgid "Opacity (min: 0, max: 255)"
+msgstr "Opaklık (az: 0, çok: 255)"
+
+#: prefs.js:78
+msgid "Desaturation (min: 0.0, max: 1.0)"
+msgstr "Doygunluk (az: 0.0, çok: 1.0)"
+
+#: prefs.js:96
+msgid "Brightness (min: -1.0, max: 1.0)"
+msgstr "Parlaklık (az: -1.0, çok: 1.0)"
+
+#: prefs.js:114
+msgid "Contrast (min: -1.0, max: 1.0)"
+msgstr "Karşıtlık (az: -1.0, çok: 1.0)"
+
+#: prefs.js:132
+msgid "Icon size (min: 0, max: 96)"
+msgstr "Simge boyutu (az: 0, çok : 96)"
+
+#: prefs.js:150
+msgid "Spacing between icons (min: 0, max: 20)"
+msgstr "Simgeler arasında boşluk (az: 0, çok: 20)"
+
+#: prefs.js:168
+msgid "Tray horizontal alignment"
+msgstr "Simgeleri yatay hizala"
+
+#: prefs.js:173
+msgid "Center"
+msgstr "Ortala"
+
+#: prefs.js:174
+msgid "Left"
+msgstr "Sol"
+
+#: prefs.js:175
+msgid "Right"
+msgstr "Sağ"
+
+#: prefs.js:182
+msgid "Tray offset"
+msgstr "Simgeleri dengele"

@@ -6,6 +6,8 @@
         "3.38",
         "40"
     ],
+    "gettext-domain": "AppIndicator-Support",
+    "settings-schema": "org.gnome.shell.extensions.appindicatorsupport",
     "uuid": "appindicatorsupport@rgcjonas.gmail.com",
     "name": "KStatusNotifierItem/AppIndicator Support",
     "description": "Adds KStatusNotifierItem support to the Shell",

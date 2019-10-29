@@ -1,0 +1,63 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-08-27 21:59+0200\n"
+"PO-Revision-Date: 2017-09-17 22:19+0200\n"
+"Language-Team: Jimmy Scionti <jimmy.scionti@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.0.3\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"Last-Translator: \n"
+"Language: ja\n"
+
+#: prefs.js:60
+msgid "Opacity (min: 0, max: 255)"
+msgstr "不透明度(min: 0, max: 255)"
+
+#: prefs.js:78
+msgid "Desaturation (min: 0.0, max: 1.0)"
+msgstr "彩度低下(min: 0.0, max: 1.0)"
+
+#: prefs.js:96
+msgid "Brightness (min: -1.0, max: 1.0)"
+msgstr "明度(min: -1.0, max: 1.0)"
+
+#: prefs.js:114
+msgid "Contrast (min: -1.0, max: 1.0)"
+msgstr "コントラスト(min: -1.0, max: 1.0)"
+
+#: prefs.js:132
+msgid "Icon size (min: 0, max: 96)"
+msgstr "アイコンサイズ(min: 0, max: 96)"
+
+#: prefs.js:150
+msgid "Spacing between icons (min: 0, max: 20)"
+msgstr "アイコン間のスペース(min: 0, max: 20)"
+
+#: prefs.js:168
+msgid "Tray horizontal alignment"
+msgstr "トレーポジション"
+
+#: prefs.js:173
+msgid "Center"
+msgstr "中央"
+
+#: prefs.js:174
+msgid "Left"
+msgstr "左"
+
+#: prefs.js:175
+msgid "Right"
+msgstr "右"
+
+#: prefs.js:182
+msgid "Tray offset"
+msgstr "トレーオフセット"
