@@ -728,6 +728,10 @@ class AppIndicatorsIconActor extends St.Icon {
         let iconType = this._indicator.status === SNIStatus.NEEDS_ATTENTION
             ? SNIconType.ATTENTION : SNIconType.NORMAL;
 
+        this._setOpacity(newIcon)
+        this._setSaturation(newIcon)
+        this._setBrightnessContrast(newIcon)
+
         this._updateIconByType(iconType, this._iconSize);
     }
 
@@ -754,5 +758,65 @@ class AppIndicatorsIconActor extends St.Icon {
 
         this._updateIcon();
         this._updateOverlayIcon();
+    }
+
+
+    _setOpacity(icon) {
+
+        let opacityValue = 220 // 0 - 255 from: settings.get_int('icon-opacity');
+
+        if (arguments.length == 1) {
+            // icon.opacityEnterId = icon.get_parent().connect('enter-event', function(actor, event) { icon.opacity = 255; });
+            // icon.opacityLeaveId = icon.get_parent().connect('leave-event', function(actor, event) { icon.opacity = opacityValue; });
+            icon.opacity = opacityValue;
+        } else {
+            for (let i = 0; i < icons.length; i++) {
+                let icon = icons[i];
+                // icon.opacityEnterId = icon.get_parent().connect('enter-event', function(actor, event) { icon.opacity = 255; });
+                // icon.opacityLeaveId = icon.get_parent().connect('leave-event', function(actor, event) { icon.opacity = opacityValue; });
+                icon.opacity = opacityValue;
+            }
+        }
+    }
+
+    _setSaturation(icon) {
+
+        let desaturationValue = 1.0 // 0.0 - 1.0 from: settings.get_double('icon-saturation');
+
+        if (arguments.length == 1) {
+            let sat_effect = new Clutter.DesaturateEffect({factor : desaturationValue});
+            sat_effect.set_factor(desaturationValue);
+            sat_effect.set_factor(desaturationValue);
+            icon.add_effect_with_name('desaturate', sat_effect);
+        } else {
+            for (let i = 0; i < icons.length; i++) {
+                 let icon = icons[i];
+                 let effect = icon.get_effect('desaturate');
+                 if (effect)
+                    effect.set_factor(desaturationValue);
+             }
+        }
+
+    }
+
+    _setBrightnessContrast(icon) {
+
+        let brightnessValue = 0.0 // -1.0 - 1.0 from: settings.get_double('icon-brightness');
+        let contrastValue = -0.1 // -1.0 - 1.0 from: settings.get_double('icon-contrast');
+
+        if (arguments.length == 1) {
+            let bright_effect = new Clutter.BrightnessContrastEffect({});
+            bright_effect.set_brightness(brightnessValue);
+            bright_effect.set_contrast(contrastValue);
+            icon.add_effect_with_name('brightness-contrast', bright_effect);
+        } else {
+            for (let i = 0; i < icons.length; i++) {
+                let icon = icons[i];
+                let effect = icon.get_effect('brightness-contrast')
+                effect.set_brightness(brightnessValue);
+                effect.set_contrast(contrastValue);
+            }
+        }
+
     }
 });
