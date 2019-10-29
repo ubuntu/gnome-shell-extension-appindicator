@@ -1,0 +1,40 @@
+<schemalist gettext-domain="AppIndicatorExtension">
+  <schema id="org.gnome.shell.extensions.appindicator" path="/org/gnome/shell/extensions/appindicator/">
+    <key name="icon-saturation" type="d">
+      <default>0.0</default>
+      <summary>Saturation</summary>
+    </key>
+    <key name="icon-brightness" type="d">
+      <default>0.0</default>
+      <summary>Brightness</summary>
+    </key>
+    <key name="icon-contrast" type="d">
+      <default>0.0</default>
+      <summary>Contrast</summary>
+    </key>
+    <key name="icon-opacity" type="i">
+      <default>240</default>
+      <summary>Opacity</summary>
+    </key>
+    <key name="icon-size" type="i">
+      <default>0</default>
+      <summary>Icon size</summary>
+      <description>Icon size in pixel</description>
+    </key>
+    <key name="icon-spacing" type="i">
+      <default>12</default>
+      <summary>Icon spacing</summary>
+      <description>Icon spacing within the tray</description>
+    </key>
+    <key name="tray-pos" type="s">
+      <default>"right"</default>
+      <summary>Position in tray</summary>
+      <description>Set where the Icon tray should appear in Gnome tray</description>
+    </key>
+    <key name="tray-order" type="i">
+      <default>1</default>
+      <summary>Order in tray</summary>
+      <description>Set where the Icon tray should appear among other trays</description>
+    </key>
+  </schema>
+</schemalist>

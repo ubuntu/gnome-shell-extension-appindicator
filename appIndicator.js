@@ -16,6 +16,7 @@
 
 /* exported AppIndicator, IconActor */
 
+const Clutter = imports.gi.Clutter;
 const GdkPixbuf = imports.gi.GdkPixbuf;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
@@ -29,6 +30,7 @@ const Signals = imports.signals;
 const IconCache = Extension.imports.iconCache;
 const Util = Extension.imports.util;
 const Interfaces = Extension.imports.interfaces;
+const Convenience = Extension.imports.convenience;
 const PromiseUtils = Extension.imports.promiseUtils;
 
 PromiseUtils._promisify(Gio.File.prototype, 'read_async', 'read_finish');
@@ -386,10 +388,17 @@ class AppIndicatorsIconActor extends St.Icon {
         this._iconCache     = new IconCache.IconCache();
         this._cancellable   = new Gio.Cancellable();
         this._loadingIcons  = new Set();
+        this._settings      = Convenience.getSettings();
 
         Util.connectSmart(this._indicator, 'icon', this, this._updateIcon);
         Util.connectSmart(this._indicator, 'overlay-icon', this, this._updateOverlayIcon);
         Util.connectSmart(this._indicator, 'reset', this, this._invalidateIcon);
+
+        Util.connectSmart(this._settings, 'changed::icon-opacity', this, this._invalidateIcon);
+        Util.connectSmart(this._settings, 'changed::icon-saturation', this, this._invalidateIcon);
+        Util.connectSmart(this._settings, 'changed::icon-brightness', this, this._invalidateIcon);
+        Util.connectSmart(this._settings, 'changed::icon-contrast', this, this._invalidateIcon);
+        Util.connectSmart(this._settings, 'changed::icon-size', this, this._invalidateIcon);
 
         Util.connectSmart(themeContext, 'notify::scale-factor', this, tc => {
             this.height = iconSize * tc.scale_factor;
@@ -402,6 +411,15 @@ class AppIndicatorsIconActor extends St.Icon {
         });
 
         Util.connectSmart(Gtk.IconTheme.get_default(), 'changed', this, this._invalidateIcon);
+
+        this.connect('enter-event', () => {
+            this.opacity = 255;
+            return Clutter.EVENT_PROPAGATE;
+        });
+        this.connect('leave-event', () => {
+            this._setOpacity();
+            return Clutter.EVENT_PROPAGATE;
+        });
 
         if (indicator.isReady)
             this._invalidateIcon();
@@ -728,6 +746,11 @@ class AppIndicatorsIconActor extends St.Icon {
         let iconType = this._indicator.status === SNIStatus.NEEDS_ATTENTION
             ? SNIconType.ATTENTION : SNIconType.NORMAL;
 
+        this._setOpacity();
+        this._setSaturation();
+        this._setBrightnessContrast();
+        this._setIconSize();
+
         this._updateIconByType(iconType, this._iconSize);
     }
 
@@ -754,5 +777,54 @@ class AppIndicatorsIconActor extends St.Icon {
 
         this._updateIcon();
         this._updateOverlayIcon();
+    }
+
+    _setOpacity() {
+        this.opacity = this._settings.get_int('icon-opacity');
+    }
+
+    _setSaturation() {
+        const desaturationValue = this._settings.get_double('icon-saturation');
+        let desaturateEffect = this.get_effect('desaturate');
+
+        if (desaturationValue > 0) {
+            if (!desaturateEffect) {
+                desaturateEffect = new Clutter.DesaturateEffect();
+                this.add_effect_with_name('desaturate', desaturateEffect);
+            }
+            desaturateEffect.set_factor(desaturationValue);
+        } else if (desaturateEffect) {
+            this.remove_effect(desaturateEffect);
+        }
+    }
+
+    _setBrightnessContrast() {
+        const brightnessValue = this._settings.get_double('icon-brightness');
+        const contrastValue = this._settings.get_double('icon-contrast');
+        let brightnessContrastEffect = this.get_effect('brightness-contrast');
+
+        if (brightnessValue !== 0 | contrastValue !== 0) {
+            if (!brightnessContrastEffect) {
+                brightnessContrastEffect = new Clutter.BrightnessContrastEffect();
+                this.add_effect_with_name('brightness-contrast', brightnessContrastEffect);
+            }
+            brightnessContrastEffect.set_brightness(brightnessValue);
+            brightnessContrastEffect.set_contrast(contrastValue);
+        } else if (brightnessContrastEffect) {
+            this.remove_effect(brightnessContrastEffect);
+        }
+    }
+
+    _setIconSize() {
+        let sizeValue = this._settings.get_int('icon-size');
+        if (sizeValue > 0) {
+            if (!this._defaultIconSize)
+                this._defaultIconSize = this._iconSize;
+
+            this._iconSize = sizeValue;
+        } else if (this._defaultIconSize) {
+            this._iconSize = this._defaultIconSize;
+            delete this._defaultIconSize;
+        }
     }
 });
