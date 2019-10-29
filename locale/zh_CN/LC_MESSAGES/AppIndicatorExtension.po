@@ -1,0 +1,63 @@
+# Chinese (China) translation for TopIcons-Plus.
+# Copyright (C) 2017-2017 TopIcons-Plus's COPYRIGHT HOLDER
+# This file is distributed under the same license as the TopIcons-Plus package.
+# Dingzhong Chen <wsxy162@gmail.com>, 2017.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: TopIcons-Plus master\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-09-20 03:23+0800\n"
+"PO-Revision-Date: 2017-09-20 03:44+0800\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.0.3\n"
+"Last-Translator: Dingzhong Chen <wsxy162@gmail.com>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"Language: zh_CN\n"
+
+#: prefs.js:39
+msgid "Opacity (min: 0, max: 255)"
+msgstr "不透明度（最低：0，最高：255）"
+
+#: prefs.js:57
+msgid "Desaturation (min: 0.0, max: 1.0)"
+msgstr "饱和度（最低：0.0，最高：1.0）"
+
+#: prefs.js:75
+msgid "Brightness (min: -1.0, max: 1.0)"
+msgstr "亮度（最低：-1.0，最高：1.0）"
+
+#: prefs.js:93
+msgid "Contrast (min: -1.0, max: 1.0)"
+msgstr "对比度（最低：-1.0，最高：1.0）"
+
+#: prefs.js:111
+msgid "Icon size (min: 0, max: 96)"
+msgstr "图标大小（最小：0，最大：96）"
+
+#: prefs.js:129
+msgid "Spacing between icons (min: 0, max: 20)"
+msgstr "图标间隔（最小：0，最大：20）"
+
+#: prefs.js:147
+msgid "Tray horizontal alignment"
+msgstr "托盘水平对齐方式"
+
+#: prefs.js:152
+msgid "Center"
+msgstr "居中"
+
+#: prefs.js:153
+msgid "Left"
+msgstr "左对齐"
+
+#: prefs.js:154
+msgid "Right"
+msgstr "右对齐"
+
+#: prefs.js:161
+msgid "Tray offset"
+msgstr "托盘偏移量"
