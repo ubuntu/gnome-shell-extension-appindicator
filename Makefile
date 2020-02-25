@@ -6,9 +6,11 @@
 ZIP= $(wildcard *.js) metadata.json $(wildcard interfaces-xml/*) \
      $(wildcard locale/*) $(wildcard schemas/*)
 
+PO_FILES= $(wildcard locale/*/LC_MESSAGES/*.po)
+
 all: zip-file
 
-zip-file: $(ZIP) compile-schema
+zip-file: $(ZIP) compile-schema translations
 	@echo +++ Packing archive
 	@mkdir -p build
 	@rm -f build/appindicator-support.zip
@@ -20,6 +22,12 @@ compile-schema: ./schemas/org.gnome.shell.extensions.appindicator.gschema.xml
 
 check:
 	eslint $(shell find -name '*.js')
+
+translations: $(PO_FILES)
+	@echo +++ Processing translations
+	@for pofile in $^; do \
+		msgfmt "$$pofile" -o `echo $$pofile | sed 's/po$$/mo/'`; \
+	done
 
 clean:
 	rm -rf build
