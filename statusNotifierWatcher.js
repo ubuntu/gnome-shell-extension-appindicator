@@ -45,7 +45,7 @@ const DEFAULT_ITEM_OBJECT_PATH = '/StatusNotifierItem';
 var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
 
     constructor(watchDog) {
-        this.watchDog = watchDog;
+        this._watchDog = watchDog;
         this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(Interfaces.StatusNotifierWatcher, this);
         this._dbusImpl.export(Gio.DBus.session, WATCHER_OBJECT);
         this._cancellable = new Gio.Cancellable;
@@ -62,8 +62,7 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
     }
 
     _acquiredName() {
-        this._everAcquiredName = true;
-        if (this.watchDog !== null) this.watchDog.setNameAcquired(true);
+        this._watchDog.nameAcquired = true;
     }
 
     _lostName() {
@@ -71,7 +70,7 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
             Util.Logger.debug('Lost name' + WATCHER_BUS_NAME);
         else
             Util.Logger.warn('Failed to acquire ' + WATCHER_BUS_NAME);
-        if (this.watchDog !== null) this.watchDog.setNameAcquired(false);
+        this._watchDog.nameAcquired = false;
     }
 
 

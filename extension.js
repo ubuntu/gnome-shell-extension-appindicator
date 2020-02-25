@@ -75,15 +75,9 @@ var NameWatchdog = class AppIndicators_NameWatchdog {
 
         // will be set in the handlers which are guaranteed to be called at least once
         this.isPresent = false;
-        // Assume the name was acquired...we'll be told otherwise if necessary
-        this.nameAcquired = true;
 
         this._watcher_id = Gio.DBus.session.watch_name("org.kde.StatusNotifierWatcher", 0,
             this._appeared_handler.bind(this), this._vanished_handler.bind(this));
-    }
-
-    setNameAcquired(acquired) {
-        this.nameAcquired = acquired;
     }
 
     destroy() {
