@@ -39,6 +39,8 @@ const WATCHER_OBJECT = '/StatusNotifierWatcher';
 
 const DEFAULT_ITEM_OBJECT_PATH = '/StatusNotifierItem';
 
+const BUS_ADDRESS_REGEX = /([a-zA-Z0-9._-]+\.[a-zA-Z0-9.-]+)|(:[0-9]+\.[0-9]+)$/
+
 /*
  * The StatusNotifierWatcher class implements the StatusNotifierWatcher dbus object
  */
@@ -97,9 +99,13 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
 
         this._dbusImpl.emit_signal('StatusNotifierItemRegistered', GLib.Variant.new('(s)', service));
         this._nameWatcher[id] = Gio.DBus.session.watch_name(bus_name, Gio.BusNameWatcherFlags.NONE, null,
-                                                            (proxy, bus_name) => {this._itemVanished(id)});
-        this._serviceWatcher[id] = Gio.DBus.session.watch_name(service, Gio.BusNameWatcherFlags.NONE, null,
-                                                            (proxy, bus_name) => {this._itemVanished(id)});
+            () => this._itemVanished(id));
+
+        if (service != bus_name && service.match(BUS_ADDRESS_REGEX)) {
+            this._serviceWatcher[id] = Gio.DBus.session.watch_name(service,
+                Gio.BusNameWatcherFlags.NONE, null,
+                () => this._itemVanished(id));
+        }
 
         this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems', GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
     }
@@ -144,7 +150,7 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         if (service.charAt(0) == '/') { // looks like a path
             bus_name = invocation.get_sender();
             obj_path = service;
-        } else if (service.match(/([a-zA-Z0-9._-]+\.[a-zA-Z0-9.-]+)|(:[0-9]+\.[0-9]+)$/)) {
+        } else if (service.match(BUS_ADDRESS_REGEX)) {
             bus_name = Util.getUniqueBusNameSync(invocation.get_connection(), service);
             obj_path = DEFAULT_ITEM_OBJECT_PATH;
         }
@@ -176,8 +182,11 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         delete this._items[id];
         Gio.DBus.session.unwatch_name(this._nameWatcher[id]);
         delete this._nameWatcher[id];
-        Gio.DBus.session.unwatch_name(this._serviceWatcher[id]);
-        delete this._serviceWatcher[id];
+
+        if (id in this._serviceWatcher) {
+            Gio.DBus.session.unwatch_name(this._serviceWatcher[id]);
+            delete this._serviceWatcher[id];
+        }
         this._dbusImpl.emit_signal('StatusNotifierItemUnregistered', GLib.Variant.new('(s)', id));
         this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems', GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
     }
