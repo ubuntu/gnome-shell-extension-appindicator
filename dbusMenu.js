@@ -478,8 +478,8 @@ const MenuItemFactory = {
 
         if (shellItem instanceof PopupMenu.PopupMenuItem) {
             shellItem._icon = new St.Icon({ style_class: 'popup-menu-icon', x_align: St.Align.END })
-            shellItem.add(shellItem._icon, { x_align: St.Align.END })
-            shellItem.label.get_parent().child_set(shellItem.label, { expand: true })
+            shellItem.add_child(shellItem._icon);
+            shellItem.label.x_expand = true;
         }
 
         // initialize our state
