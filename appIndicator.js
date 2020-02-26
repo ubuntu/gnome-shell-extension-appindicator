@@ -290,7 +290,7 @@ class AppIndicators_IconActor extends Shell.Stack {
         this._iconSize      = icon_size
         this._iconCache     = new IconCache.IconCache()
 
-        this._mainIcon    = new St.Bin()
+        this._mainIcon = new St.Bin({ style: 'padding: 2px 0 2px 0;'})
         this._overlayIcon = new St.Bin({ 'x-align': St.Align.END, 'y-align': St.Align.END })
 
         this.add_actor(this._mainIcon)
