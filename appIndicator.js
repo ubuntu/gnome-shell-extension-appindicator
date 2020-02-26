@@ -487,7 +487,7 @@ class AppIndicators_IconActor extends Shell.Stack {
                 })
             } catch (e) {
                 // the image data was probably bogus. We don't really know why, but it _does_ happen.
-                // we could log it here, but that doesn't really help in tracking it down.
+                Util.Logger.debug(`Impossible to create image from data: ${e}`)
                 return null
             }
     }
