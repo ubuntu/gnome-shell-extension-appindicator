@@ -284,7 +284,6 @@ class AppIndicators_IconActor extends Shell.Stack {
         this.name = this.constructor.name;
 
         let themeContext = St.ThemeContext.get_for_stage(global.stage);
-        //this.width  = icon_size * themeContext.scale_factor;
         this.height = icon_size * themeContext.scale_factor;
 
         this._indicator     = indicator
@@ -326,6 +325,8 @@ class AppIndicators_IconActor extends Shell.Stack {
     // and set it to false if needed so that it can be picked up by the garbage
     // collector.
     _cacheOrCreateIconByName(iconSize, iconName, themePath) {
+        let themeContext = St.ThemeContext.get_for_stage(global.stage);
+        iconSize *= themeContext.scale_factor;
         let id = iconName + '@' + iconSize + (themePath ? '##' + themePath : '');
         let icon = this._iconCache.get(id);
 
