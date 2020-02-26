@@ -462,13 +462,14 @@ class AppIndicators_IconActor extends Shell.Stack {
                 if (height != 0)
                     scale_factor = iconSize / height
 
+                const PivotPoint = Clutter.Point || imports.gi.Graphene.Point;
                 return new Clutter.Actor({
                     width: Math.min(width, iconSize),
                     height: Math.min(height, iconSize),
                     content: image,
                     scale_x: scale_factor,
                     scale_y: scale_factor,
-                    pivot_point: new Clutter.Point({ x: .5, y: .5 })
+                    pivot_point: new PivotPoint({ x: .5, y: .5 }),
                 })
             } catch (e) {
                 // the image data was probably bogus. We don't really know why, but it _does_ happen.
