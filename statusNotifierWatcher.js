@@ -84,7 +84,7 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
     _registerItem(service, bus_name, obj_path) {
         let id = this._getItemId(bus_name, obj_path);
 
-        if (this._items[id]) {
+        if (id in this._items) {
             Util.Logger.warn("Item "+id+" is already registered");
             return;
         }
@@ -113,10 +113,11 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
     _ensureItemRegistered(service, bus_name, obj_path) {
         let id = this._getItemId(bus_name, obj_path);
 
-        if (this._items[id]) {
+        if (id in this._items) {
             //delete the old one and add the new indicator
             Util.Logger.debug("Attempting to re-register "+id+"; resetting instead");
             this._items[id].reset();
+            return;
         }
 
         this._registerItem(service, bus_name, obj_path)
