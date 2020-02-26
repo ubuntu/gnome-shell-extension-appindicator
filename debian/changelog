@@ -1,3 +1,15 @@
+gnome-shell-extension-appindicator (31-1) UNRELEASED; urgency=medium
+
+  * New upstream version:
+    - Added support for indicator-multiload
+    - Made lots of logging visible only in debug mode
+    - Fixed rendering of named icons in HiDPI
+    - Monitor service name to track Qt applications
+    - Mitigate non-working state after unlock
+    - Reload icons, label and state when the app requests us
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 26 Feb 2020 05:54:53 +0100
+
 gnome-shell-extension-appindicator (30-2) unstable; urgency=medium
 
   * Upload to unstable
