@@ -369,8 +369,7 @@ class AppIndicators_IconActor extends Shell.Stack {
             icon.set_width(pixbuf.get_width());
             icon.set_height(pixbuf.get_height());
         } catch (e) {
-            // the image data was probably bogus. We don't really know why, but it _does_ happen.
-            // we could log it here, but that doesn't really help in tracking it down.
+            Util.Logger.warn(`Impossible to create image from path '${path}': ${e}`)
         }
         return icon;
     }
