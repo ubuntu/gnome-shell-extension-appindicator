@@ -406,7 +406,7 @@ class AppIndicators_IconActor extends Shell.Stack {
             let icon_theme = null;
             if (themePath) {
                 icon_theme = new Gtk.IconTheme();
-                Gtk.IconTheme.get_default().get_search_path().forEach(function(path) {
+                Gtk.IconTheme.get_default().get_search_path().forEach((path) => {
                     icon_theme.append_search_path(path);
                 });
                 icon_theme.append_search_path(themePath);
