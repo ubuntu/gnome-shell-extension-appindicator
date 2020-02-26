@@ -14,7 +14,7 @@ Package: gnome-shell-extension-appindicator
 Architecture: all
 Depends:
  gnome-shell (>= 3.33),
- gnome-shell (<< 3.35),
+ gnome-shell (<< 3.37),
  ${shlibs:Depends},
  ${misc:Depends}
 Description: AppIndicator/KStatusNotifierItem support for GNOME Shell
