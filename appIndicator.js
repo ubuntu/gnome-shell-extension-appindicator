@@ -33,6 +33,8 @@ var IconCache = Extension.imports.iconCache;
 const Util = Extension.imports.util;
 const Interfaces = Extension.imports.interfaces;
 
+const DEFAULT_FALLBACK_ICON_SIZE = 22
+
 const SNICategory = {
     APPLICATION: 'ApplicationStatus',
     COMMUNICATIONS: 'Communications',
@@ -237,8 +239,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
     }
 
     reset() {
-        //TODO: reload all properties, or do some other useful things
-        this.emit('reset')
+        this.emit('reset');
     }
 
     destroy() {
@@ -283,14 +284,13 @@ class AppIndicators_IconActor extends Shell.Stack {
         this.name = this.constructor.name;
 
         let themeContext = St.ThemeContext.get_for_stage(global.stage);
-        this.width  = icon_size * themeContext.scale_factor;
         this.height = icon_size * themeContext.scale_factor;
 
         this._indicator     = indicator
         this._iconSize      = icon_size
         this._iconCache     = new IconCache.IconCache()
 
-        this._mainIcon    = new St.Bin()
+        this._mainIcon = new St.Bin({ style: 'padding: 2px 0 2px 0;'})
         this._overlayIcon = new St.Bin({ 'x-align': St.Align.END, 'y-align': St.Align.END })
 
         this.add_actor(this._mainIcon)
@@ -299,10 +299,10 @@ class AppIndicators_IconActor extends Shell.Stack {
         Util.connectSmart(this._indicator, 'icon',         this, '_updateIcon')
         Util.connectSmart(this._indicator, 'overlay-icon', this, '_updateOverlayIcon')
         Util.connectSmart(this._indicator, 'ready',        this, '_invalidateIcon')
+        Util.connectSmart(this._indicator, 'reset',        this, '_invalidateIcon')
         Util.connectSmart(this, 'scroll-event',            this, '_handleScrollEvent')
 
         Util.connectSmart(themeContext, 'notify::scale-factor', this, (tc) => {
-            this.width = icon_size * tc.scale_factor;
             this.height = icon_size * tc.scale_factor;
             this._updateIcon();
             this._updateOverlayIcon();
@@ -325,81 +325,99 @@ class AppIndicators_IconActor extends Shell.Stack {
     // and set it to false if needed so that it can be picked up by the garbage
     // collector.
     _cacheOrCreateIconByName(iconSize, iconName, themePath) {
-        let id = iconName + '@' + iconSize + (themePath ? '##' + themePath : '')
+        let themeContext = St.ThemeContext.get_for_stage(global.stage);
+        iconSize *= themeContext.scale_factor;
+        let id = iconName + '@' + iconSize + (themePath ? '##' + themePath : '');
+        let icon = this._iconCache.get(id);
 
-        let icon = this._iconCache.get(id) || this._createIconByName(iconSize, iconName, themePath)
-
-        if (icon) {
-            icon.inUse = true
-            this._iconCache.add(id, icon)
+        if (!icon) {
+            let [path,] = this._getIconInfo(iconName, themePath, iconSize);
+            icon = this._createIconByName(path, iconSize);
         }
 
-        return icon
+        if (icon) {
+            icon.inUse = true;
+            this._iconCache.add(id, icon);
+        }
+
+        return icon;
     }
 
-    _createIconByName(icon_size, icon_name, themePath) {
-        // real_icon_size will contain the actual icon size in contrast to the requested icon size
-        var real_icon_size = icon_size
-        var gicon = null
+    _createIconByName(path, realSize) {
+        let icon = null;
+        try {
+            let pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(path, -1, realSize, true);
+            icon = new St.Icon({
+                gicon: pixbuf
+            });
+            icon.set_icon_size(Math.max(pixbuf.get_width(), pixbuf.get_height()));
+            icon.set_width(pixbuf.get_width());
+            icon.set_height(pixbuf.get_height());
+        } catch (e) {
+            Util.Logger.warn(`Impossible to create image from path '${path}': ${e}`)
+        }
+        return icon;
+    }
 
-        if (icon_name && icon_name[0] == "/") {
+    _getIconInfo(name, themePath, size) {
+        if (!size)
+            size = DEFAULT_FALLBACK_ICON_SIZE;
+        // realSize will contain the actual icon size in contrast to the requested icon size.
+        let realSize = size;
+        let path = null;
+        if (name && name[0] == "/") {
             //HACK: icon is a path name. This is not specified by the api but at least inidcator-sensors uses it.
-            var [ format, width, height ] = GdkPixbuf.Pixbuf.get_file_info(icon_name)
+            let [ format, width, height ] = GdkPixbuf.Pixbuf.get_file_info(name);
             if (!format) {
-                Util.Logger.fatal("invalid image format: "+icon_name)
+                Util.Logger.critical("invalid image format: " + name);
             } else {
                 // if the actual icon size is smaller, save that for later.
                 // scaled icons look ugly.
-                if (Math.max(width, height) < icon_size)
-                    real_icon_size = Math.max(width, height)
-
-                gicon = Gio.icon_new_for_string(icon_name)
+                if (Math.max(width, height) < size)
+                    realSize = Math.max(width, height);
+                path = name;
             }
-        } else if (icon_name) {
+        } else if (name) {
             // we manually look up the icon instead of letting st.icon do it for us
             // this allows us to sneak in an indicator provided search path and to avoid ugly upscaled icons
 
+            // indicator-application looks up a special "panel" variant, we just replicate that here
+            name = name + "-panel";
+
             // icon info as returned by the lookup
-            var icon_info = null
+            let iconInfo = null;
 
             // we try to avoid messing with the default icon theme, so we'll create a new one if needed
+            let icon_theme = null;
             if (themePath) {
-                var icon_theme = new Gtk.IconTheme()
+                icon_theme = new Gtk.IconTheme();
                 Gtk.IconTheme.get_default().get_search_path().forEach((path) => {
-                    icon_theme.append_search_path(path)
+                    icon_theme.append_search_path(path);
                 });
-                icon_theme.append_search_path(themePath)
-                icon_theme.set_screen(imports.gi.Gdk.Screen.get_default())
+                icon_theme.append_search_path(themePath);
+                icon_theme.set_screen(imports.gi.Gdk.Screen.get_default());
             } else {
-                var icon_theme = Gtk.IconTheme.get_default()
+                icon_theme = Gtk.IconTheme.get_default();
             }
-
-            // try to look up the icon in the icon theme
-            // indicator-application looks up a special "panel" variant, we just replicate that here
-            if (icon_theme.has_icon(icon_name + "-panel")) {
-                icon_name = icon_name + "-panel"
-            }
-
-            icon_info = icon_theme.lookup_icon(icon_name, icon_size,
-                                               Gtk.IconLookupFlags.GENERIC_FALLBACK)
-
-            // we have an icon
-            if (icon_info !== null) {
-                // the icon size may not match the requested size, especially with custom themes
-                if (icon_info.get_base_size() < icon_size) {
-                    // stretched icons look very ugly, we avoid that and just show the smaller icon
-                    real_icon_size = icon_info.get_base_size()
+            if (icon_theme) {
+                // try to look up the icon in the icon theme
+                iconInfo = icon_theme.lookup_icon(name, size,
+                                                  Gtk.IconLookupFlags.GENERIC_FALLBACK);
+                // no icon? that's bad!
+                if (iconInfo === null) {
+                    Util.Logger.fatal("unable to lookup icon for " + name);
+                } else { // we have an icon
+                    // the icon size may not match the requested size, especially with custom themes
+                    if (iconInfo.get_base_size() < size) {
+                        // stretched icons look very ugly, we avoid that and just show the smaller icon
+                        realSize = iconInfo.get_base_size();
+                     }
+                    // get the icon path
+                    path = iconInfo.get_filename();
                 }
-
-                // create a gicon for the icon
-                gicon = Gio.icon_new_for_string(icon_info.get_filename())
             }
         }
-
-        if (gicon)
-            return new St.Icon({ gicon: gicon, icon_size: real_icon_size })
-        else
-            return null
+        return [path, realSize];
     }
 
     _createIconFromPixmap(iconSize, iconPixmapArray) {
@@ -454,7 +472,7 @@ class AppIndicators_IconActor extends Shell.Stack {
                 })
             } catch (e) {
                 // the image data was probably bogus. We don't really know why, but it _does_ happen.
-                // we could log it here, but that doesn't really help in tracking it down.
+                Util.Logger.debug(`Impossible to create image from data: ${e}`)
                 return null
             }
     }
@@ -498,7 +516,7 @@ class AppIndicators_IconActor extends Shell.Stack {
         }
 
         if (!newIcon) {
-            Util.Logger.fatal("unable to update icon");
+            Util.Logger.critical("unable to update icon");
             return;
         }
 
@@ -533,11 +551,6 @@ class AppIndicators_IconActor extends Shell.Stack {
 
         if (!newIcon && pixmap)
             newIcon = this._createIconFromPixmap(iconSize, pixmap)
-
-        if (!newIcon) {
-            Util.Logger.fatal("unable to update overlay icon");
-            return;
-        }
 
         this._overlayIcon.set_child(newIcon)
     }

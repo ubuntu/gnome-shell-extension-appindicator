@@ -49,6 +49,10 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
         Util.connectSmart(this._indicator, 'menu',  this, '_updateMenu')
         Util.connectSmart(this._indicator, 'label',  this, '_updateLabel')
         Util.connectSmart(this._indicator, 'status', this, '_updateStatus')
+        Util.connectSmart(this._indicator, 'reset', this, () => {
+            this._updateStatus();
+            this._updateLabel();
+        });
 
         this.connect('destroy', () => {
             if (this._menuClient) {

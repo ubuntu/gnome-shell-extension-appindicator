@@ -16,6 +16,7 @@
 const Gio = imports.gi.Gio
 const GLib = imports.gi.GLib
 const GObject = imports.gi.GObject
+const Extension = imports.misc.extensionUtils.getCurrentExtension();
 
 const Signals = imports.signals
 
@@ -41,7 +42,7 @@ var refreshPropertyOnProxy = function(proxy, property_name) {
                                     proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}', changed_obj), [])
                                 } catch (e) {
                                     // the property may not even exist, silently ignore it
-                                    //Logger.debug("While refreshing property "+property_name+": "+e)
+                                    Logger.debug("While refreshing property "+property_name+": "+e)
                                 }
                             })
 }
@@ -183,24 +184,56 @@ var connectSmart = function() {
  * Helper class for logging stuff
  */
 var Logger = class AppIndicators_Logger {
-    static _log(prefix, message) {
-        global.log("[AppIndicatorSupport-"+prefix+"] "+message)
+    static _logStructured(logLevel, message, extraFields = {}) {
+        if (!Object.values(GLib.LogLevelFlags).includes(logLevel)) {
+            _logStructured(GLib.LogLevelFlags.LEVEL_WARNING,
+                'logLevel is not a valid GLib.LogLevelFlags');
+            return;
+        }
+
+        let domain = Extension.metadata.name;
+        let fields = {
+            'SYSLOG_IDENTIFIER': Extension.metadata.uuid,
+            'MESSAGE': `${message}`,
+        };
+
+        let thisFile = null;
+        let { stack } = new Error();
+        for (let stackLine of stack.split('\n')) {
+            stackLine = stackLine.replace('resource:///org/gnome/Shell/', '');
+            let [code, line] = stackLine.split(':');
+            let [func, file] = code.split(/@(.+)/);
+
+            if (!thisFile || thisFile === file) {
+                thisFile = file;
+                continue;
+            }
+
+            fields = Object.assign(fields, {
+                'CODE_FILE': file || '',
+                'CODE_LINE': line || '',
+                'CODE_FUNC': func || '',
+            });
+
+            break;
+        }
+
+        GLib.log_structured(domain, logLevel, Object.assign(fields, extraFields));
     }
 
     static debug(message) {
-        // CHeck the shell env variable to get what level to use
-        Logger._log("DEBUG", message);
+        Logger._logStructured(GLib.LogLevelFlags.LEVEL_DEBUG, message);
     }
 
     static warn(message) {
-        Logger._log("WARN", message);
+        Logger._logStructured(GLib.LogLevelFlags.LEVEL_WARNING, message);
     }
 
     static error(message) {
-        Logger._log("ERROR", message);
+        Logger._logStructured(GLib.LogLevelFlags.LEVEL_ERROR, message);
     }
 
-    static fatal(message) {
-        Logger._log("FATAL", message);
+    static critical(message) {
+        Logger._logStructured(GLib.LogLevelFlags.LEVEL_CRITICAL, message);
     }
 };

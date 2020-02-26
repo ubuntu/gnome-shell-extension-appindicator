@@ -47,8 +47,8 @@ function init() {
 // monitor the bus manually to find out when the name vanished so we can reclaim it again.
 function maybe_enable_after_name_available() {
     // by the time we get called whe might not be enabled
-    if (isEnabled && !watchDog.isPresent && statusNotifierWatcher === null)
-        statusNotifierWatcher = new StatusNotifierWatcher.StatusNotifierWatcher();
+    if (isEnabled && (!watchDog.nameAcquired || !watchDog.isPresent) && statusNotifierWatcher === null)
+        statusNotifierWatcher = new StatusNotifierWatcher.StatusNotifierWatcher(watchDog);
 }
 
 function enable() {
