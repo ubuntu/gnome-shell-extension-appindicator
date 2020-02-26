@@ -42,7 +42,7 @@ var refreshPropertyOnProxy = function(proxy, property_name) {
                                     proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}', changed_obj), [])
                                 } catch (e) {
                                     // the property may not even exist, silently ignore it
-                                    //Logger.debug("While refreshing property "+property_name+": "+e)
+                                    Logger.debug("While refreshing property "+property_name+": "+e)
                                 }
                             })
 }

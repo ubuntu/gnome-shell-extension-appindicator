@@ -45,7 +45,7 @@ var IconCache = class AppIndicators_IconCache {
         if (!(id in this._cache) || this._cache[id] !== o) {
             this._remove(id);
 
-            //Util.Logger.debug("IconCache: adding "+id,o);
+            Util.Logger.debug("IconCache: adding "+id,o);
             this._cache[id] = o;
 
             if ((o instanceof GObject.Object) && GObject.signal_lookup('destroy', o)) {
@@ -65,7 +65,7 @@ var IconCache = class AppIndicators_IconCache {
         if (!(id in this._cache))
             return;
 
-        //Util.Logger.debug('IconCache: removing '+id);
+        Util.Logger.debug('IconCache: removing '+id);
 
         let object = this._cache[id];
 
@@ -102,7 +102,7 @@ var IconCache = class AppIndicators_IconCache {
     // returns an object from the cache, or null if it can't be found.
     get(id) {
         if (id in this._cache) {
-            //Util.Logger.debug('IconCache: retrieving '+id);
+            Util.Logger.debug('IconCache: retrieving '+id);
             this._renewLifetime(id);
             return this._cache[id];
         }
@@ -114,11 +114,11 @@ var IconCache = class AppIndicators_IconCache {
         let cacheIsEmpty = (Object.keys(this._cache).length === 0);
 
         if (!cacheIsEmpty && !this._gcTimeout) {
-            //Util.Logger.debug("IconCache: garbage collector started");
+            Util.Logger.debug("IconCache: garbage collector started");
             this._gcTimeout = Mainloop.timeout_add_seconds(GC_INTERVAL,
                                                            this._gc.bind(this));
         } else if (cacheIsEmpty && this._gcTimeout) {
-            //Util.Logger.debug("IconCache: garbage collector stopped");
+            Util.Logger.debug("IconCache: garbage collector stopped");
             GLib.Source.remove(this._gcTimeout);
             delete this._gcTimeout;
         }
@@ -128,12 +128,12 @@ var IconCache = class AppIndicators_IconCache {
         var time = new Date().getTime();
         for (var id in this._cache) {
             if (this._cache[id].inUse) {
-                //Util.Logger.debug("IconCache: " + id + " is in use.");
+                Util.Logger.debug("IconCache: " + id + " is in use.");
                 continue;
             } else if (this._lifetime[id] < time) {
                 this._remove(id);
             } else {
-                //Util.Logger.debug("IconCache: " + id + " survived this round.");
+                Util.Logger.debug("IconCache: " + id + " survived this round.");
             }
         }
 
