@@ -319,17 +319,6 @@ class AppIndicators_IconActor extends Shell.Stack {
         });
     }
 
-    _getIconTvTime(path) {
-        try {
-            let file = Gio.file_new_for_path(path);
-            let fileInfo = file.query_info(Gio.FILE_ATTRIBUTE_TIME_MODIFIED, Gio.FileQueryInfoFlags.NONE, null);
-            if (fileInfo) {
-                return fileInfo.get_attribute_uint64(Gio.FILE_ATTRIBUTE_TIME_MODIFIED);
-            }
-        } catch (e) {}
-        return -1;
-    }
-
     // Will look the icon up in the cache, if it's found
     // it will return it. Otherwise, it will create it and cache it.
     // The .inUse flag will be set to true. So when you don't need
@@ -338,23 +327,18 @@ class AppIndicators_IconActor extends Shell.Stack {
     // collector.
     _cacheOrCreateIconByName(iconSize, iconName, themePath) {
         let id = iconName + '@' + iconSize + (themePath ? '##' + themePath : '');
-        let icon = null;
-        let [path, realSize] = this._getIconInfo(iconName, themePath, iconSize);
-        if (path) {
-            let time = this._getIconTvTime(path);
-            let oldIcon = this._iconCache.get(id);
-            if (!oldIcon || (oldIcon.time < time)) {
-                this._iconCache._remove(id);
-                icon = this._createIconByName(path, iconSize);
-                icon.time = time;
-                this._iconCache.add(id, icon);
-            } else if (oldIcon) {
-                icon = oldIcon;
-            }
-            if (icon) {
-                icon.inUse = true;
-            }
+        let icon = this._iconCache.get(id);
+
+        if (!icon) {
+            let [path,] = this._getIconInfo(iconName, themePath, iconSize);
+            icon = this._createIconByName(path, iconSize);
         }
+
+        if (icon) {
+            icon.inUse = true;
+            this._iconCache.add(id, icon);
+        }
+
         return icon;
     }
 
