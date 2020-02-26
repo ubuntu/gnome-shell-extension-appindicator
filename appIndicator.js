@@ -33,6 +33,8 @@ var IconCache = Extension.imports.iconCache;
 const Util = Extension.imports.util;
 const Interfaces = Extension.imports.interfaces;
 
+const DEFAULT_FALLBACK_ICON_SIZE = 22
+
 const SNICategory = {
     APPLICATION: 'ApplicationStatus',
     COMMUNICATIONS: 'Communications',
@@ -374,9 +376,8 @@ class AppIndicators_IconActor extends Shell.Stack {
     }
 
     _getIconInfo(name, themePath, size) {
-        // assume as a default size 16px if not set.
         if (!size)
-           size = 16;
+            size = DEFAULT_FALLBACK_ICON_SIZE;
         // realSize will contain the actual icon size in contrast to the requested icon size.
         let realSize = size;
         let path = null;
