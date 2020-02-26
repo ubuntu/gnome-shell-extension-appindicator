@@ -8,12 +8,12 @@ Subject: metadata-use-appindicator-namespace-and-naming
  1 file changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/metadata.json b/metadata.json
-index 0916f6d..2752272 100644
+index f25fef4..49c24ce 100644
 --- a/metadata.json
 +++ b/metadata.json
-@@ -3,8 +3,8 @@
-         "3.33",
-         "3.34"
+@@ -4,8 +4,8 @@
+         "3.34",
+         "3.36"
      ],
 -    "uuid": "appindicatorsupport@rgcjonas.gmail.com",
 -    "name": "KStatusNotifierItem/AppIndicator Support",
