@@ -233,7 +233,7 @@ var Logger = class AppIndicators_Logger {
         Logger._logStructured(GLib.LogLevelFlags.LEVEL_ERROR, message);
     }
 
-    static fatal(message) {
+    static critical(message) {
         Logger._logStructured(GLib.LogLevelFlags.LEVEL_CRITICAL, message);
     }
 };

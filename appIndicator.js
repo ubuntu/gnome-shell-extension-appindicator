@@ -346,7 +346,7 @@ class AppIndicators_IconActor extends Shell.Stack {
             //HACK: icon is a path name. This is not specified by the api but at least inidcator-sensors uses it.
             var [ format, width, height ] = GdkPixbuf.Pixbuf.get_file_info(icon_name)
             if (!format) {
-                Util.Logger.fatal("invalid image format: "+icon_name)
+                Util.Logger.critical("invalid image format: "+icon_name)
             } else {
                 // if the actual icon size is smaller, save that for later.
                 // scaled icons look ugly.
@@ -498,7 +498,7 @@ class AppIndicators_IconActor extends Shell.Stack {
         }
 
         if (!newIcon) {
-            Util.Logger.fatal("unable to update icon");
+            Util.Logger.critical("unable to update icon");
             return;
         }
 

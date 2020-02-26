@@ -145,7 +145,7 @@ var DbusMenuItem = class AppIndicators_DbusMenuItem {
         }
 
         if (pos < 0) {
-            Util.Logger.fatal("Trying to remove child which doesn't exist")
+            Util.Logger.critical("Trying to remove child which doesn't exist")
         } else {
             this._children_ids.splice(pos, 1)
             this.emit('child-removed', this._client.get_item(child_id))
@@ -163,7 +163,7 @@ var DbusMenuItem = class AppIndicators_DbusMenuItem {
         }
 
         if (oldpos < 0) {
-            Util.Logger.fatal("tried to move child which wasn't in the list")
+            Util.Logger.critical("tried to move child which wasn't in the list")
             return
         }
 
