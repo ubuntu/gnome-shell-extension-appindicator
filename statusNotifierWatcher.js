@@ -115,7 +115,7 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
 
         if (this._items[id]) {
             //delete the old one and add the new indicator
-            Util.Logger.warn("Attempting to re-register "+id+"; resetting instead");
+            Util.Logger.debug("Attempting to re-register "+id+"; resetting instead");
             this._items[id].reset();
         }
 
