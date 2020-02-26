@@ -30,4 +30,7 @@ translations: $(PO_FILES)
 	done
 
 clean:
+	@echo +++ Removing all generated files
 	rm -rf build
+	rm -f locale/**/LC_MESSAGES/*.mo
+	rm -f schemas/*.compiled
