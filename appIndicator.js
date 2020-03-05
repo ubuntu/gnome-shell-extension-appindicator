@@ -405,7 +405,7 @@ class AppIndicators_IconActor extends Shell.Stack {
                                                   Gtk.IconLookupFlags.GENERIC_FALLBACK);
                 // no icon? that's bad!
                 if (iconInfo === null) {
-                    Util.Logger.fatal("unable to lookup icon for " + name);
+                    Util.Logger.critical("unable to lookup icon for " + name);
                 } else { // we have an icon
                     // the icon size may not match the requested size, especially with custom themes
                     if (iconInfo.get_base_size() < size) {
