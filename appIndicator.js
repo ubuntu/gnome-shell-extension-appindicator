@@ -464,7 +464,7 @@ class AppIndicators_IconActor extends St.Icon {
                     Gtk.IconLookupFlags.GENERIC_FALLBACK);
                 // no icon? that's bad!
                 if (iconInfo === null) {
-                    Util.Logger.fatal("unable to lookup icon for " + name);
+                    Util.Logger.critical("unable to lookup icon for " + name);
                 } else { // we have an icon
                     // get the icon path
                     path = iconInfo.get_filename();
