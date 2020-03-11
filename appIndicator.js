@@ -300,6 +300,7 @@ class AppIndicators_IconActor extends St.Icon {
         this._iconSize      = icon_size
         this._iconCache     = new IconCache.IconCache()
         this._cancellable   = new Gio.Cancellable();
+        this._loadingIcons  = new Set();
 
         Util.connectSmart(this._indicator, 'icon',         this, '_updateIcon')
         Util.connectSmart(this._indicator, 'overlay-icon', this, '_updateOverlayIcon')
@@ -350,11 +351,19 @@ class AppIndicators_IconActor extends St.Icon {
             return;
         }
 
-        this._cancellable.cancel();
-        this._cancellable = new Gio.Cancellable();
+        if (this._loadingIcons.has(id)) {
+            Util.Logger.debug(`${this._indicator.id}, Icon ${id} Is still loading, ignoring the request`);
+            return;
+        } else if (this._loadingIcons.size > 0) {
+            this._cancellable.cancel();
+            this._cancellable = new Gio.Cancellable();
+            this._loadingIcons.clear();
+        }
 
+        this._loadingIcons.add(id);
         let path = this._getIconInfo(iconName, themePath, iconSize);
         this._createIconByName(path, (gicon) => {
+            this._loadingIcons.delete(id);
             if (gicon) {
                 gicon.inUse = true;
                 this._iconCache.add(id, gicon);
