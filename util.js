@@ -20,41 +20,42 @@ const Extension = imports.misc.extensionUtils.getCurrentExtension();
 
 const Signals = imports.signals
 
-var refreshPropertyOnProxy = function(proxy, property_name) {
+var refreshPropertyOnProxy = function(proxy, propertyName) {
     if (!proxy._proxyCancellables)
         proxy._proxyCancellables = new Map();
 
-    let cancellable = cancelRefreshPropertyOnProxy(proxy, property_name, true);
-    proxy.g_connection.call(proxy.g_name,
-                            proxy.g_object_path,
-                            'org.freedesktop.DBus.Properties',
-                            'Get',
-                            GLib.Variant.new('(ss)', [ proxy.g_interface_name, property_name ]),
-                            GLib.VariantType.new('(v)'),
-                            Gio.DBusCallFlags.NONE,
-                            -1,
-                            cancellable,
-                            function(conn, result) {
-                                proxy._proxyCancellables.delete(property_name);
-                                try {
-                                    let value_variant = conn.call_finish(result).deep_unpack()[0]
+    let cancellable = cancelRefreshPropertyOnProxy(proxy, propertyName, true);
+    proxy.g_connection.call(
+        proxy.g_name,
+        proxy.g_object_path,
+        'org.freedesktop.DBus.Properties',
+        'Get',
+        GLib.Variant.new('(ss)', [ proxy.g_interface_name, propertyName ]),
+        GLib.VariantType.new('(v)'),
+        Gio.DBusCallFlags.NONE,
+        -1,
+        cancellable,
+        (conn, result) => {
+        proxy._proxyCancellables.delete(propertyName);
+        try {
+            let valueVariant = conn.call_finish(result).deep_unpack()[0]
 
-                                    if (proxy.get_cached_property(property_name).equal(value_variant))
-                                        return;
+            if (proxy.get_cached_property(propertyName).equal(valueVariant))
+                return;
 
-                                    proxy.set_cached_property(property_name, value_variant)
+            proxy.set_cached_property(propertyName, valueVariant)
 
-                                    // synthesize a property changed event
-                                    let changed_obj = {}
-                                    changed_obj[property_name] = value_variant
-                                    proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}', changed_obj), [])
-                                } catch (e) {
-                                    if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
-                                        // the property may not even exist, silently ignore it
-                                        Logger.debug(`While refreshing property ${property_name}: ${e}`);
-                                    }
-                                }
-                            })
+            // synthesize a property changed event
+            let changedObj = {}
+            changedObj[propertyName] = valueVariant
+            proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}', changedObj), [])
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+                // the property may not even exist, silently ignore it
+                Logger.debug(`While refreshing property ${propertyName}: ${e}`);
+            }
+        }
+    });
 }
 
 var cancelRefreshPropertyOnProxy = function(proxy, propertyName=undefined, addNew=false) {
