@@ -22,7 +22,9 @@ const Panel = imports.ui.panel;
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 
-const Extension = imports.misc.extensionUtils.getCurrentExtension();
+const Config = imports.misc.config;
+const ExtensionUtils = imports.misc.extensionUtils;
+const Extension = ExtensionUtils.getCurrentExtension();
 
 const AppIndicator = Extension.imports.appIndicator
 const DBusMenu = Extension.imports.dbusMenu;
@@ -69,7 +71,11 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
         var label = this._indicator.label;
         if (label) {
             if (!this._label || !this._labelBin) {
-                this._labelBin = new St.Bin({ y_align: St.Align.MIDDLE, y_fill: false });
+                this._labelBin = new St.Bin({
+                    y_align: ExtensionUtils.versionCheck(['3.34'], Config.PACKAGE_VERSION) ?
+                        St.Align.MIDDLE : Clutter.ActorAlign.CENTER,
+                    y_fill: false,
+                });
                 this._label = new St.Label();
                 this._labelBin.add_actor(this._label);
                 this._box.add_actor(this._labelBin);
