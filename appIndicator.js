@@ -66,13 +66,14 @@ var AppIndicator = class AppIndicators_AppIndicator {
 
         //HACK: we cannot use Gio.DBusProxy.makeProxyWrapper because we need
         //      to specify G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES
+        this._cancellable = new Gio.Cancellable();
         this._proxy = new Gio.DBusProxy({ g_connection: Gio.DBus.session,
                                           g_interface_name: interface_info.name,
                                           g_interface_info: interface_info,
                                           g_name: bus_name,
                                           g_object_path: object,
                                           g_flags: Gio.DBusProxyFlags.GET_INVALIDATED_PROPERTIES })
-        this._proxy.init_async(GLib.PRIORITY_DEFAULT, null, ((initable, result) => {
+        this._proxy.init_async(GLib.PRIORITY_DEFAULT, this._cancellable, ((initable, result) => {
                 try {
                     initable.init_finish(result);
                     this._checkIfReady();
@@ -85,7 +86,8 @@ var AppIndicator = class AppIndicators_AppIndicator {
                         });
                     }
                 } catch(e) {
-                    Util.Logger.warn("While intializing proxy for "+bus_name+object+": "+e)
+                    if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                        Util.Logger.warn(`While intializing proxy for ${bus_name} ${object}: ${e}`);
                 }
             }))
 
@@ -250,6 +252,8 @@ var AppIndicator = class AppIndicators_AppIndicator {
         this.emit('destroy')
 
         this.disconnectAll()
+        this._cancellable.cancel();
+        delete this._cancellable;
         delete this._proxy
 
         if (this._delayCheck) {
