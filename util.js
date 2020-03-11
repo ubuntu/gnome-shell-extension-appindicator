@@ -260,6 +260,10 @@ var Logger = class AppIndicators_Logger {
         Logger._logStructured(GLib.LogLevelFlags.LEVEL_DEBUG, message);
     }
 
+    static message(message) {
+        Logger._logStructured(GLib.LogLevelFlags.LEVEL_MESSAGE, message);
+    }
+
     static warn(message) {
         Logger._logStructured(GLib.LogLevelFlags.LEVEL_WARNING, message);
     }
