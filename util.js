@@ -39,6 +39,9 @@ var refreshPropertyOnProxy = function(proxy, property_name) {
                                 try {
                                     let value_variant = conn.call_finish(result).deep_unpack()[0]
 
+                                    if (proxy.get_cached_property(property_name).equal(value_variant))
+                                        return;
+
                                     proxy.set_cached_property(property_name, value_variant)
 
                                     // synthesize a property changed event
