@@ -253,6 +253,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
 
         this.disconnectAll()
         this._cancellable.cancel();
+        Util.cancelRefreshPropertyOnProxy(this._proxy);
         delete this._cancellable;
         delete this._proxy
 

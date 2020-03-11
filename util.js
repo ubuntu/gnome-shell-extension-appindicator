@@ -21,6 +21,10 @@ const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Signals = imports.signals
 
 var refreshPropertyOnProxy = function(proxy, property_name) {
+    if (!proxy._proxyCancellables)
+        proxy._proxyCancellables = new Map();
+
+    let cancellable = cancelRefreshPropertyOnProxy(proxy, property_name, true);
     proxy.g_connection.call(proxy.g_name,
                             proxy.g_object_path,
                             'org.freedesktop.DBus.Properties',
@@ -29,8 +33,9 @@ var refreshPropertyOnProxy = function(proxy, property_name) {
                             GLib.VariantType.new('(v)'),
                             Gio.DBusCallFlags.NONE,
                             -1,
-                            null,
+                            cancellable,
                             function(conn, result) {
+                                proxy._proxyCancellables.delete(property_name);
                                 try {
                                     let value_variant = conn.call_finish(result).deep_unpack()[0]
 
@@ -41,10 +46,37 @@ var refreshPropertyOnProxy = function(proxy, property_name) {
                                     changed_obj[property_name] = value_variant
                                     proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}', changed_obj), [])
                                 } catch (e) {
-                                    // the property may not even exist, silently ignore it
-                                    Logger.debug("While refreshing property "+property_name+": "+e)
+                                    if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+                                        // the property may not even exist, silently ignore it
+                                        Logger.debug(`While refreshing property ${property_name}: ${e}`);
+                                    }
                                 }
                             })
+}
+
+var cancelRefreshPropertyOnProxy = function(proxy, propertyName=undefined, addNew=false) {
+    if (!proxy._proxyCancellables)
+        return;
+
+    if (propertyName !== undefined) {
+        let cancellable = proxy._proxyCancellables.get(propertyName);
+        if (cancellable) {
+            cancellable.cancel();
+
+            if (!addNew)
+                proxy._proxyCancellables.delete(propertyName);
+        }
+
+        if (addNew) {
+            cancellable = new Gio.Cancellable();
+            proxy._proxyCancellables.set(propertyName, cancellable);
+            return cancellable;
+        }
+    } else {
+        for (let cancellable of proxy._proxyCancellables)
+            cancellable.cancel();
+        delete proxy._proxyCancellables;
+    }
 }
 
 var getUniqueBusNameSync = function(bus, name) {
