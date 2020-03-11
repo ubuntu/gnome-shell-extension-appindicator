@@ -108,6 +108,16 @@ app.connect("startup", () => {
     })
     menu.append(item);
 
+    item = Gtk.MenuItem.new_with_label("Autodestroy Label");
+    item.connect('activate', () => {
+        let i = 30;
+        GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 1, () => {
+            indicator.set_label(i > 0 ? `Label timeout ${i--}` : '', '');
+            return (i >= 0);
+        });
+    })
+    menu.append(item);
+
     item = Gtk.MenuItem.new_with_label("Toggle Attention");
     item.connect('activate', (item) => {
         indicator.set_status(indicator.get_status() != AppIndicator.IndicatorStatus.ATTENTION ?
