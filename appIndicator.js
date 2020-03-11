@@ -33,8 +33,6 @@ var IconCache = Extension.imports.iconCache;
 const Util = Extension.imports.util;
 const Interfaces = Extension.imports.interfaces;
 
-const DEFAULT_FALLBACK_ICON_SIZE = 22
-
 const SNICategory = {
     APPLICATION: 'ApplicationStatus',
     COMMUNICATIONS: 'Communications',
@@ -46,6 +44,12 @@ var SNIStatus = {
     PASSIVE: 'Passive',
     ACTIVE: 'Active',
     NEEDS_ATTENTION: 'NeedsAttention'
+};
+
+const SNIconType = {
+    NORMAL: 0,
+    ATTENTION: 1,
+    OVERLAY: 2,
 };
 
 /**
@@ -277,11 +281,17 @@ var AppIndicator = class AppIndicators_AppIndicator {
 Signals.addSignalMethods(AppIndicator.prototype);
 
 var IconActor = GObject.registerClass(
-class AppIndicators_IconActor extends Shell.Stack {
+class AppIndicators_IconActor extends St.Icon {
 
     _init(indicator, icon_size) {
-        super._init({ reactive: true })
+        super._init({
+            reactive: true,
+            style_class: 'system-status-icon',
+            fallback_icon_name: 'image-loading-symbolic',
+        });
+
         this.name = this.constructor.name;
+        this.add_style_class_name('appindicator-icon');
 
         let themeContext = St.ThemeContext.get_for_stage(global.stage);
         this.height = icon_size * themeContext.scale_factor;
@@ -289,24 +299,22 @@ class AppIndicators_IconActor extends Shell.Stack {
         this._indicator     = indicator
         this._iconSize      = icon_size
         this._iconCache     = new IconCache.IconCache()
-
-        this._mainIcon = new St.Bin({ style: 'padding: 2px 0 2px 0;'})
-        this._overlayIcon = new St.Bin({ 'x-align': St.Align.END, 'y-align': St.Align.END })
-
-        this.add_actor(this._mainIcon)
-        this.add_actor(this._overlayIcon)
+        this._cancellable   = new Gio.Cancellable();
 
         Util.connectSmart(this._indicator, 'icon',         this, '_updateIcon')
         Util.connectSmart(this._indicator, 'overlay-icon', this, '_updateOverlayIcon')
-        Util.connectSmart(this._indicator, 'ready',        this, '_invalidateIcon')
         Util.connectSmart(this._indicator, 'reset',        this, '_invalidateIcon')
         Util.connectSmart(this, 'scroll-event',            this, '_handleScrollEvent')
 
         Util.connectSmart(themeContext, 'notify::scale-factor', this, (tc) => {
             this.height = icon_size * tc.scale_factor;
-            this._updateIcon();
-            this._updateOverlayIcon();
+            this._invalidateIcon();
         });
+
+        Util.connectSmart(this._indicator, 'ready', this, () => {
+            this._updateIconClass();
+            this._invalidateIcon();
+        })
 
         Util.connectSmart(Gtk.IconTheme.get_default(), 'changed', this, '_invalidateIcon')
 
@@ -315,7 +323,13 @@ class AppIndicators_IconActor extends Shell.Stack {
 
         this.connect('destroy', () => {
             this._iconCache.destroy();
+            this._cancellable.cancel();
         });
+    }
+
+    _updateIconClass() {
+        this.add_style_class_name(
+            `appindicator-icon-${this._indicator.id.toLowerCase().replace(/_|\s/g, '-')}`);
     }
 
     // Will look the icon up in the cache, if it's found
@@ -324,59 +338,92 @@ class AppIndicators_IconActor extends Shell.Stack {
     // the returned icon anymore, make sure to check the .inUse property
     // and set it to false if needed so that it can be picked up by the garbage
     // collector.
-    _cacheOrCreateIconByName(iconSize, iconName, themePath) {
-        let themeContext = St.ThemeContext.get_for_stage(global.stage);
-        iconSize *= themeContext.scale_factor;
+    _cacheOrCreateIconByName(iconSize, iconName, themePath, callback) {
+        let {scale_factor} = St.ThemeContext.get_for_stage(global.stage);
+        iconSize *= scale_factor;
+
         let id = iconName + '@' + iconSize + (themePath ? '##' + themePath : '');
-        let icon = this._iconCache.get(id);
+        let gicon = this._iconCache.get(id);
 
-        if (!icon) {
-            let [path,] = this._getIconInfo(iconName, themePath, iconSize);
-            icon = this._createIconByName(path, iconSize);
+        if (gicon) {
+            callback(gicon);
+            return;
         }
 
-        if (icon) {
-            icon.inUse = true;
-            this._iconCache.add(id, icon);
-        }
+        this._cancellable.cancel();
+        this._cancellable = new Gio.Cancellable();
 
-        return icon;
+        let path = this._getIconInfo(iconName, themePath, iconSize);
+        this._createIconByName(path, (gicon) => {
+            if (gicon) {
+                gicon.inUse = true;
+                this._iconCache.add(id, gicon);
+            }
+            callback(gicon);
+        });
     }
 
-    _createIconByName(path, realSize) {
-        let icon = null;
-        try {
-            let pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(path, -1, realSize, true);
-            icon = new St.Icon({
-                gicon: pixbuf
-            });
-            icon.set_icon_size(Math.max(pixbuf.get_width(), pixbuf.get_height()));
-            icon.set_width(pixbuf.get_width());
-            icon.set_height(pixbuf.get_height());
-        } catch (e) {
-            Util.Logger.warn(`Impossible to create image from path '${path}': ${e}`)
-        }
-        return icon;
+    _createIconByPath(path, width, height, callback) {
+        let file = Gio.File.new_for_path(path);
+        file.read_async(GLib.PRIORITY_DEFAULT, this._cancellable, (file, res) => {
+            try {
+                let inputStream = file.read_finish(res);
+
+                GdkPixbuf.Pixbuf.new_from_stream_at_scale_async(
+                    inputStream, height, width, true, this._cancellable, (_p, res) => {
+                        try {
+                            callback(GdkPixbuf.Pixbuf.new_from_stream_finish(res));
+                            this.icon_size = width > 0 ? width : this._iconSize;
+                        } catch (e) {
+                            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+                                Util.Logger.warn(`${this._indicator.id}, Impossible to create image from path '${path}': ${e}`);
+                                callback(null);
+                            }
+                        }
+                    });
+            } catch (e) {
+                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+                    Util.Logger.warn(`${this._indicator.id}, Impossible to read image from path '${path}': ${e}`);
+                    callback(null);
+                }
+            }
+        });
+    }
+
+    _createIconByName(path, callback) {
+        GdkPixbuf.Pixbuf.get_file_info_async(path, this._cancellable, (_p, res) => {
+            try {
+                let [format, width, height] = GdkPixbuf.Pixbuf.get_file_info_finish(res);
+
+                if (!format) {
+                    Util.Logger.critical(`${this._indicator.id}, Invalid image format: ${path}`);
+                    callback(null);
+                    return;
+                }
+
+                if (width >= height * 1.5) {
+                    /* Hello indicator-multiload! */
+                    this._createIconByPath(path, width, -1, callback);
+                } else {
+                    callback(new Gio.FileIcon({
+                        file: Gio.File.new_for_path(path)
+                    }));
+                    this.icon_size = this._iconSize;
+                }
+            } catch (e) {
+                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+                    Util.Logger.warn(`${this._indicator.id}, Impossible to read image info from path '${path}': ${e}`);
+                    callback(null);
+                }
+            }
+        });
     }
 
     _getIconInfo(name, themePath, size) {
-        if (!size)
-            size = DEFAULT_FALLBACK_ICON_SIZE;
-        // realSize will contain the actual icon size in contrast to the requested icon size.
-        let realSize = size;
         let path = null;
         if (name && name[0] == "/") {
             //HACK: icon is a path name. This is not specified by the api but at least inidcator-sensors uses it.
-            let [ format, width, height ] = GdkPixbuf.Pixbuf.get_file_info(name);
-            if (!format) {
-                Util.Logger.critical("invalid image format: " + name);
-            } else {
-                // if the actual icon size is smaller, save that for later.
-                // scaled icons look ugly.
-                if (Math.max(width, height) < size)
-                    realSize = Math.max(width, height);
-                path = name;
-            }
+            path = name;
         } else if (name) {
             // we manually look up the icon instead of letting st.icon do it for us
             // this allows us to sneak in an indicator provided search path and to avoid ugly upscaled icons
@@ -407,22 +454,31 @@ class AppIndicators_IconActor extends Shell.Stack {
                 if (iconInfo === null) {
                     Util.Logger.fatal("unable to lookup icon for " + name);
                 } else { // we have an icon
-                    // the icon size may not match the requested size, especially with custom themes
-                    if (iconInfo.get_base_size() < size) {
-                        // stretched icons look very ugly, we avoid that and just show the smaller icon
-                        realSize = iconInfo.get_base_size();
-                     }
                     // get the icon path
                     path = iconInfo.get_filename();
                 }
             }
         }
-        return [path, realSize];
+        return path;
     }
 
-    _createIconFromPixmap(iconSize, iconPixmapArray) {
-        let themeContext = St.ThemeContext.get_for_stage(global.stage);
-        let scale_factor = themeContext.scale_factor;
+    argbToRgba(src) {
+        let dest = new Uint8Array(src.length);
+        let srcView = new DataView(src.buffer);
+        let destView = new DataView(dest.buffer);
+
+        for (let i = 0; i < src.length; i += 4) {
+            let argb = srcView.getUint32(i);
+            let rgba = (argb & 0x00FFFFFF) << 8 |
+                       (argb & 0xFF000000) >>> 24;
+            destView.setUint32(i, rgba);
+        }
+
+        return dest;
+    }
+
+    _createIconFromPixmap(iconSize, iconPixmapArray, snIconType) {
+        let {scale_factor} = St.ThemeContext.get_for_stage(global.stage);
         iconSize = iconSize * scale_factor
         // the pixmap actually is an array of pixmaps with different sizes
         // we use the one that is smaller or equal the iconSize
@@ -432,109 +488,114 @@ class AppIndicators_IconActor extends Shell.Stack {
             return null
 
             let sortedIconPixmapArray = iconPixmapArray.sort((pixmapA, pixmapB) => {
-                // we sort biggest to smallest
+                // we sort smallest to biggest
                 let areaA = pixmapA[0] * pixmapA[1]
                 let areaB = pixmapB[0] * pixmapB[1]
 
-                return areaB - areaA
+                return areaA - areaB
             })
 
             let qualifiedIconPixmapArray = sortedIconPixmapArray.filter((pixmap) => {
-                // we disqualify any pixmap that is bigger than our requested size
-                return pixmap[0] <= iconSize && pixmap[1] <= iconSize
+                // we prefer any pixmap that is equal or bigger than our requested size
+                return pixmap[0] >= iconSize && pixmap[1] >= iconSize;
             })
 
-            // if no one got qualified, we use the smallest one available
             let iconPixmap = qualifiedIconPixmapArray.length > 0 ? qualifiedIconPixmapArray[0] : sortedIconPixmapArray.pop()
 
             let [ width, height, bytes ] = iconPixmap
             let rowstride = width * 4 // hopefully this is correct
 
             try {
-                let image = new Clutter.Image()
-                image.set_bytes(bytes,
-                                Cogl.PixelFormat.ARGB_8888,
-                                width,
-                                height,
-                                rowstride)
-
-                let scale_factor = themeContext.scale_factor;
-                if (height != 0)
-                    scale_factor = iconSize / height
-
-                const PivotPoint = Clutter.Point || imports.gi.Graphene.Point;
-                return new Clutter.Actor({
-                    width: Math.min(width, iconSize),
-                    height: Math.min(height, iconSize),
-                    content: image,
-                    scale_x: scale_factor,
-                    scale_y: scale_factor,
-                    pivot_point: new PivotPoint({ x: .5, y: .5 }),
-                })
+                return GdkPixbuf.Pixbuf.new_from_bytes(
+                    this.argbToRgba(bytes),
+                    GdkPixbuf.Colorspace.RGB, true,
+                    8, width, height, rowstride);
             } catch (e) {
                 // the image data was probably bogus. We don't really know why, but it _does_ happen.
-                Util.Logger.debug(`Impossible to create image from data: ${e}`)
+                Util.Logger.warn(`${this._indicator.id}, Impossible to create image from data: ${e}`)
                 return null
             }
     }
 
+    _setGicon(iconType, gicon) {
+        if (iconType != SNIconType.OVERLAY) {
+            if (gicon) {
+                this.gicon = new Gio.EmblemedIcon({ gicon });
+            } else {
+                this.gicon = null;
+                Util.Logger.critical(`unable to update icon for ${this._indicator.id}`);
+            }
+        } else {
+            if (gicon) {
+                this._emblem = new Gio.Emblem({ icon: gicon });
+            } else {
+                this._emblem = null;
+                Util.Logger.debug(`unable to update icon emblem for ${this._indicator.id}`);
+            }
+        }
+
+        if (this.gicon) {
+            if (!this._emblem || !this.gicon.get_emblems().includes(this._emblem)) {
+                this.gicon.clear_emblems();
+                if (this._emblem)
+                    this.gicon.add_emblem(this._emblem);
+            }
+        }
+    }
+
+    _updateIconByType(iconType, iconSize) {
+        let icon;
+        switch (iconType) {
+            case SNIconType.ATTENTION:
+                icon = this._indicator.attentionIcon;
+                break;
+            case SNIconType.NORMAL:
+                icon = this._indicator.icon;
+                break;
+            case SNIconType.OVERLAY:
+                icon = this._indicator.overlayIcon;
+                break;
+        }
+
+        let [name, pixmap, theme] = icon;
+        if (name && name.length) {
+            this._cacheOrCreateIconByName(iconSize, name, theme, (gicon) => {
+                if (!gicon && pixmap) {
+                    gicon = this._createIconFromPixmap(iconSize,
+                        pixmap, iconType);
+                }
+                this._setGicon(iconType, gicon);
+            });
+        } else if (pixmap) {
+            let gicon = this._createIconFromPixmap(iconSize,
+                pixmap, iconType);
+            this._setGicon(iconType, gicon);
+        }
+    }
+
     // updates the base icon
     _updateIcon() {
-        // remove old icon
-        if (this._mainIcon.get_child()) {
-            let child = this._mainIcon.get_child()
+        if (this.gicon) {
+            let { gicon } = this;
 
-            if (child.inUse)
-                child.inUse = false
-            else if (child.destroy)
-                child.destroy()
-
-            this._mainIcon.set_child(null)
+            if (gicon.inUse)
+                gicon.inUse = false
         }
-
-        // place to save the new icon
-        let newIcon = null
 
         // we might need to use the AttentionIcon*, which have precedence over the normal icons
-        if (this._indicator.status == SNIStatus.NEEDS_ATTENTION) {
-            let [ name, pixmap, theme ] = this._indicator.attentionIcon
+        let iconType = this._indicator.status == SNIStatus.NEEDS_ATTENTION ?
+            SNIconType.ATTENTION : SNIconType.NORMAL;
 
-            if (name && name.length)
-                newIcon = this._cacheOrCreateIconByName(this._iconSize, name, theme)
-
-            if (!newIcon && pixmap)
-                newIcon = this._createIconFromPixmap(this._iconSize, pixmap)
-        }
-
-        if (!newIcon) {
-            let [ name, pixmap, theme ] = this._indicator.icon
-
-            if (name && name.length)
-                newIcon = this._cacheOrCreateIconByName(this._iconSize, name, theme)
-
-            if (!newIcon && pixmap)
-                newIcon = this._createIconFromPixmap(this._iconSize, pixmap)
-        }
-
-        if (!newIcon) {
-            Util.Logger.critical("unable to update icon");
-            return;
-        }
-
-        this._mainIcon.set_child(newIcon)
+        this._updateIconByType(iconType, this._iconSize);
     }
 
     _updateOverlayIcon() {
         // remove old icon
-        if (this._overlayIcon.get_child()) {
-            let child = this._overlayIcon.get_child()
+        if (this.gicon && this.gicon.get_emblems().length) {
+            let [emblem] = this.gicon.get_emblems();
 
-            if (child.inUse)
-                child.inUse = false
-            else if (child.destroy)
-                child.destroy()
-
-            this._overlayIcon.set_child(null)
+            if (emblem.inUse)
+                emblem.inUse = false
         }
 
         // KDE hardcodes the overlay icon size to 10px (normal icon size 16px)
@@ -542,18 +603,7 @@ class AppIndicators_IconActor extends Shell.Stack {
         // our algorithms will always pick a smaller one instead of stretching it.
         let iconSize = Math.floor(this._iconSize / 1.6)
 
-        let newIcon = null
-
-        // create new
-        let [ name, pixmap, theme ] = this._indicator.overlayIcon
-
-        if (name && name.length)
-            newIcon = this._cacheOrCreateIconByName(iconSize, name, theme)
-
-        if (!newIcon && pixmap)
-            newIcon = this._createIconFromPixmap(iconSize, pixmap)
-
-        this._overlayIcon.set_child(newIcon)
+        this._updateIconByType(SNIconType.OVERLAY, iconSize);
     }
 
     _handleScrollEvent(actor, event) {
