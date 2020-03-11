@@ -341,9 +341,7 @@ class AppIndicators_IconActor extends St.Icon {
     // collector.
     _cacheOrCreateIconByName(iconSize, iconName, themePath, callback) {
         let {scale_factor} = St.ThemeContext.get_for_stage(global.stage);
-        iconSize *= scale_factor;
-
-        let id = iconName + '@' + iconSize + (themePath ? '##' + themePath : '');
+        let id = `${iconName}@${iconSize * scale_factor}${themePath || ''}`;
         let gicon = this._iconCache.get(id);
 
         if (gicon) {
@@ -361,7 +359,7 @@ class AppIndicators_IconActor extends St.Icon {
         }
 
         this._loadingIcons.add(id);
-        let path = this._getIconInfo(iconName, themePath, iconSize);
+        let path = this._getIconInfo(iconName, themePath, iconSize, scale_factor);
         this._createIconByName(path, (gicon) => {
             this._loadingIcons.delete(id);
             if (gicon) {
@@ -428,7 +426,7 @@ class AppIndicators_IconActor extends St.Icon {
         });
     }
 
-    _getIconInfo(name, themePath, size) {
+    _getIconInfo(name, themePath, size, scale) {
         let path = null;
         if (name && name[0] == "/") {
             //HACK: icon is a path name. This is not specified by the api but at least inidcator-sensors uses it.
@@ -457,8 +455,8 @@ class AppIndicators_IconActor extends St.Icon {
             }
             if (icon_theme) {
                 // try to look up the icon in the icon theme
-                iconInfo = icon_theme.lookup_icon(name, size,
-                                                  Gtk.IconLookupFlags.GENERIC_FALLBACK);
+                iconInfo = icon_theme.lookup_icon_for_scale(name, size, scale,
+                    Gtk.IconLookupFlags.GENERIC_FALLBACK);
                 // no icon? that's bad!
                 if (iconInfo === null) {
                     Util.Logger.fatal("unable to lookup icon for " + name);
