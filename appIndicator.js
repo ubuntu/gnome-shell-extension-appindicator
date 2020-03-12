@@ -476,14 +476,14 @@ class AppIndicators_IconActor extends St.Icon {
 
     argbToRgba(src) {
         let dest = new Uint8Array(src.length);
-        let srcView = new DataView(src.buffer);
-        let destView = new DataView(dest.buffer);
 
         for (let i = 0; i < src.length; i += 4) {
-            let argb = srcView.getUint32(i);
-            let rgba = (argb & 0x00FFFFFF) << 8 |
-                       (argb & 0xFF000000) >>> 24;
-            destView.setUint32(i, rgba);
+            let srcAlpha = src[i]
+
+            dest[i]     = src[i + 1]; /* red */
+            dest[i + 1] = src[i + 2]; /* green */
+            dest[i + 2] = src[i + 3]; /* blue */
+            dest[i + 3] = srcAlpha; /* alpha */
         }
 
         return dest;
