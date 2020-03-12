@@ -22,7 +22,9 @@ const Panel = imports.ui.panel;
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 
-const Extension = imports.misc.extensionUtils.getCurrentExtension();
+const Config = imports.misc.config;
+const ExtensionUtils = imports.misc.extensionUtils;
+const Extension = ExtensionUtils.getCurrentExtension();
 
 const AppIndicator = Extension.imports.appIndicator
 const DBusMenu = Extension.imports.dbusMenu;
@@ -34,15 +36,15 @@ const Util = Extension.imports.util;
 var IndicatorStatusIcon = GObject.registerClass(
 class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
     _init(indicator) {
-        super._init(null, indicator._uniqueId);
+        super._init(0.5, indicator._uniqueId);
         this._indicator = indicator;
 
-        this._iconBox = new AppIndicator.IconActor(indicator, Panel.PANEL_ICON_SIZE + 6);
-        if (!this._box) // Gnome Shell 3.10
-            this.add_actor(this._box = new St.BoxLayout());
+        this._iconBox = new AppIndicator.IconActor(indicator, Panel.PANEL_ICON_SIZE);
+        this._box = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
+        this._box.add_style_class_name('appindicator-box');
+        this.add_child(this._box);
 
-        this._box.destroy_all_children();
-        this._box.add_actor(this._iconBox);
+        this._box.add_child(this._iconBox);
         Util.connectSmart(this, 'button-press-event', this, '_boxClicked')
 
         Util.connectSmart(this._indicator, 'ready',  this, '_display')
@@ -69,7 +71,11 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
         var label = this._indicator.label;
         if (label) {
             if (!this._label || !this._labelBin) {
-                this._labelBin = new St.Bin({ y_align: St.Align.MIDDLE, y_fill: false });
+                this._labelBin = new St.Bin({
+                    y_align: ExtensionUtils.versionCheck(['3.34'], Config.PACKAGE_VERSION) ?
+                        St.Align.MIDDLE : Clutter.ActorAlign.CENTER,
+                    y_fill: false,
+                });
                 this._label = new St.Label();
                 this._labelBin.add_actor(this._label);
                 this._box.add_actor(this._labelBin);

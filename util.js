@@ -20,31 +20,67 @@ const Extension = imports.misc.extensionUtils.getCurrentExtension();
 
 const Signals = imports.signals
 
-var refreshPropertyOnProxy = function(proxy, property_name) {
-    proxy.g_connection.call(proxy.g_name,
-                            proxy.g_object_path,
-                            'org.freedesktop.DBus.Properties',
-                            'Get',
-                            GLib.Variant.new('(ss)', [ proxy.g_interface_name, property_name ]),
-                            GLib.VariantType.new('(v)'),
-                            Gio.DBusCallFlags.NONE,
-                            -1,
-                            null,
-                            function(conn, result) {
-                                try {
-                                    let value_variant = conn.call_finish(result).deep_unpack()[0]
+var refreshPropertyOnProxy = function(proxy, propertyName) {
+    if (!proxy._proxyCancellables)
+        proxy._proxyCancellables = new Map();
 
-                                    proxy.set_cached_property(property_name, value_variant)
+    let cancellable = cancelRefreshPropertyOnProxy(proxy, propertyName, true);
+    proxy.g_connection.call(
+        proxy.g_name,
+        proxy.g_object_path,
+        'org.freedesktop.DBus.Properties',
+        'Get',
+        GLib.Variant.new('(ss)', [ proxy.g_interface_name, propertyName ]),
+        GLib.VariantType.new('(v)'),
+        Gio.DBusCallFlags.NONE,
+        -1,
+        cancellable,
+        (conn, result) => {
+        proxy._proxyCancellables.delete(propertyName);
+        try {
+            let valueVariant = conn.call_finish(result).deep_unpack()[0]
 
-                                    // synthesize a property changed event
-                                    let changed_obj = {}
-                                    changed_obj[property_name] = value_variant
-                                    proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}', changed_obj), [])
-                                } catch (e) {
-                                    // the property may not even exist, silently ignore it
-                                    Logger.debug("While refreshing property "+property_name+": "+e)
-                                }
-                            })
+            if (proxy.get_cached_property(propertyName).equal(valueVariant))
+                return;
+
+            proxy.set_cached_property(propertyName, valueVariant)
+
+            // synthesize a property changed event
+            let changedObj = {}
+            changedObj[propertyName] = valueVariant
+            proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}', changedObj), [])
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+                // the property may not even exist, silently ignore it
+                Logger.debug(`While refreshing property ${propertyName}: ${e}`);
+            }
+        }
+    });
+}
+
+var cancelRefreshPropertyOnProxy = function(proxy, propertyName=undefined, addNew=false) {
+    if (!proxy._proxyCancellables)
+        return;
+
+    if (propertyName !== undefined) {
+        let cancellable = proxy._proxyCancellables.get(propertyName);
+        if (cancellable) {
+            cancellable.cancel();
+
+            if (!addNew)
+                proxy._proxyCancellables.delete(propertyName);
+        }
+
+        if (addNew) {
+            cancellable = new Gio.Cancellable();
+            proxy._proxyCancellables.set(propertyName, cancellable);
+            return cancellable;
+        }
+    } else {
+        for (let cancellable of proxy._proxyCancellables)
+            cancellable.cancel();
+        delete proxy._proxyCancellables;
+    }
 }
 
 var getUniqueBusNameSync = function(bus, name) {
@@ -223,6 +259,10 @@ var Logger = class AppIndicators_Logger {
 
     static debug(message) {
         Logger._logStructured(GLib.LogLevelFlags.LEVEL_DEBUG, message);
+    }
+
+    static message(message) {
+        Logger._logStructured(GLib.LogLevelFlags.LEVEL_MESSAGE, message);
     }
 
     static warn(message) {
