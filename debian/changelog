@@ -1,4 +1,6 @@
-gnome-shell-extension-appindicator (33-1) UNRELEASED; urgency=medium
+gnome-shell-extension-appindicator (33-1) experimental; urgency=medium
+
+  * Team upload.
 
   [ Marco Trevisan (Treviño) ]
   * New upstream version:
@@ -23,7 +25,7 @@ gnome-shell-extension-appindicator (33-1) UNRELEASED; urgency=medium
   [ Fini Jastrow ]
   * appIndicator: Fix runtime error when icon can not be loaded
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 12 Mar 2020 17:39:32 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 12 Mar 2020 22:36:05 +0100
 
 gnome-shell-extension-appindicator (32-1) experimental; urgency=medium
 
