@@ -1,3 +1,30 @@
+gnome-shell-extension-appindicator (33-1) UNRELEASED; urgency=medium
+
+  [ Marco Trevisan (Treviño) ]
+  * New upstream version:
+    - Completely refactored the icons handling, to use the same look and
+      behavior of the default gnome-shell indicators and properly handle
+      HiDPI cases.
+    - appIndicator: Always use Gio.Icon as model and St.Icon ui (LP: #1723827,
+      LP: #1817073, LP: #1832793, LP: #1825623)
+    - appIndicator: Don't try to reload multiple times a pending icon
+    - appIndicator: Lookup theme icons using scale factor
+    - testTool: Add test to show a changing label
+    - indicatorStatusIcon: Use Clutter actor alignment on 3.35+ versions
+      (LP: #1866042)
+    - appIndicator: Add a cancellable to stop the proxy on destruction
+    - Util: Cancel previous properties refresh requests on new one
+    - util: Don't emit signal changed if a property contents is equal
+    - Util: add message structured logging as well
+    - Util: Cleanup syntax of refreshPropertyOnProxy
+    - appIndicator: Use simpler implementation for argbToRgba
+    - appIndicator: Use warning level for not found icons
+
+  [ Fini Jastrow ]
+  * appIndicator: Fix runtime error when icon can not be loaded
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 12 Mar 2020 17:39:32 +0100
+
 gnome-shell-extension-appindicator (32-1) experimental; urgency=medium
 
   * Team upload.
