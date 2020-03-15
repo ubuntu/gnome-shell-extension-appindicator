@@ -387,16 +387,17 @@ class AppIndicatorsIconActor extends St.Icon {
         this._iconCache     = new IconCache.IconCache();
         this._cancellable   = new Gio.Cancellable();
         this._loadingIcons  = new Set();
+        this._settings      = Convenience.getSettings();
 
         Util.connectSmart(this._indicator, 'icon', this, this._updateIcon);
         Util.connectSmart(this._indicator, 'overlay-icon', this, this._updateOverlayIcon);
         Util.connectSmart(this._indicator, 'reset', this, this._invalidateIcon);
 
-        Util.connectSmart(Convenience.getSettings(), 'changed::icon-opacity', this, '_invalidateIcon')
-        Util.connectSmart(Convenience.getSettings(), 'changed::icon-saturation', this, '_invalidateIcon')
-        Util.connectSmart(Convenience.getSettings(), 'changed::icon-brightness', this, '_invalidateIcon')
-        Util.connectSmart(Convenience.getSettings(), 'changed::icon-contrast', this, '_invalidateIcon')
-        Util.connectSmart(Convenience.getSettings(), 'changed::icon-size', this, '_invalidateIcon');
+        Util.connectSmart(this._settings, 'changed::icon-opacity', this, '_invalidateIcon');
+        Util.connectSmart(this._settings, 'changed::icon-saturation', this, '_invalidateIcon');
+        Util.connectSmart(this._settings, 'changed::icon-brightness', this, '_invalidateIcon');
+        Util.connectSmart(this._settings, 'changed::icon-contrast', this, '_invalidateIcon');
+        Util.connectSmart(this._settings, 'changed::icon-size', this, '_invalidateIcon');
 
         Util.connectSmart(themeContext, 'notify::scale-factor', this, tc => {
             this.height = iconSize * tc.scale_factor;
@@ -769,15 +770,13 @@ class AppIndicatorsIconActor extends St.Icon {
 
 
     _setOpacity() {
-        let settings = Convenience.getSettings();
-        let opacityValue = settings.get_int('icon-opacity');
+        let opacityValue = this._settings.get_int('icon-opacity');
 
         this.opacity = opacityValue;
     }
 
     _setSaturation() {
-        let settings = Convenience.getSettings();
-        let desaturationValue = settings.get_double('icon-saturation');
+        let desaturationValue = this._settings.get_double('icon-saturation');
 
         let sat_effect = this.get_effect('desaturate');
         if (!sat_effect) {
@@ -788,9 +787,8 @@ class AppIndicatorsIconActor extends St.Icon {
     }
 
     _setBrightnessContrast() {
-        let settings = Convenience.getSettings();
-        let brightnessValue = settings.get_double('icon-brightness');
-        let contrastValue = settings.get_double('icon-contrast');
+        let brightnessValue = this._settings.get_double('icon-brightness');
+        let contrastValue = this._settings.get_double('icon-contrast');
 
         let bright_effect = this.get_effect('brightness-contrast');
         if (!bright_effect) {
