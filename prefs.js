@@ -106,8 +106,6 @@ const AppIndicator = new GObject.Class({
         this.attach(label, 0, 4, 1, 1);
         this.attach(widget, 1, 4, 1, 1);
 
-        if (0) { // comment unused stuff out
-
         // Icon size
         label = new Gtk.Label({
             label: _('Icon size (min: 0, max: 96)'),
@@ -125,6 +123,8 @@ const AppIndicator = new GObject.Class({
          }));
         this.attach(label, 0, 5, 1, 1);
         this.attach(widget, 1, 5, 1, 1);
+
+        if (0) { // comment unused stuff out
 
         // Icon tray spacing
         label = new Gtk.Label({

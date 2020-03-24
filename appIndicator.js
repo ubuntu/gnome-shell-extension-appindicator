@@ -384,6 +384,7 @@ class AppIndicatorsIconActor extends St.Icon {
 
         this._indicator     = indicator;
         this._iconSize      = iconSize;
+        this._iconSize0     = icon_size;
         this._iconCache     = new IconCache.IconCache();
         this._cancellable   = new Gio.Cancellable();
         this._loadingIcons  = new Set();
@@ -744,6 +745,7 @@ class AppIndicatorsIconActor extends St.Icon {
         this._setOpacity();
         this._setSaturation();
         this._setBrightnessContrast();
+        this._setIconSize();
 
         this._updateIconByType(iconType, this._iconSize);
     }
@@ -802,5 +804,13 @@ class AppIndicatorsIconActor extends St.Icon {
         }
         bright_effect.set_brightness(brightnessValue);
         bright_effect.set_contrast(contrastValue);
+    }
+
+    _setIconSize() {
+        let sizeValue = this._settings.get_int('icon-size');
+        if (sizeValue > 0)
+            this._iconSize = sizeValue;
+        else
+            this._iconSize = this._iconSize0;
     }
 });
