@@ -30,6 +30,7 @@ const Extension = ExtensionUtils.getCurrentExtension();
 const AppIndicator = Extension.imports.appIndicator;
 const DBusMenu = Extension.imports.dbusMenu;
 const Util = Extension.imports.util;
+const Convenience = Extension.imports.convenience;
 
 /*
  * IndicatorStatusIcon implements an icon in the system status area
@@ -65,6 +66,9 @@ class AppIndicatorsIndicatorStatusIcon extends PanelMenu.Button {
 
         if (this._indicator.isReady)
             this._display();
+
+        this._settings = Convenience.getSettings();
+        Util.connectSmart(this._settings, 'changed::tray-pos', this, '_display');
     }
 
     _updateLabel() {
@@ -114,7 +118,7 @@ class AppIndicatorsIndicatorStatusIcon extends PanelMenu.Button {
         this._updateStatus();
         this._updateMenu();
 
-        Main.panel.addToStatusArea(`appindicator-${this._indicator.uniqueId}`, this, 1, 'right');
+        Main.panel.addToStatusArea(`appindicator-${this._indicator.uniqueId}`, this, 1, this._settings.get_string('tray-pos'));
     }
 
     vfunc_button_press_event(buttonEvent) {

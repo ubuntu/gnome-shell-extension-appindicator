@@ -124,6 +124,20 @@ const AppIndicator = new GObject.Class({
         this.attach(label, 0, 5, 1, 1);
         this.attach(widget, 1, 5, 1, 1);
 
+        // Tray position in panel
+        label = new Gtk.Label({
+            label: _('Tray horizontal alignment'),
+            hexpand: true,
+            halign: Gtk.Align.START
+        });
+        widget = new Gtk.ComboBoxText();
+        widget.append('center', _("Center"));
+        widget.append('left', _("Left"));
+        widget.append('right', _("Right"));
+        this._settings.bind('tray-pos', widget, 'active-id', Gio.SettingsBindFlags.DEFAULT);
+        this.attach(label, 0, 7, 1, 1);
+        this.attach(widget, 1, 7, 1, 1);
+
         if (0) { // comment unused stuff out
 
         // Icon tray spacing
@@ -143,20 +157,6 @@ const AppIndicator = new GObject.Class({
          }));
         this.attach(label, 0, 6, 1, 1);
         this.attach(widget, 1, 6, 1, 1);
-
-        // Tray position in panel
-        label = new Gtk.Label({
-            label: _('Tray horizontal alignment'),
-            hexpand: true,
-            halign: Gtk.Align.START
-        });
-        widget = new Gtk.ComboBoxText();
-        widget.append('center', _("Center"));
-        widget.append('left', _("Left"));
-        widget.append('right', _("Right"));
-        this._settings.bind('tray-pos', widget, 'active-id', Gio.SettingsBindFlags.DEFAULT);
-        this.attach(label, 0, 7, 1, 1);
-        this.attach(widget, 1, 7, 1, 1);
 
         // Tray order in panel
         label = new Gtk.Label({
