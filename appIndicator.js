@@ -411,6 +411,11 @@ class AppIndicatorsIconActor extends St.Icon {
 
         Util.connectSmart(Gtk.IconTheme.get_default(), 'changed', this, this._invalidateIcon);
 
+        Util.connectSmart(this, 'enter-event', this, () => {
+            this.opacity = 255;
+        });
+        Util.connectSmart(this, 'leave-event', this, '_setOpacity');
+
         if (indicator.isReady)
             this._invalidateIcon();
 
