@@ -18,10 +18,13 @@ This extension integrates Ubuntu AppIndicators and KStatusNotifierItems (KDE's b
 ## Installation
 Normal users are recommended to get the extension from [extensions.gnome.org](https://extensions.gnome.org/extension/615/appindicator-support/).
 
-Alternatively, you can check out a version from git and symlink
+Alternatively, you can check out a version from git, compile the language files, and symlink
 `~/.local/share/gnome-shell/extensions/appindicatorsupport@rgcjonas.gmail.com` to your clone:
 
 ```
+git clone https://github.com/ubuntu/gnome-shell-extension-appindicator.git
+cd gnome-shell-extension-appindicator
+make
 ln -s $PWD ~/.local/share/gnome-shell/extensions/appindicatorsupport@rgcjonas.gmail.com
 gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com
 ```
