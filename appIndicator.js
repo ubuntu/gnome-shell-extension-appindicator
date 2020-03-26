@@ -291,7 +291,6 @@ class AppIndicators_IconActor extends St.Icon {
     _init(indicator, icon_size) {
         super._init({
             reactive: true,
-            style_class: 'system-status-icon',
             fallback_icon_name: 'image-loading-symbolic',
         });
 
