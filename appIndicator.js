@@ -291,11 +291,13 @@ class AppIndicators_IconActor extends St.Icon {
     _init(indicator, icon_size) {
         super._init({
             reactive: true,
+            style_class: 'system-status-icon',
             fallback_icon_name: 'image-loading-symbolic',
         });
 
         this.name = this.constructor.name;
         this.add_style_class_name('appindicator-icon');
+        this.set_style('padding:0');
 
         let themeContext = St.ThemeContext.get_for_stage(global.stage);
         this.height = icon_size * themeContext.scale_factor;
