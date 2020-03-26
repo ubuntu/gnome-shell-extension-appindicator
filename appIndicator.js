@@ -669,13 +669,15 @@ class AppIndicatorsIconActor extends St.Icon {
     // one (as in some cases it may be equal, but not the same object).
     // So when it's not need anymore we make sure to check the .inUse property
     // and set it to false so that it can be picked up by the garbage collector.
-    _setGicon(iconType, gicon) {
+    _setGicon(iconType, gicon, iconSize) {
         if (iconType !== SNIconType.OVERLAY) {
             if (gicon) {
                 this.gicon = new Gio.EmblemedIcon({ gicon });
 
                 if (!(gicon instanceof GdkPixbuf.Pixbuf))
                     gicon.inUse = this.gicon.get_icon() === gicon;
+
+                this.set_icon_size(iconSize);
             } else {
                 this.gicon = null;
                 Util.Logger.critical(`unable to update icon for ${this._indicator.id}`);
@@ -724,7 +726,7 @@ class AppIndicatorsIconActor extends St.Icon {
                 gicon = await this._createIconFromPixmap(iconSize, pixmap, iconType);
             }
 
-            this._setGicon(iconType, gicon);
+            this._setGicon(iconType, gicon, iconSize);
         } catch (e) {
             /* We handle the error messages already */
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED) &&
