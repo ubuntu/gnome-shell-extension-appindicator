@@ -772,8 +772,8 @@ class AppIndicatorsIconActor extends St.Icon {
         this._iconCache.clear();
         this._cancelLoading();
 
-        this._updateIcon();
         this._updateOverlayIcon();
+        this._updateIcon();
     }
 
 
