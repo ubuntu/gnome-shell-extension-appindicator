@@ -721,6 +721,7 @@ class AppIndicatorsIconActor extends St.Icon {
             }
 
             this._setGicon(iconType, gicon);
+            this.set_icon_size(iconSize);
         } catch (e) {
             /* We handle the error messages already */
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED) &&
