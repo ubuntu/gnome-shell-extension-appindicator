@@ -15,6 +15,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 const Gio = imports.gi.Gio
 const GLib = imports.gi.GLib
+const Main = imports.ui.main;
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension()
 
@@ -24,6 +25,7 @@ const Util = Extension.imports.util
 let statusNotifierWatcher = null;
 let isEnabled = false;
 let watchDog = null;
+let startupPreparedId;
 
 function init() {
     watchDog = new NameWatchdog();
@@ -51,9 +53,19 @@ function maybe_enable_after_name_available() {
         statusNotifierWatcher = new StatusNotifierWatcher.StatusNotifierWatcher(watchDog);
 }
 
-function enable() {
+function inner_enable(disconnect_startup_complete) {
+    if (disconnect_startup_complete)
+        Main.layoutManager.disconnect(startupPreparedId);
     isEnabled = true;
     maybe_enable_after_name_available();
+}
+
+function enable() {
+    // If the desktop is still starting up, we wait until it is ready
+    if (Main.layoutManager._startingUp)
+        startupPreparedId = Main.layoutManager.connect('startup-complete', () => { inner_enable(true); });
+    else
+        inner_enable(false);
 }
 
 function disable() {
