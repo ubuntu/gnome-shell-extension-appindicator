@@ -13,9 +13,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-const Gio = imports.gi.Gio
-const GLib = imports.gi.GLib
+const Gio = imports.gi.Gio;
+const GLib = imports.gi.GLib;
+const Gtk = imports.gi.Gtk;
 const Main = imports.ui.main;
+const Mainloop = imports.mainloop;
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension()
 
@@ -25,7 +27,8 @@ const Util = Extension.imports.util
 let statusNotifierWatcher = null;
 let isEnabled = false;
 let watchDog = null;
-let startupPreparedId;
+let startupPreparedId = 0;
+let waitForThemeId = 0;
 
 function init() {
     watchDog = new NameWatchdog();
@@ -53,19 +56,33 @@ function maybe_enable_after_name_available() {
         statusNotifierWatcher = new StatusNotifierWatcher.StatusNotifierWatcher(watchDog);
 }
 
-function inner_enable(disconnect_startup_complete) {
-    if (disconnect_startup_complete)
-        Main.layoutManager.disconnect(startupPreparedId);
+function inner_enable() {
+    if (Gtk.IconTheme.get_default() == null) {
+        global.log("Delaying launch until IconTheme is available.");
+        waitForThemeId = Mainloop.timeout_add_seconds(1, () => {
+            GLib.source_remove(waitForThemeId);
+            inner_enable();
+        });
+    } else {
+        inner_enable2();
+    }
+}
+
+function inner_enable2() {
     isEnabled = true;
     maybe_enable_after_name_available();
 }
 
 function enable() {
+    global.log("Enabling appindicators");
     // If the desktop is still starting up, we wait until it is ready
     if (Main.layoutManager._startingUp)
-        startupPreparedId = Main.layoutManager.connect('startup-complete', () => { inner_enable(true); });
+        startupPreparedId = Main.layoutManager.connect('startup-complete', () => {
+            Main.layoutManager.disconnect(startupPreparedId);
+            inner_enable();
+        });
     else
-        inner_enable(false);
+        inner_enable();
 }
 
 function disable() {
