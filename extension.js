@@ -16,6 +16,7 @@
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
 const Gtk = imports.gi.Gtk;
+const Gdk = imports.gi.Gdk;
 const Main = imports.ui.main;
 const Mainloop = imports.mainloop;
 
@@ -29,6 +30,8 @@ let isEnabled = false;
 let watchDog = null;
 let startupPreparedId = 0;
 let waitForThemeId = 0;
+let startupComplete = false;
+let displayAvailable = false;
 
 function init() {
     watchDog = new NameWatchdog();
@@ -57,32 +60,35 @@ function maybe_enable_after_name_available() {
 }
 
 function inner_enable() {
-    if (Gtk.IconTheme.get_default() == null) {
-        global.log("Delaying launch until IconTheme is available.");
-        waitForThemeId = Mainloop.timeout_add_seconds(1, () => {
-            GLib.source_remove(waitForThemeId);
-            inner_enable();
-        });
-    } else {
-        inner_enable2();
+    if (startupComplete && displayAvailable) {
+        isEnabled = true;
+        maybe_enable_after_name_available();
     }
 }
 
-function inner_enable2() {
-    isEnabled = true;
-    maybe_enable_after_name_available();
-}
-
 function enable() {
-    global.log("Enabling appindicators");
-    // If the desktop is still starting up, we wait until it is ready
-    if (Main.layoutManager._startingUp)
+    // If the desktop is still starting up, we must wait until it is ready
+    if (Main.layoutManager._startingUp) {
         startupPreparedId = Main.layoutManager.connect('startup-complete', () => {
             Main.layoutManager.disconnect(startupPreparedId);
+            startupComplete = true;
             inner_enable();
         });
-    else
-        inner_enable();
+    } else {
+        startupComplete = true;
+    }
+
+    // Ensure that the default Gdk Screen is available
+    if (Gtk.IconTheme.get_default() == null) {
+        waitForThemeId = Gdk.DisplayManager.get().connect('display-opened', () => {
+            Gdk.DisplayManager.get().disconnect(waitForThemeId);
+            displayAvailable = true;
+            inner_enable();
+        });
+    } else {
+        displayAvailable = true;
+    }
+    inner_enable();
 }
 
 function disable() {
