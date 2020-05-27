@@ -404,6 +404,13 @@ class AppIndicators_IconActor extends St.Icon {
     }
 
     _createIconByName(path, callback) {
+        // We must make an early return on null case to gracefully handle null exception.
+        if (path === null || path === undefined){
+            Util.Logger.warn(`${this._indicator.id}, Impossible to read image info from path 'null'`);
+            callback(null);
+            return;
+        }
+
         GdkPixbuf.Pixbuf.get_file_info_async(path, this._cancellable, (_p, res) => {
             try {
                 let [format, width, height] = GdkPixbuf.Pixbuf.get_file_info_finish(res);
