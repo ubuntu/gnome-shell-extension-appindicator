@@ -405,7 +405,7 @@ class AppIndicators_IconActor extends St.Icon {
 
     _createIconByName(path, callback) {
         // We must make an early return on null case to gracefully handle null exception.
-        if (path === null || path === undefined){
+        if (!path) {
             Util.Logger.warn(`${this._indicator.id}, Impossible to read image info from path 'null'`);
             callback(null);
             return;
