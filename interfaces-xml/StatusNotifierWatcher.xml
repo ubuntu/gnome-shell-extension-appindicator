@@ -19,4 +19,5 @@
         <arg type="s" direction="out" />
     </signal>
     <property name="IsStatusNotifierHostRegistered" type="b" access="read" />
+    <property name="ProtocolVersion" type="i" access="read" />
 </interface>

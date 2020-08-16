@@ -215,6 +215,10 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         return true;
     }
 
+    get ProtocolVersion() {
+        return 0;
+    }
+
     destroy() {
         if (!this._isDestroyed) {
             // this doesn't do any sync operation and doesn't allow us to hook up the event of being finished
