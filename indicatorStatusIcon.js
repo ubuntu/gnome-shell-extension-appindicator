@@ -74,7 +74,6 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
                 this._labelBin = new St.Bin({
                     y_align: ExtensionUtils.versionCheck(['3.34'], Config.PACKAGE_VERSION) ?
                         St.Align.MIDDLE : Clutter.ActorAlign.CENTER,
-                    y_fill: false,
                 });
                 this._label = new St.Label();
                 this._labelBin.add_actor(this._label);
