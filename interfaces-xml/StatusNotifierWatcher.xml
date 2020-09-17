@@ -6,9 +6,6 @@
         <arg type="s" direction="in" />
     </method>
     <property name="RegisteredStatusNotifierItems" type="as" access="read" />
-    <method name="ProtocolVersion">
-        <arg type="s" direction="out" />
-    </method>
     <method name="IsNotificationHostRegistered">
         <arg type="b" direction="out" />
     </method>
