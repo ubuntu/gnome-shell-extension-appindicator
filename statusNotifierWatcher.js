@@ -201,12 +201,6 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         return true;
     }
 
-    ProtocolVersion() {
-        // "The version of the protocol the StatusNotifierWatcher instance implements." [sic]
-        // in what syntax?
-        return `${Extension.uuid} (KDE; compatible; mostly) GNOME Shell/${ShellConfig.PACKAGE_VERSION}`;
-    }
-
     get RegisteredStatusNotifierItems() {
         return Object.keys(this._items);
     }
