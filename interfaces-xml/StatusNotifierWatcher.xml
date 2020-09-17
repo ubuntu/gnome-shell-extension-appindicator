@@ -2,7 +2,7 @@
     <method name="RegisterStatusNotifierItem">
         <arg type="s" direction="in" />
     </method>
-    <method name="RegisterNotificationHost">
+    <method name="RegisterStatusNotifierHost">
         <arg type="s" direction="in" />
     </method>
     <property name="RegisteredStatusNotifierItems" type="as" access="read" />
