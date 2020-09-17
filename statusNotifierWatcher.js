@@ -192,9 +192,11 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems', GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
     }
 
-    RegisterNotificationHost(service) {
-        throw new Gio.DBusError('org.gnome.Shell.UnsupportedMethod',
-                        'Registering additional notification hosts is not supported');
+    RegisterStatusNotifierHostAsync(_service, invocation) {
+        invocation.return_error_literal(
+            Gio.DBusError,
+            Gio.DBusError.NOT_SUPPORTED,
+            'Registering additional notification hosts is not supported');
     }
 
     IsNotificationHostRegistered() {
