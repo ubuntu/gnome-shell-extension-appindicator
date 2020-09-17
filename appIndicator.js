@@ -331,6 +331,11 @@ class AppIndicators_IconActor extends St.Icon {
         this.connect('destroy', () => {
             this._iconCache.destroy();
             this._cancellable.cancel();
+
+            if (this._callbackIdle) {
+                GLib.source_remove(this._callbackIdle);
+                delete this._callbackIdle;
+            }
         });
     }
 
@@ -405,7 +410,8 @@ class AppIndicators_IconActor extends St.Icon {
 
     _createIconByName(path, callback) {
         if (!path) {
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            this._callbackIdle = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                delete this._callbackIdle;
                 callback(null);
                 return false;
             });
