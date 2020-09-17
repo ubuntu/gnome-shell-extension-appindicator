@@ -47,10 +47,11 @@
     <!-- tooltip data -->
 
     <!--(iiay) is an image-->
+    <!-- We disable this as we don't support tooltip, so no need to go through it
     <property name="ToolTip" type="(sa(iiay)ss)" access="read">
         <annotation name="org.qtproject.QtDBus.QtTypeName" value="KDbusToolTipStruct"/>
     </property>
-
+    -->
 
     <!-- interaction: the systemtray wants the application to do something -->
     <method name="ContextMenu">
@@ -87,8 +88,10 @@
     <signal name="NewOverlayIcon">
     </signal>
 
+    <!-- We disable this as we don't support tooltip, so no need to go through it
     <signal name="NewToolTip">
     </signal>
+    -->
 
     <signal name="NewStatus">
         <arg name="status" type="s"/>
