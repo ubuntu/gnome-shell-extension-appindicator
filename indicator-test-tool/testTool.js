@@ -108,6 +108,15 @@ app.connect("startup", () => {
     })
     menu.append(item);
 
+    item = Gtk.MenuItem.new_with_label("Toggle Label");
+    item.connect('activate', () => {
+        indicator.get_label() ?
+            indicator.set_label('', '') :
+            indicator.set_label(new Date().getSeconds().toString(), 'Blub');
+    })
+    menu.append(item);
+    toggle_label = item;
+
     item = Gtk.MenuItem.new_with_label("Autodestroy Label");
     item.connect('activate', () => {
         let i = 30;
@@ -159,6 +168,7 @@ app.connect("startup", () => {
     indicator.set_icon("gnome-run");
     indicator.set_attention_icon("emoji-travel-symbolic");
     indicator.set_menu(menu);
+    indicator.set_secondary_activate_target(toggle_label);
 
     indicator.connect("connection-changed", (indicator, connected) => {
         print(`Signal \"connection-changed\" emitted. Connected: ${connected}`);
