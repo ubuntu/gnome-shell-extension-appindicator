@@ -206,7 +206,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
     }
 
     _onPropertiesChanged(proxy, changed, invalidated) {
-        let props = Object.keys(changed.deep_unpack())
+        let props = Object.keys(changed.unpack());
 
         props.forEach((property) => {
             // some property changes require updates on our part,
