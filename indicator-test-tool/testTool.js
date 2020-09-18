@@ -9,6 +9,7 @@ imports.gi.versions.Gtk = '3.0';
 const Gtk = imports.gi.Gtk;
 const AppIndicator = imports.gi.AppIndicator3;
 const GLib = imports.gi.GLib;
+const Gio = imports.gi.Gio;
 
 const DEFAULT_ICON = 'start-here';
 const ATTENTION_ICON = 'starred';
@@ -51,6 +52,21 @@ app.connect("startup", () => {
 
     let getRandomIcon = () =>
         iconsPool[Math.floor(Math.random() * (iconsPool.length - 1))];
+
+    let setRandomIconPath = () => {
+        let iconName = getRandomIcon();
+        let iconInfo = Gtk.IconTheme.get_default().lookup_icon(iconName,
+            16, Gtk.IconLookupFlags.GENERIC_FALLBACK);
+        let iconFile = Gio.File.new_for_path(iconInfo.get_filename());
+        let [, extension] = iconFile.get_basename().split('.');
+        let newName = `${iconName}-${Math.floor(Math.random() * 100)}.${extension}`;
+        let newFile = Gio.File.new_for_path(
+            `${GLib.dir_make_tmp('indicator-test-XXXXXX')}/${newName}`);
+        iconFile.copy(newFile, Gio.FileCopyFlagsOVERWRITE, null, null);
+
+        indicator.set_icon_theme_path(newFile.get_parent().get_path());
+        indicator.set_icon(newFile.get_basename());
+    }
 
     var menu = new Gtk.Menu();
 
@@ -145,6 +161,10 @@ app.connect("startup", () => {
 
     item = Gtk.MenuItem.new_with_label('Set Random icon');
     item.connect('activate', () => indicator.set_icon(getRandomIcon()));
+    menu.append(item);
+
+    item = Gtk.MenuItem.new_with_label('Set Random custom theme icon');
+    item.connect('activate', setRandomIconPath);
     menu.append(item);
 
     item = Gtk.CheckMenuItem.new_with_label('Toggle Label and Icon');
