@@ -55,15 +55,29 @@ var refreshPropertyOnProxy = function(proxy, propertyName, params) {
 
             proxy.set_cached_property(propertyName, valueVariant)
 
-            // synthesize a property changed event
-            proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}', {
-                [propertyName]: valueVariant,
-            }), []);
+            // synthesize a batched property changed event
+            if (!proxy._proxyChangedProperties)
+                proxy._proxyChangedProperties = {};
+            proxy._proxyChangedProperties[propertyName] = valueVariant;
+
+            if (!proxy._proxyPropertiesEmitId) {
+                proxy._proxyPropertiesEmitId = GLib.timeout_add(
+                    GLib.PRIORITY_DEFAULT_IDLE, 16, () => {
+                    delete proxy._proxyPropertiesEmitId;
+
+                    proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}',
+                        proxy._proxyChangedProperties), []);
+                    delete proxy._proxyChangedProperties;
+
+                    return GLib.SOURCE_REMOVE;
+                });
+            }
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
                 // the property may not even exist, silently ignore it
                 Logger.debug(`While refreshing property ${propertyName}: ${e}`);
                 proxy._proxyCancellables.delete(propertyName);
+                delete proxy._proxyChangedProperties[propertyName];
             }
         }
     });
@@ -93,7 +107,12 @@ var cancelRefreshPropertyOnProxy = function(proxy, params) {
             return cancellable;
         }
     } else {
+        if (proxy._proxyPropertiesEmitId) {
+            GLib.source_remove(proxy._proxyPropertiesEmitId);
+            delete proxy._proxyPropertiesEmitId;
+        }
         proxy._proxyCancellables.forEach(c => c.cancel());
+        delete proxy._proxyChangedProperties;
         delete proxy._proxyCancellables;
     }
 }
