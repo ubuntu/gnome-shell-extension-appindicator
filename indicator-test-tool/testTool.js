@@ -26,6 +26,11 @@ const iconsPool = [
     'emoji-food-symbolic',
 ];
 
+const ScrollType = {
+    UP: 0,
+    DOWN: 1,
+};
+
 (() => {
 
 var app = new Gtk.Application({
@@ -214,6 +219,16 @@ app.connect("startup", () => {
     });
     indicator.connect("scroll-event", (indicator, steps, direction) => {
         print(`Signal \"scroll-event\" emitted. Steps: ${steps}, Direction: ${direction}`);
+        let currentIndex = iconsPool.indexOf(indicator.get_icon());
+        let iconIndex;
+
+        if (direction == ScrollType.UP) {
+            iconIndex = (currentIndex + 1) % iconsPool.length;
+        } else {
+            iconIndex = (currentIndex <= 0 ? iconsPool.length : currentIndex) - 1;
+        }
+
+        indicator.set_icon(iconsPool[iconIndex]);
     });
 });
 app.run(ARGV);
