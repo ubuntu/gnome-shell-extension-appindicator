@@ -410,13 +410,20 @@ class AppIndicators_IconActor extends St.Icon {
 
     _createIconByName(path, callback) {
         if (!path) {
+            if (this._callbackIdle)
+                return;
+
             this._callbackIdle = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 delete this._callbackIdle;
                 callback(null);
                 return false;
             });
             return;
+        } else if (this._callbackIdle) {
+            GLib.source_remove(this._callbackIdle);
+            delete this._callbackIdle;
         }
+
         GdkPixbuf.Pixbuf.get_file_info_async(path, this._cancellable, (_p, res) => {
             try {
                 let [format, width, height] = GdkPixbuf.Pixbuf.get_file_info_finish(res);
