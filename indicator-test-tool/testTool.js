@@ -133,15 +133,6 @@ app.connect("startup", () => {
     })
     menu.append(item);
 
-    item = Gtk.MenuItem.new_with_label("Toggle Label");
-    item.connect('activate', () => {
-        indicator.get_label() ?
-            indicator.set_label('', '') :
-            indicator.set_label(new Date().getSeconds().toString(), 'Blub');
-    })
-    menu.append(item);
-    toggle_label = item;
-
     item = Gtk.MenuItem.new_with_label("Autodestroy Label");
     item.connect('activate', () => {
         let i = 30;
@@ -155,6 +146,19 @@ app.connect("startup", () => {
     item = Gtk.MenuItem.new_with_label('Set Random icon');
     item.connect('activate', () => indicator.set_icon(getRandomIcon()));
     menu.append(item);
+
+    item = Gtk.CheckMenuItem.new_with_label('Toggle Label and Icon');
+    item.connect('activate', (item) => {
+        if (item.get_active()) {
+            indicator.set_label(`${new Date().getTime()}`, 'Blub');
+            item.connect('activate', () => indicator.set_icon(getRandomIcon()));
+        } else {
+            indicator.set_label('', '');
+            indicator.set_icon(DEFAULT_ICON);
+        }
+    })
+    menu.append(item);
+    let toggleBrandingItem = item;
 
     item = Gtk.CheckMenuItem.new_with_label('Toggle Attention');
     let toggleAttentionId = item.connect('activate', () => {
@@ -198,7 +202,7 @@ app.connect("startup", () => {
     indicator.set_icon(DEFAULT_ICON);
     indicator.set_attention_icon(ATTENTION_ICON);
     indicator.set_menu(menu);
-    indicator.set_secondary_activate_target(toggle_label);
+    indicator.set_secondary_activate_target(toggleBrandingItem);
 
     indicator.connect("connection-changed", (indicator, connected) => {
         print(`Signal \"connection-changed\" emitted. Connected: ${connected}`);
