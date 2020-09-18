@@ -172,6 +172,8 @@ app.connect("startup", () => {
     item = new Gtk.SeparatorMenuItem();
     menu.append(item);
 
+    /* Double separaptors test */
+
     item = new Gtk.SeparatorMenuItem();
     menu.append(item);
 
