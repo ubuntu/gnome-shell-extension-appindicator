@@ -21,9 +21,13 @@ const Params = imports.misc.params;
 
 const Signals = imports.signals
 
-var refreshPropertyOnProxy = function(proxy, propertyName) {
+var refreshPropertyOnProxy = function(proxy, propertyName, params) {
     if (!proxy._proxyCancellables)
         proxy._proxyCancellables = new Map();
+
+    params = Params.parse(params, {
+        skipEqualtyCheck: false,
+    });
 
     let cancellable = cancelRefreshPropertyOnProxy(proxy, {
         propertyName,
@@ -45,7 +49,8 @@ var refreshPropertyOnProxy = function(proxy, propertyName) {
             let valueVariant = conn.call_finish(result).deep_unpack()[0];
             proxy._proxyCancellables.delete(propertyName);
 
-            if (proxy.get_cached_property(propertyName).equal(valueVariant))
+            if (!params.skipEqualtyCheck &&
+                proxy.get_cached_property(propertyName).equal(valueVariant))
                 return;
 
             proxy.set_cached_property(propertyName, valueVariant)

@@ -169,7 +169,9 @@ var AppIndicator = class AppIndicators_AppIndicator {
 
         [prop, `${prop}Pixmap`, `${prop}Name`].filter(p =>
             this._proxyPropertyList.includes(p)).forEach(p =>
-                Util.refreshPropertyOnProxy(this._proxy, p)
+                Util.refreshPropertyOnProxy(this._proxy, p, {
+                    skipEqualtyCheck: p.endsWith('Pixmap'),
+                })
             );
     }
 
