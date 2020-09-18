@@ -568,7 +568,7 @@ class AppIndicators_IconActor extends St.Icon {
         }
 
         if (this.gicon) {
-            if (!this._emblem || !this.gicon.get_emblems().includes(this._emblem)) {
+            if (!this.gicon.get_emblems().some(e => e.equal(this._emblem))) {
                 this.gicon.clear_emblems();
                 if (this._emblem)
                     this.gicon.add_emblem(this._emblem);
@@ -624,11 +624,14 @@ class AppIndicators_IconActor extends St.Icon {
 
     _updateOverlayIcon() {
         // remove old icon
-        if (this.gicon && this.gicon.get_emblems().length) {
-            let [emblem] = this.gicon.get_emblems();
+        if (this.gicon) {
+            let emblems = this.gicon.get_emblems();
+            if (emblems.length == 1) {
+                let [emblem] = emblems;
 
-            if (emblem.inUse)
-                emblem.inUse = false
+                if (emblem.inUse)
+                    emblem.inUse = false
+            }
         }
 
         // KDE hardcodes the overlay icon size to 10px (normal icon size 16px)
