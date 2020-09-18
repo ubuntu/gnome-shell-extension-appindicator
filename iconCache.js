@@ -63,6 +63,7 @@ var IconCache = class AppIndicators_IconCache {
     _remove(id) {
         Util.Logger.debug(`IconCache: removing ${id}`);
 
+        this._cache.get(id).run_dispose();
         this._cache.delete(id);
         this._lifetime.delete(id);
     }
