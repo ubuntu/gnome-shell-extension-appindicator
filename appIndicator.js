@@ -91,11 +91,6 @@ var AppIndicator = class AppIndicators_AppIndicator {
                 }
             }))
 
-        this._proxyPropertyList = interface_info.properties.map(propinfo => propinfo.name);
-        this._addExtraProperty('XAyatanaLabel');
-        this._addExtraProperty('XAyatanaLabelGuide');
-        this._addExtraProperty('XAyatanaOrderingIndex');
-
         Util.connectSmart(this._proxy, 'g-properties-changed', this, '_onPropertiesChanged')
         Util.connectSmart(this._proxy, 'g-signal', this, '_translateNewSignals')
         Util.connectSmart(this._proxy, 'notify::g-name-owner', this, '_nameOwnerChanged')
@@ -109,6 +104,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
             isReady = true;
 
         this.isReady = isReady;
+        this._setupProxyPropertyList();
 
         if (this.isReady && !wasReady) {
             if (this._delayCheck) {
@@ -129,15 +125,34 @@ var AppIndicator = class AppIndicators_AppIndicator {
     }
 
     _addExtraProperty(name) {
-        let propertyProps = { configurable: false, enumerable: true };
+        if (this._proxyPropertyList.includes(name))
+            return;
 
-        propertyProps.get = () => {
-            let v = this._proxy.get_cached_property(name);
-            return v ? v.deep_unpack() : null
-        };
+        if (!(name in this._proxy)) {
+            Object.defineProperty(this._proxy, name, {
+                configurable: false,
+                enumerable: true,
+                get: () => {
+                    const v = this._proxy.get_cached_property(name);
+                    return v ? v.deep_unpack() : null;
+                }
+            });
+        }
 
-        Object.defineProperty(this._proxy, name, propertyProps);
         this._proxyPropertyList.push(name);
+    }
+
+    _setupProxyPropertyList() {
+        let interfaceProps = this._proxy.g_interface_info.properties;
+        this._proxyPropertyList =
+            (this._proxy.get_cached_property_names() || []).filter(p =>
+                interfaceProps.some(propinfo => propinfo.name == p));
+
+        if (this._proxyPropertyList.length) {
+            this._addExtraProperty('XAyatanaLabel');
+            this._addExtraProperty('XAyatanaLabelGuide');
+            this._addExtraProperty('XAyatanaOrderingIndex');
+        }
     }
 
     // The Author of the spec didn't like the PropertiesChanged signal, so he invented his own
