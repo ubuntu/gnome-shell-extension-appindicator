@@ -5,6 +5,7 @@
  *
  * Requires libappindicator3 introspection data
  */
+imports.gi.versions.Gtk = '3.0';
 const Gtk = imports.gi.Gtk;
 const AppIndicator = imports.gi.AppIndicator3;
 const GLib = imports.gi.GLib;
