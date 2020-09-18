@@ -207,10 +207,10 @@ app.connect("startup", () => {
     indicator.set_secondary_activate_target(toggleBrandingItem);
 
     indicator.connect("connection-changed", (indicator, connected) => {
-        print(`Signal \"connection-changed\" emitted. Connected: ${connected}`);
+        print(`Signal "connection-changed" emitted. Connected: ${connected}`);
     });
     indicator.connect("new-attention-icon", (indicator) => {
-        print(`Signal \"new-attention-icon\" emitted.`);
+        print(`Signal "new-attention-icon" emitted.`);
     });
     indicator.connect("new-icon", (indicator) => {
         let icon = "<none>";
@@ -222,20 +222,20 @@ app.connect("startup", () => {
         print(`Signal "new-icon" emitted. Icon: ${icon}`);
     });
     indicator.connect("new-icon-theme-path", (indicator, path) => {
-        print(`Signal \"new-icon-theme-path\" emitted. Path: ${path}`);
+        print(`Signal "new-icon-theme-path" emitted. Path: ${path}`);
     });
     indicator.connect("new-label", (indicator, label, guide) => {
-        print(`Signal \"new-label\" emitted. Label: ${label}, Guide: ${guide}`);
+        print(`Signal "new-label" emitted. Label: ${label}, Guide: ${guide}`);
     });
     indicator.connect("new-status", (indicator, status) => {
-        print(`Signal \"new-status\" emitted. Status: ${status}`);
+        print(`Signal "new-status" emitted. Status: ${status}`);
 
         toggleAttentionItem.block_signal_handler(toggleAttentionId);
         toggleAttentionItem.set_active(status == 'NeedsAttention');
         toggleAttentionItem.unblock_signal_handler(toggleAttentionId);
     });
     indicator.connect("scroll-event", (indicator, steps, direction) => {
-        print(`Signal \"scroll-event\" emitted. Steps: ${steps}, Direction: ${direction}`);
+        print(`Signal "scroll-event" emitted. Steps: ${steps}, Direction: ${direction}`);
         let currentIndex = iconsPool.indexOf(indicator.get_icon());
         let iconIndex;
 
