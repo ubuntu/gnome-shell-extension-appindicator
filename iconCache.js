@@ -79,6 +79,12 @@ var IconCache = class AppIndicators_IconCache {
         }
     }
 
+    // marks all the icons as removable, if something doesn't claim them before
+    weakClear() {
+        this._cache.forEach((icon) => icon.inUse = false);
+        this._checkGC();
+    }
+
     // removes everything from the cache
     clear() {
         this._cache.forEach((_icon, id) => this._remove(id));
