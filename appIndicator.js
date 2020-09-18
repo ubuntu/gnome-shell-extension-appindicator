@@ -346,17 +346,12 @@ class AppIndicators_IconActor extends St.Icon {
 
     // Will look the icon up in the cache, if it's found
     // it will return it. Otherwise, it will create it and cache it.
-    // The .inUse flag will be set to true. So when you don't need
-    // the returned icon anymore, make sure to check the .inUse property
-    // and set it to false if needed so that it can be picked up by the garbage
-    // collector.
     _cacheOrCreateIconByName(iconSize, iconName, themePath, callback) {
         let {scale_factor} = St.ThemeContext.get_for_stage(global.stage);
         let id = `${iconName}@${iconSize * scale_factor}${themePath || ''}`;
         let gicon = this._iconCache.get(id);
 
         if (gicon) {
-            gicon.inUse = true;
             callback(gicon);
             return;
         }
@@ -374,10 +369,8 @@ class AppIndicators_IconActor extends St.Icon {
         let path = this._getIconInfo(iconName, themePath, iconSize, scale_factor);
         this._createIconByName(path, (gicon) => {
             this._loadingIcons.delete(id);
-            if (gicon) {
-                gicon.inUse = true;
+            if (gicon)
                 this._iconCache.add(id, gicon);
-            }
             callback(gicon);
         });
     }
@@ -551,10 +544,17 @@ class AppIndicators_IconActor extends St.Icon {
             }
     }
 
+    // The .inUse flag will be set to true if the used gicon matches the cached
+    // one (as in some cases it may be equal, but not the same object).
+    // So when it's not need anymore we make sure to check the .inUse property
+    // and set it to false so that it can be picked up by the garbage collector.
     _setGicon(iconType, gicon) {
         if (iconType != SNIconType.OVERLAY) {
             if (gicon) {
                 this.gicon = new Gio.EmblemedIcon({ gicon });
+
+                if (!(gicon instanceof GdkPixbuf.Pixbuf))
+                  gicon.inUse = (this.gicon.get_icon() == gicon);
             } else {
                 this.gicon = null;
                 Util.Logger.critical(`unable to update icon for ${this._indicator.id}`);
@@ -562,6 +562,9 @@ class AppIndicators_IconActor extends St.Icon {
         } else {
             if (gicon) {
                 this._emblem = new Gio.Emblem({ icon: gicon });
+
+                if (!(gicon instanceof GdkPixbuf.Pixbuf))
+                    gicon.inUse = true;
             } else {
                 this._emblem = null;
                 Util.Logger.debug(`unable to update icon emblem for ${this._indicator.id}`);
@@ -609,8 +612,8 @@ class AppIndicators_IconActor extends St.Icon {
 
     // updates the base icon
     _updateIcon() {
-        if (this.gicon) {
-            let { gicon } = this;
+        if (this.gicon instanceof Gio.EmblemedIcon) {
+            let { gicon } = this.gicon;
 
             if (gicon.inUse)
                 gicon.inUse = false
@@ -624,15 +627,11 @@ class AppIndicators_IconActor extends St.Icon {
     }
 
     _updateOverlayIcon() {
-        // remove old icon
-        if (this.gicon) {
-            let emblems = this.gicon.get_emblems();
-            if (emblems.length == 1) {
-                let [emblem] = emblems;
+        if (this._emblem) {
+            let { icon } = this._emblem;
 
-                if (emblem.inUse)
-                    emblem.inUse = false
-            }
+            if (icon.inUse)
+                icon.inUse = false;
         }
 
         // KDE hardcodes the overlay icon size to 10px (normal icon size 16px)
