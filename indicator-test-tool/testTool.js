@@ -123,7 +123,7 @@ app.connect("startup", () => {
 
     item = Gtk.MenuItem.new_with_label("Set Label");
     item.connect('activate', () => {
-        indicator.set_label(''+new Date().getSeconds(), 'Blub');
+        indicator.set_label(''+new Date().getTime(), 'Blub');
     });
     menu.append(item);
 
