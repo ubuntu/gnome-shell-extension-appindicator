@@ -156,13 +156,14 @@ app.connect("startup", () => {
     item.connect('activate', () => indicator.set_icon(getRandomIcon()));
     menu.append(item);
 
-    item = Gtk.MenuItem.new_with_label("Toggle Attention");
-    item.connect('activate', (item) => {
+    item = Gtk.CheckMenuItem.new_with_label('Toggle Attention');
+    let toggleAttentionId = item.connect('activate', () => {
         indicator.set_status(indicator.get_status() != AppIndicator.IndicatorStatus.ATTENTION ?
                              AppIndicator.IndicatorStatus.ATTENTION :
                              AppIndicator.IndicatorStatus.ACTIVE);
     });
     menu.append(item);
+    let toggleAttentionItem = item;
 
     item = new Gtk.SeparatorMenuItem();
     menu.append(item);
@@ -216,6 +217,10 @@ app.connect("startup", () => {
     });
     indicator.connect("new-status", (indicator, status) => {
         print(`Signal \"new-status\" emitted. Status: ${status}`);
+
+        toggleAttentionItem.block_signal_handler(toggleAttentionId);
+        toggleAttentionItem.set_active(status == 'NeedsAttention');
+        toggleAttentionItem.unblock_signal_handler(toggleAttentionId);
     });
     indicator.connect("scroll-event", (indicator, steps, direction) => {
         print(`Signal \"scroll-event\" emitted. Steps: ${steps}, Direction: ${direction}`);
