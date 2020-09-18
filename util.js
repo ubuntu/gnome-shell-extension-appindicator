@@ -51,9 +51,9 @@ var refreshPropertyOnProxy = function(proxy, propertyName) {
             proxy.set_cached_property(propertyName, valueVariant)
 
             // synthesize a property changed event
-            let changedObj = {}
-            changedObj[propertyName] = valueVariant
-            proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}', changedObj), [])
+            proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}', {
+                [propertyName]: valueVariant,
+            }), []);
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
                 // the property may not even exist, silently ignore it
