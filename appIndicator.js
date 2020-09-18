@@ -91,7 +91,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
                 }
             }))
 
-        this._proxyPropertyList = interface_info.properties.map((propinfo) => { return propinfo.name })
+        this._proxyPropertyList = interface_info.properties.map(propinfo => propinfo.name);
         this._addExtraProperty('XAyatanaLabel');
         this._addExtraProperty('XAyatanaLabelGuide');
         this._addExtraProperty('XAyatanaOrderingIndex');
@@ -141,7 +141,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
     }
 
     // The Author of the spec didn't like the PropertiesChanged signal, so he invented his own
-    _translateNewSignals(proxy, sender, signal, params) {
+    _translateNewSignals(_proxy, _sender, signal, _params) {
         let prop = null;
 
         if (signal.startsWith('New'))
@@ -149,16 +149,13 @@ var AppIndicator = class AppIndicators_AppIndicator {
         else if (signal.startsWith('XAyatanaNew'))
             prop = 'XAyatana' + signal.substr(11)
 
-        if (prop) {
-            if (this._proxyPropertyList.indexOf(prop) > -1)
-                Util.refreshPropertyOnProxy(this._proxy, prop)
+        if (!prop)
+            return;
 
-            if (this._proxyPropertyList.indexOf(prop + 'Pixmap') > -1)
-                Util.refreshPropertyOnProxy(this._proxy, prop + 'Pixmap')
-
-            if (this._proxyPropertyList.indexOf(prop + 'Name') > -1)
-                Util.refreshPropertyOnProxy(this._proxy, prop + 'Name')
-        }
+        [prop, `${prop}Pixmap`, `${prop}Name`].filter(p =>
+            this._proxyPropertyList.includes(p)).forEach(p =>
+                Util.refreshPropertyOnProxy(this._proxy, p)
+            );
     }
 
     //public property getters
