@@ -10,6 +10,22 @@ const Gtk = imports.gi.Gtk;
 const AppIndicator = imports.gi.AppIndicator3;
 const GLib = imports.gi.GLib;
 
+const DEFAULT_ICON = 'start-here';
+const ATTENTION_ICON = 'starred';
+
+const iconsPool = [
+    'emoji-recent-symbolic',
+    'emoji-flags-symbolic',
+    'emoji-objects-symbolic',
+    'emoji-nature-symbolic',
+    'emoji-body-symbolic',
+    'emoji-activities-symbolic',
+    'emoji-people-symbolic',
+    'emoji-travel-symbolic',
+    'emoji-symbols-symbolic',
+    'emoji-food-symbolic',
+];
+
 (() => {
 
 var app = new Gtk.Application({
@@ -27,6 +43,9 @@ app.connect("startup", () => {
         title: "test",
         application: app
     });
+
+    let getRandomIcon = () =>
+        iconsPool[Math.floor(Math.random() * (iconsPool.length - 1))];
 
     var menu = new Gtk.Menu();
 
@@ -128,6 +147,10 @@ app.connect("startup", () => {
     })
     menu.append(item);
 
+    item = Gtk.MenuItem.new_with_label('Set Random icon');
+    item.connect('activate', () => indicator.set_icon(getRandomIcon()));
+    menu.append(item);
+
     item = Gtk.MenuItem.new_with_label("Toggle Attention");
     item.connect('activate', (item) => {
         indicator.set_status(indicator.get_status() != AppIndicator.IndicatorStatus.ATTENTION ?
@@ -166,8 +189,8 @@ app.connect("startup", () => {
     var indicator = AppIndicator.Indicator.new("Hello", "indicator-test", AppIndicator.IndicatorCategory.APPLICATION_STATUS);
 
     indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE);
-    indicator.set_icon("gnome-run");
-    indicator.set_attention_icon("emoji-travel-symbolic");
+    indicator.set_icon(DEFAULT_ICON);
+    indicator.set_attention_icon(ATTENTION_ICON);
     indicator.set_menu(menu);
     indicator.set_secondary_activate_target(toggle_label);
 
