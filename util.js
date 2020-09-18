@@ -17,6 +17,7 @@ const Gio = imports.gi.Gio
 const GLib = imports.gi.GLib
 const GObject = imports.gi.GObject
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
+const Params = imports.misc.params;
 
 const Signals = imports.signals
 
@@ -24,7 +25,11 @@ var refreshPropertyOnProxy = function(proxy, propertyName) {
     if (!proxy._proxyCancellables)
         proxy._proxyCancellables = new Map();
 
-    let cancellable = cancelRefreshPropertyOnProxy(proxy, propertyName, true);
+    let cancellable = cancelRefreshPropertyOnProxy(proxy, {
+        propertyName,
+        addNew: true
+    });
+
     proxy.g_connection.call(
         proxy.g_name,
         proxy.g_object_path,
@@ -58,27 +63,31 @@ var refreshPropertyOnProxy = function(proxy, propertyName) {
     });
 }
 
-var cancelRefreshPropertyOnProxy = function(proxy, propertyName=undefined, addNew=false) {
+var cancelRefreshPropertyOnProxy = function(proxy, params) {
     if (!proxy._proxyCancellables)
         return;
 
-    if (propertyName !== undefined) {
-        let cancellable = proxy._proxyCancellables.get(propertyName);
+    params = Params.parse(params, {
+        propertyName: undefined,
+        addNew: false,
+    });
+
+    if (params.propertyName !== undefined) {
+        let cancellable = proxy._proxyCancellables.get(params.propertyName);
         if (cancellable) {
             cancellable.cancel();
 
-            if (!addNew)
-                proxy._proxyCancellables.delete(propertyName);
+            if (!params.addNew)
+                proxy._proxyCancellables.delete(params.propertyName);
         }
 
-        if (addNew) {
+        if (params.addNew) {
             cancellable = new Gio.Cancellable();
-            proxy._proxyCancellables.set(propertyName, cancellable);
+            proxy._proxyCancellables.set(params.propertyName, cancellable);
             return cancellable;
         }
     } else {
-        for (let cancellable of proxy._proxyCancellables)
-            cancellable.cancel();
+        proxy._proxyCancellables.forEach(c => c.cancel());
         delete proxy._proxyCancellables;
     }
 }
