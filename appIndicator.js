@@ -356,6 +356,7 @@ class AppIndicators_IconActor extends St.Icon {
         let gicon = this._iconCache.get(id);
 
         if (gicon) {
+            gicon.inUse = true;
             callback(gicon);
             return;
         }
