@@ -41,9 +41,9 @@ var refreshPropertyOnProxy = function(proxy, propertyName) {
         -1,
         cancellable,
         (conn, result) => {
-        proxy._proxyCancellables.delete(propertyName);
         try {
-            let valueVariant = conn.call_finish(result).deep_unpack()[0]
+            let valueVariant = conn.call_finish(result).deep_unpack()[0];
+            proxy._proxyCancellables.delete(propertyName);
 
             if (proxy.get_cached_property(propertyName).equal(valueVariant))
                 return;
@@ -58,6 +58,7 @@ var refreshPropertyOnProxy = function(proxy, propertyName) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
                 // the property may not even exist, silently ignore it
                 Logger.debug(`While refreshing property ${propertyName}: ${e}`);
+                proxy._proxyCancellables.delete(propertyName);
             }
         }
     });
