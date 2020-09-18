@@ -197,6 +197,22 @@ app.connect("startup", () => {
     item = new Gtk.SeparatorMenuItem();
     menu.append(item);
 
+    /* Simulate similar behavior of #226 and #236 */
+    item = Gtk.CheckMenuItem.new_with_label('Crazy icons updates');
+    item.connect('activate', (item) => {
+        if (item.get_active()) {
+            item._timeoutID = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 16, () => {
+                setRandomIconPath();
+                indicator.set_label(`${new Date().getSeconds()}`, '');
+                return GLib.SOURCE_CONTINUE;
+            });
+        } else {
+            GLib.source_remove(item._timeoutID);
+            delete item._timeoutID;
+        }
+    });
+    menu.append(item);
+
     item = Gtk.MenuItem.new_with_label("Hide for some time");
     item.connect('activate', () => {
         indicator.set_status(AppIndicator.IndicatorStatus.PASSIVE);
