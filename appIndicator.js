@@ -144,9 +144,9 @@ var AppIndicator = class AppIndicators_AppIndicator {
     _translateNewSignals(proxy, sender, signal, params) {
         let prop = null;
 
-        if (signal.substr(0, 3) == 'New')
+        if (signal.startsWith('New'))
             prop = signal.substr(3)
-        else if (signal.substr(0, 11) == 'XAyatanaNew')
+        else if (signal.startsWith('XAyatanaNew'))
             prop = 'XAyatana' + signal.substr(11)
 
         if (prop) {
@@ -216,11 +216,14 @@ var AppIndicator = class AppIndicators_AppIndicator {
             // a few need to be passed down to the displaying code
 
             // all these can mean that the icon has to be changed
-            if (property == 'Status' || property.substr(0, 4) == 'Icon' || property.substr(0, 13) == 'AttentionIcon')
+            if (property == 'Status' ||
+                property.startsWith('Icon') ||
+                property.startsWith('AttentionIcon')) {
                 this.emit('icon')
+            }
 
             // same for overlays
-            if (property.substr(0, 11) == 'OverlayIcon')
+            if (property.startsWith('OverlayIcon'))
                 this.emit('overlay-icon')
 
             // this may make all of our icons invalid
