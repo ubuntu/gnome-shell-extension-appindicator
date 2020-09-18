@@ -211,7 +211,13 @@ app.connect("startup", () => {
         print(`Signal \"new-attention-icon\" emitted.`);
     });
     indicator.connect("new-icon", (indicator) => {
-        print(`Signal \"new-icon\" emitted.`);
+        let icon = "<none>";
+        if (indicator.get_status() == AppIndicator.IndicatorStatus.ATTENTION)
+            icon = indicator.get_attention_icon();
+        else if (indicator.get_status() == AppIndicator.IndicatorStatus.ACTIVE)
+            icon = indicator.get_icon();
+
+        print(`Signal "new-icon" emitted. Icon: ${icon}`);
     });
     indicator.connect("new-icon-theme-path", (indicator, path) => {
         print(`Signal \"new-icon-theme-path\" emitted. Path: ${path}`);
