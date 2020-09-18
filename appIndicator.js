@@ -29,7 +29,7 @@ const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Signals = imports.signals
 
 const DBusMenu = Extension.imports.dbusMenu;
-var IconCache = Extension.imports.iconCache;
+const IconCache = Extension.imports.iconCache;
 const Util = Extension.imports.util;
 const Interfaces = Extension.imports.interfaces;
 
@@ -370,7 +370,7 @@ class AppIndicators_IconActor extends St.Icon {
         this._createIconByName(path, (gicon) => {
             this._loadingIcons.delete(id);
             if (gicon)
-                this._iconCache.add(id, gicon);
+                gicon = this._iconCache.add(id, gicon);
             callback(gicon);
         });
     }
