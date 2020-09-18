@@ -23,7 +23,6 @@ const GObject = imports.gi.GObject
 const Gtk = imports.gi.Gtk
 const St = imports.gi.St
 const Shell = imports.gi.Shell
-const Mainloop = imports.mainloop
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Signals = imports.signals
@@ -80,7 +79,8 @@ var AppIndicator = class AppIndicators_AppIndicator {
 
                     if (!this.isReady && !this.menuPath) {
                         let checks = 0;
-                        this._delayCheck = Mainloop.timeout_add_seconds(1, () => {
+                        this._delayCheck = GLib.timeout_add_seconds(
+                            GLib.PRIORITY_DEFAULT_IDLE, 1, () => {
                             Util.refreshPropertyOnProxy(this._proxy, 'Menu');
                             return !this.isReady && ++checks < 3;
                         });
