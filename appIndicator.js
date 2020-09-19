@@ -521,7 +521,8 @@ class AppIndicators_IconActor extends St.Icon {
                     Gtk.IconLookupFlags.GENERIC_FALLBACK);
                 // no icon? that's bad!
                 if (iconInfo === null) {
-                    Util.Logger.warn(`${this._indicator.id}, Impossible to lookup icon for '${name}'`);
+                    let msg = `${this._indicator.id}, Impossible to lookup icon for '${name}' in`;
+                    Util.Logger.warn(`${msg} ${themePath ? `path ${themePath}` : 'default theme'}`);
                 } else { // we have an icon
                     // get the icon path
                     path = iconInfo.get_filename();
