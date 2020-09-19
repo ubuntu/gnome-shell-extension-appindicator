@@ -241,6 +241,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
 
     _onPropertiesChanged(proxy, changed, invalidated) {
         let props = Object.keys(changed.unpack());
+        let signalsToEmit = new Set();
 
         props.forEach((property) => {
             // some property changes require updates on our part,
@@ -250,32 +251,34 @@ var AppIndicator = class AppIndicators_AppIndicator {
             if (property == 'Status' ||
                 property.startsWith('Icon') ||
                 property.startsWith('AttentionIcon')) {
-                this.emit('icon')
+                signalsToEmit.add('icon')
             }
 
             // same for overlays
             if (property.startsWith('OverlayIcon'))
-                this.emit('overlay-icon')
+                signalsToEmit.add('overlay-icon')
 
             // this may make all of our icons invalid
             if (property == 'IconThemePath') {
-                this.emit('icon')
-                this.emit('overlay-icon')
+                signalsToEmit.add('icon')
+                signalsToEmit.add('overlay-icon')
             }
 
             // the label will be handled elsewhere
             if (property == 'XAyatanaLabel')
-                this.emit('label')
+                signalsToEmit.add('label')
 
             if (property == 'Menu') {
                 if (!this._checkIfReady() && this.isReady)
-                    this.emit('menu')
+                    signalsToEmit.add('menu')
             }
 
             // status updates may cause the indicator to be hidden
             if (property == 'Status')
-                this.emit('status')
-        }, this);
+                signalsToEmit.add('status')
+        });
+
+        signalsToEmit.forEach(s => this.emit(s));
     }
 
     reset() {
