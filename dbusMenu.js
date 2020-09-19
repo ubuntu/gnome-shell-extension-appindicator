@@ -220,7 +220,7 @@ var DBusClient = class AppIndicators_DBusClient {
         this._flagLayoutUpdateInProgress = false
 
         // property requests are queued
-        this._propertiesRequestedFor = [ /* ids */ ]
+        this._propertiesRequestedFor = new Set(/* ids */);
 
         Util.connectSmart(this._proxy, 'notify::g-name-owner', this, () => {
             if (this.isReady)
@@ -250,18 +250,17 @@ var DBusClient = class AppIndicators_DBusClient {
                 GLib.PRIORITY_DEFAULT_IDLE, () => this._beginRequestProperties())
         }
 
-        if (this._propertiesRequestedFor.filter((e) => { return e === id }).length == 0)
-            this._propertiesRequestedFor.push(id)
-
+        this._propertiesRequestedFor.add(id);
     }
 
     _beginRequestProperties() {
-        this._proxy.GetGroupPropertiesRemote(this._propertiesRequestedFor,
+        this._proxy.GetGroupPropertiesRemote(
+                Array.from(this._propertiesRequestedFor),
                 [],
                 this._cancellable,
                 this._endRequestProperties.bind(this))
 
-        this._propertiesRequestedFor = []
+        this._propertiesRequestedFor.clear();
         delete this._propertiesRequestId;
 
         return false

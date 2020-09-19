@@ -146,16 +146,13 @@ var traverseBusNames = function(bus, cancellable, callback) {
                     return;
 
                 let [names] = bus.call_finish(task).deep_unpack();
-                let unique_names = [];
+                let unique_names = new Set();
 
                 for (let name of names) {
-                    let unique = getUniqueBusNameSync(bus, name);
-                    if (unique_names.indexOf(unique) == -1)
-                        unique_names.push(unique);
+                    unique_names.add(getUniqueBusNameSync(bus, name));
                 }
 
-                for (let name of unique_names)
-                    callback(bus, name, cancellable);
+                unique_names.forEach((name) => callback(bus, name, cancellable));
             });
 }
 
