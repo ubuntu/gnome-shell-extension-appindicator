@@ -56,9 +56,9 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
                                                   Gio.BusNameOwnerFlags.NONE,
                                                   this._acquiredName.bind(this),
                                                   this._lostName.bind(this));
-        this._items = { };
-        this._nameWatcher = { };
-        this._serviceWatcher = { };
+        this._items = new Map();
+        this._nameWatcher = new Map();
+        this._serviceWatcher = new Map();
 
         this._seekStatusNotifierItems();
     }
@@ -84,27 +84,28 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
     _registerItem(service, bus_name, obj_path) {
         let id = this._getItemId(bus_name, obj_path);
 
-        if (id in this._items) {
-            Util.Logger.warn("Item "+id+" is already registered");
+        if (this._items.has(id)) {
+            Util.Logger.warn(`Item ${id} is already registered`);
             return;
         }
 
-        Util.Logger.debug("Registering StatusNotifierItem "+id);
+        Util.Logger.debug(`Registering StatusNotifierItem ${id}`);
 
         let indicator = new AppIndicator.AppIndicator(bus_name, obj_path);
         let visual = new IndicatorStatusIcon.IndicatorStatusIcon(indicator);
         indicator.connect('destroy', () => visual.destroy());
 
-        this._items[id] = indicator;
+        this._items.set(id, indicator);
 
         this._dbusImpl.emit_signal('StatusNotifierItemRegistered', GLib.Variant.new('(s)', service));
-        this._nameWatcher[id] = Gio.DBus.session.watch_name(bus_name, Gio.BusNameWatcherFlags.NONE, null,
-            () => this._itemVanished(id));
+        this._nameWatcher.set(id, Gio.DBus.session.watch_name(bus_name,
+            Gio.BusNameWatcherFlags.NONE, null,
+            () => this._itemVanished(id)));
 
         if (service != bus_name && service.match(BUS_ADDRESS_REGEX)) {
-            this._serviceWatcher[id] = Gio.DBus.session.watch_name(service,
+            this._serviceWatcher.set(id, Gio.DBus.session.watch_name(service,
                 Gio.BusNameWatcherFlags.NONE, null,
-                () => this._itemVanished(id));
+                () => this._itemVanished(id)));
         }
 
         this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems', GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
@@ -112,11 +113,12 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
 
     _ensureItemRegistered(service, bus_name, obj_path) {
         let id = this._getItemId(bus_name, obj_path);
+        let item = this._items.get(id);
 
-        if (id in this._items) {
+        if (item) {
             //delete the old one and add the new indicator
-            Util.Logger.debug("Attempting to re-register "+id+"; resetting instead");
-            this._items[id].reset();
+            Util.Logger.debug(`Attempting to re-register ${id}; resetting instead`);
+            item.reset();
             return;
         }
 
@@ -133,8 +135,8 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
                 return Util.dbusNodeImplementsInterfaces(node_info, ['org.kde.StatusNotifierItem']);
             }, (name, path) => {
                 let id = this._getItemId(name, path);
-                if (!this._items[id]) {
-                    Util.Logger.debug("Using Brute-force mode for StatusNotifierItem "+id);
+                if (!this._items.has(id)) {
+                    Util.Logger.debug(`Using Brute-force mode for StatusNotifierItem ${id}`);
                     this._registerItem(path, name, path);
                 }
             })
@@ -173,20 +175,20 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
 
     _itemVanished(id) {
         // FIXME: this is useless if the path name disappears while the bus stays alive (not unheard of)
-        if (id in this._items) {
+        if (this._items.has(id)) {
             this._remove(id);
         }
     }
 
     _remove(id) {
-        this._items[id].destroy();
-        delete this._items[id];
-        Gio.DBus.session.unwatch_name(this._nameWatcher[id]);
-        delete this._nameWatcher[id];
+        this._items.get(id).destroy();
+        this._items.delete(id);
+        Gio.DBus.session.unwatch_name(this._nameWatcher.get(id));
+        this._nameWatcher.delete(id);
 
-        if (id in this._serviceWatcher) {
-            Gio.DBus.session.unwatch_name(this._serviceWatcher[id]);
-            delete this._serviceWatcher[id];
+        if (this._serviceWatcher.has(id)) {
+            Gio.DBus.session.unwatch_name(this._serviceWatcher.get(id));
+            this._serviceWatcher.delete(id);
         }
         this._dbusImpl.emit_signal('StatusNotifierItemUnregistered', GLib.Variant.new('(s)', id));
         this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems', GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
@@ -204,7 +206,7 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
     }
 
     get RegisteredStatusNotifierItems() {
-        return Object.keys(this._items);
+        return Array.from(this._items.keys());
     }
 
     get IsStatusNotifierHostRegistered() {
@@ -222,17 +224,11 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
             Gio.DBus.session.unown_name(this._ownName);
             this._cancellable.cancel();
             this._dbusImpl.unexport();
-            for (var i in this._nameWatcher) {
-                Gio.DBus.session.unwatch_name(this._nameWatcher[i]);
-            }
+            this._nameWatcher.forEach(n => Gio.DBus.session.unwatch_name(n));
             delete this._nameWatcher;
-            for (var i in this._serviceWatcher) {
-                Gio.DBus.session.unwatch_name(this._serviceWatcher[i]);
-            }
+            this._serviceWatcher.forEach(s => Gio.DBus.session.unwatch_name(s));
             delete this._serviceWatcher;
-            for (var i in this._items) {
-                this._items[i].destroy();
-            }
+            this._items.forEach(i => i.destroy());
             delete this._items;
             this._isDestroyed = true;
         }
