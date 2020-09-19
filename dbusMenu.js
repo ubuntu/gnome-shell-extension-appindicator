@@ -266,7 +266,7 @@ var DBusClient = class AppIndicators_DBusClient {
 
     _endRequestProperties(result, error) {
         if (error) {
-            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+            if (!error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 Util.Logger.warn(`Could not retrieve properties: ${error}`);
             return
         }
@@ -314,7 +314,7 @@ var DBusClient = class AppIndicators_DBusClient {
 
     _endLayoutUpdate(result, error) {
         if (error) {
-            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+            if (!error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 Util.Logger.warn(`While reading menu layout on proxy ${this._proxy.g_name_owner}: ${error}`);
             return
         }
@@ -379,7 +379,7 @@ var DBusClient = class AppIndicators_DBusClient {
 
     _clientReady(result, error) {
         if (error) {
-            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+            if (!error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 Util.Logger.warn(`Could not initialize menu proxy: ${error}`);
             return;
         }
