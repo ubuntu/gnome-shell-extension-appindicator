@@ -33,6 +33,8 @@ const IconCache = Extension.imports.iconCache;
 const Util = Extension.imports.util;
 const Interfaces = Extension.imports.interfaces;
 
+const MAX_UPDATE_FREQUENCY = 100; // In ms
+
 const SNICategory = {
     APPLICATION: 'ApplicationStatus',
     COMMUNICATIONS: 'Communications',
@@ -61,6 +63,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
     constructor(bus_name, object) {
         this.busName = bus_name
         this._uniqueId = bus_name + object
+        this._accumuledSignals = new Set();
 
         let interface_info = Gio.DBusInterfaceInfo.new_for_xml(Interfaces.StatusNotifierItem)
 
@@ -92,7 +95,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
             }))
 
         Util.connectSmart(this._proxy, 'g-properties-changed', this, '_onPropertiesChanged')
-        Util.connectSmart(this._proxy, 'g-signal', this, '_translateNewSignals')
+        Util.connectSmart(this._proxy, 'g-signal', this, this._onProxySignal)
         Util.connectSmart(this._proxy, 'notify::g-name-owner', this, '_nameOwnerChanged')
     }
 
@@ -156,7 +159,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
     }
 
     // The Author of the spec didn't like the PropertiesChanged signal, so he invented his own
-    _translateNewSignals(_proxy, _sender, signal, _params) {
+    _translateNewSignals(signal) {
         let prop = null;
 
         if (signal.startsWith('New'))
@@ -167,12 +170,26 @@ var AppIndicator = class AppIndicators_AppIndicator {
         if (!prop)
             return;
 
-        [prop, `${prop}Pixmap`, `${prop}Name`].filter(p =>
+        [prop, `${prop}Name`, `${prop}Pixmap`].filter(p =>
             this._proxyPropertyList.includes(p)).forEach(p =>
                 Util.refreshPropertyOnProxy(this._proxy, p, {
                     skipEqualtyCheck: p.endsWith('Pixmap'),
                 })
             );
+    }
+
+    _onProxySignal(_proxy, _sender, signal, _params) {
+        this._accumuledSignals.add(signal);
+
+        if (this._signalsAccumulatorId)
+            return;
+
+        this._signalsAccumulatorId = GLib.timeout_add(
+            GLib.PRIORITY_DEFAULT_IDLE, MAX_UPDATE_FREQUENCY, () => {
+                this._accumuledSignals.forEach((s) => this._translateNewSignals(s));
+                this._accumuledSignals.clear();
+                delete this._signalsAccumulatorId;
+            });
     }
 
     //public property getters
@@ -273,6 +290,11 @@ var AppIndicator = class AppIndicators_AppIndicator {
         Util.cancelRefreshPropertyOnProxy(this._proxy);
         delete this._cancellable;
         delete this._proxy
+
+        if (this._signalsAccumulatorId) {
+            GLib.Source.remove(this._signalsAccumulatorId);
+            delete this._signalsAccumulatorId;
+        }
 
         if (this._delayCheck) {
             GLib.Source.remove(this._delayCheck);
