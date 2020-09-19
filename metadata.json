@@ -2,7 +2,8 @@
     "shell-version": [
         "3.33",
         "3.34",
-        "3.36"
+        "3.36",
+        "3.38"
     ],
     "uuid": "appindicatorsupport@rgcjonas.gmail.com",
     "name": "KStatusNotifierItem/AppIndicator Support",
