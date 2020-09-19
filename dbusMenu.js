@@ -245,8 +245,10 @@ var DBusClient = class AppIndicators_DBusClient {
 
     _requestProperties(id) {
         // if we don't have any requests queued, we'll need to add one
-        if (this._propertiesRequestedFor.length < 1)
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, this._beginRequestProperties.bind(this))
+        if (!this._propertiesRequestId) {
+            this._propertiesRequestId = GLib.idle_add(
+                GLib.PRIORITY_DEFAULT_IDLE, () => this._beginRequestProperties())
+        }
 
         if (this._propertiesRequestedFor.filter((e) => { return e === id }).length == 0)
             this._propertiesRequestedFor.push(id)
@@ -260,6 +262,7 @@ var DBusClient = class AppIndicators_DBusClient {
                 this._endRequestProperties.bind(this))
 
         this._propertiesRequestedFor = []
+        delete this._propertiesRequestId;
 
         return false
     }
@@ -453,6 +456,11 @@ var DBusClient = class AppIndicators_DBusClient {
 
     destroy() {
         this.emit('destroy')
+
+        if (this._propertiesRequestId) {
+            GLib.Source.remove(this._propertiesRequestId);
+            delete this._propertiesRequestId;
+        }
 
         this._cancellable.cancel();
         Signals._disconnectAll.apply(this._proxy)
