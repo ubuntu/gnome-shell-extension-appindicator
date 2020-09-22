@@ -787,11 +787,15 @@ class AppIndicatorsIconActor extends St.Icon {
         let desaturationValue = this._settings.get_double('icon-saturation');
 
         let sat_effect = this.get_effect('desaturate');
-        if (!sat_effect) {
-            sat_effect = new Clutter.DesaturateEffect({});
-            this.add_effect_with_name('desaturate', sat_effect);
-        }
-        sat_effect.set_factor(desaturationValue);
+
+        if (desaturationValue > 0) {
+            if (!sat_effect) {
+                sat_effect = new Clutter.DesaturateEffect({});
+                this.add_effect_with_name('desaturate', sat_effect);
+            }
+            sat_effect.set_factor(desaturationValue);
+        } else if (sat_effect)
+            this.remove_effect(sat_effect);
     }
 
     _setBrightnessContrast() {
@@ -799,12 +803,16 @@ class AppIndicatorsIconActor extends St.Icon {
         let contrastValue = this._settings.get_double('icon-contrast');
 
         let bright_effect = this.get_effect('brightness-contrast');
-        if (!bright_effect) {
-            bright_effect = new Clutter.BrightnessContrastEffect({});
-            this.add_effect_with_name('brightness-contrast', bright_effect);
-        }
-        bright_effect.set_brightness(brightnessValue);
-        bright_effect.set_contrast(contrastValue);
+
+        if (brightnessValue != 0 | contrastValue != 0) {
+            if (!bright_effect) {
+                bright_effect = new Clutter.BrightnessContrastEffect({});
+                this.add_effect_with_name('brightness-contrast', bright_effect);
+            }
+            bright_effect.set_brightness(brightnessValue);
+            bright_effect.set_contrast(contrastValue);
+        } else if (bright_effect)
+            this.remove_effect(bright_effect);
     }
 
     _setIconSize() {
