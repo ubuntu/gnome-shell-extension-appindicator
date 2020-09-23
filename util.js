@@ -149,7 +149,11 @@ var traverseBusNames = function(bus, cancellable, callback) {
                 let unique_names = new Set();
 
                 for (let name of names) {
-                    unique_names.add(getUniqueBusNameSync(bus, name));
+                    try {
+                        unique_names.add(getUniqueBusNameSync(bus, name));
+                    } catch (e) {
+                        Logger.debug(`Impossible to get the unique name of ${name}: ${e}`);
+                    }
                 }
 
                 unique_names.forEach((name) => callback(bus, name, cancellable));
