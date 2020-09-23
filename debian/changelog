@@ -1,3 +1,59 @@
+gnome-shell-extension-appindicator (33.1-0ubuntu0.20.04.1) UNRELEASED; urgency=medium
+
+  [ Marco Trevisan (Treviño) ]
+  * New upstream stable release
+  * debian/gbp.conf:
+    - Setup for focal branching and use ubuntu/* tagging
+    - Use multimaint-merge in dch and sign tags
+  * debian/control:
+    - Set Ubuntu Developers as maintainer
+    - Update VCS informations to point to ubuntu/focal
+  * dbusMenu: Use GCancellable to stop pending async operations (LP: #1881669)
+  * dbusMenu: Use proper argument name when parsing error (LP: #1881669)
+  * dbusMenu: Stop idle requests if we've been destroyed (LP: #1870795)
+  * appIndicator: Remove the callbackIdle if we destroy while waiting it
+    (LP: #1849142)
+  * StatusNotifierWatcher: Remove ProtocolVersion method (LP: #1896785)
+  * appIndicator: Ignore further icons creation during an idle (LP: #1849142)
+  * README: Remove statement about indicator-multiload not being supported
+  * statusNotifierWatcher: Fix RegisterStatusNotifierHost method name and
+    returned error (LP: #1896785)
+  * interfaces: Sync interfaces XML with upstream ones (LP: #1896785)
+  * StatusNotifierItem: Disable Tooltip properties and signals (LP: #1896785)
+  * appIndicator: Don't waste CPU cycles to handle icon updates (LP: #1884396):
+    - util: Use Shell's param to handle multiple named arguments
+    - util: Delete proxyCancellables only if we didn't cancel already
+    - util: Ignore errors if we can't find a listed dbus name
+    - appIndicator: Cleanup the interface info properties map computation
+    - appIndicator: Don't deep unpack changed properties array
+    - appIndicator: Use native checks to look for equal emblems
+    - appIndicator: Mark a valid cached icon as inUse again
+    - appIndicator: Correctly mark cached GIcon's as in use
+    - iconCache: Rewrite simplifying the usage for GIcon's only
+    - iconCache: Dispose an icon when we remove it
+    - iconCache: Increase the garbage-collector timings
+    - appIndicator: Only iterate through the proxy available properties
+    - appIndicator: Don't try to check equality on Pixmap variants
+    - util: Try to batch properties updates when they comes close enough
+    - appIndicator: Accumulate signals to batch close updates
+    - appIndicator: Emit the same signal once on properties updates
+    - appIndicator: Improve the warning message on lookup failed
+
+  [ Fini Jastrow ]
+  * appIndicator: Remove unneeded padding (LP: #1896779)
+  * appIndicator: Fix 'reduce padding' for some icons (LP: #1896779)
+
+  [ Sergio Costas ]
+  * Wait until the desktop ends starting up (LP: #1870795)
+  * Wait until Gtk.IconTheme.get_default() works (LP: #1870795)
+  * Don't fail if no icon is found (LP: #1849142)
+  * Use signal to detect display availability (LP: #1870795)
+
+  [ Tasos Sahanidis ]
+  * kstatusnotifierwatcher: Implement ProtocolVersion property (LP: #1896785)
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 23 Sep 2020 17:40:19 +0200
+
 gnome-shell-extension-appindicator (33-1) experimental; urgency=medium
 
   * Team upload.
