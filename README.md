@@ -11,7 +11,6 @@ This extension integrates Ubuntu AppIndicators and KStatusNotifierItems (KDE's b
 
 ## Missing features
 * Tooltips: Not implemented in `libappindicator` nor in Unity and I've yet to see any indicator using it for anything relevant (KDE ones maybe?). Also, the GNOME designers decided not to have tooltips in the shell and I'd like to honor that decision.
-* Oversized icons like the ones used by `indicator-multiload` are unsupported. They will be shrunk to normal size.
 
 ## Known issues
 * ClassicMenu Indicator takes ages to load and has been reported to freeze the shell forever. This is probably caused by the insane amount of embedded PNG icons. Try at your own risk.

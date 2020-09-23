@@ -17,14 +17,23 @@ const Gio = imports.gi.Gio
 const GLib = imports.gi.GLib
 const GObject = imports.gi.GObject
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
+const Params = imports.misc.params;
 
 const Signals = imports.signals
 
-var refreshPropertyOnProxy = function(proxy, propertyName) {
+var refreshPropertyOnProxy = function(proxy, propertyName, params) {
     if (!proxy._proxyCancellables)
         proxy._proxyCancellables = new Map();
 
-    let cancellable = cancelRefreshPropertyOnProxy(proxy, propertyName, true);
+    params = Params.parse(params, {
+        skipEqualtyCheck: false,
+    });
+
+    let cancellable = cancelRefreshPropertyOnProxy(proxy, {
+        propertyName,
+        addNew: true
+    });
+
     proxy.g_connection.call(
         proxy.g_name,
         proxy.g_object_path,
@@ -36,49 +45,74 @@ var refreshPropertyOnProxy = function(proxy, propertyName) {
         -1,
         cancellable,
         (conn, result) => {
-        proxy._proxyCancellables.delete(propertyName);
         try {
-            let valueVariant = conn.call_finish(result).deep_unpack()[0]
+            let valueVariant = conn.call_finish(result).deep_unpack()[0];
+            proxy._proxyCancellables.delete(propertyName);
 
-            if (proxy.get_cached_property(propertyName).equal(valueVariant))
+            if (!params.skipEqualtyCheck &&
+                proxy.get_cached_property(propertyName).equal(valueVariant))
                 return;
 
             proxy.set_cached_property(propertyName, valueVariant)
 
-            // synthesize a property changed event
-            let changedObj = {}
-            changedObj[propertyName] = valueVariant
-            proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}', changedObj), [])
+            // synthesize a batched property changed event
+            if (!proxy._proxyChangedProperties)
+                proxy._proxyChangedProperties = {};
+            proxy._proxyChangedProperties[propertyName] = valueVariant;
+
+            if (!proxy._proxyPropertiesEmitId) {
+                proxy._proxyPropertiesEmitId = GLib.timeout_add(
+                    GLib.PRIORITY_DEFAULT_IDLE, 16, () => {
+                    delete proxy._proxyPropertiesEmitId;
+
+                    proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}',
+                        proxy._proxyChangedProperties), []);
+                    delete proxy._proxyChangedProperties;
+
+                    return GLib.SOURCE_REMOVE;
+                });
+            }
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
                 // the property may not even exist, silently ignore it
                 Logger.debug(`While refreshing property ${propertyName}: ${e}`);
+                proxy._proxyCancellables.delete(propertyName);
+                delete proxy._proxyChangedProperties[propertyName];
             }
         }
     });
 }
 
-var cancelRefreshPropertyOnProxy = function(proxy, propertyName=undefined, addNew=false) {
+var cancelRefreshPropertyOnProxy = function(proxy, params) {
     if (!proxy._proxyCancellables)
         return;
 
-    if (propertyName !== undefined) {
-        let cancellable = proxy._proxyCancellables.get(propertyName);
+    params = Params.parse(params, {
+        propertyName: undefined,
+        addNew: false,
+    });
+
+    if (params.propertyName !== undefined) {
+        let cancellable = proxy._proxyCancellables.get(params.propertyName);
         if (cancellable) {
             cancellable.cancel();
 
-            if (!addNew)
-                proxy._proxyCancellables.delete(propertyName);
+            if (!params.addNew)
+                proxy._proxyCancellables.delete(params.propertyName);
         }
 
-        if (addNew) {
+        if (params.addNew) {
             cancellable = new Gio.Cancellable();
-            proxy._proxyCancellables.set(propertyName, cancellable);
+            proxy._proxyCancellables.set(params.propertyName, cancellable);
             return cancellable;
         }
     } else {
-        for (let cancellable of proxy._proxyCancellables)
-            cancellable.cancel();
+        if (proxy._proxyPropertiesEmitId) {
+            GLib.source_remove(proxy._proxyPropertiesEmitId);
+            delete proxy._proxyPropertiesEmitId;
+        }
+        proxy._proxyCancellables.forEach(c => c.cancel());
+        delete proxy._proxyChangedProperties;
         delete proxy._proxyCancellables;
     }
 }
@@ -115,9 +149,13 @@ var traverseBusNames = function(bus, cancellable, callback) {
                 let unique_names = [];
 
                 for (let name of names) {
-                    let unique = getUniqueBusNameSync(bus, name);
-                    if (unique_names.indexOf(unique) == -1)
-                        unique_names.push(unique);
+                    try {
+                        let unique = getUniqueBusNameSync(bus, name);
+                        if (unique_names.indexOf(unique) == -1)
+                            unique_names.push(unique);
+                    } catch (e) {
+                        Logger.debug(`Impossible to get the unique name of ${name}: ${e}`);
+                    }
                 }
 
                 for (let name of unique_names)

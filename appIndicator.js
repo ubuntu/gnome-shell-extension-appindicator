@@ -29,9 +29,11 @@ const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Signals = imports.signals
 
 const DBusMenu = Extension.imports.dbusMenu;
-var IconCache = Extension.imports.iconCache;
+const IconCache = Extension.imports.iconCache;
 const Util = Extension.imports.util;
 const Interfaces = Extension.imports.interfaces;
+
+const MAX_UPDATE_FREQUENCY = 100; // In ms
 
 const SNICategory = {
     APPLICATION: 'ApplicationStatus',
@@ -61,6 +63,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
     constructor(bus_name, object) {
         this.busName = bus_name
         this._uniqueId = bus_name + object
+        this._accumuledSignals = new Set();
 
         let interface_info = Gio.DBusInterfaceInfo.new_for_xml(Interfaces.StatusNotifierItem)
 
@@ -91,13 +94,8 @@ var AppIndicator = class AppIndicators_AppIndicator {
                 }
             }))
 
-        this._proxyPropertyList = interface_info.properties.map((propinfo) => { return propinfo.name })
-        this._addExtraProperty('XAyatanaLabel');
-        this._addExtraProperty('XAyatanaLabelGuide');
-        this._addExtraProperty('XAyatanaOrderingIndex');
-
         Util.connectSmart(this._proxy, 'g-properties-changed', this, '_onPropertiesChanged')
-        Util.connectSmart(this._proxy, 'g-signal', this, '_translateNewSignals')
+        Util.connectSmart(this._proxy, 'g-signal', this, this._onProxySignal)
         Util.connectSmart(this._proxy, 'notify::g-name-owner', this, '_nameOwnerChanged')
     }
 
@@ -109,6 +107,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
             isReady = true;
 
         this.isReady = isReady;
+        this._setupProxyPropertyList();
 
         if (this.isReady && !wasReady) {
             if (this._delayCheck) {
@@ -129,36 +128,68 @@ var AppIndicator = class AppIndicators_AppIndicator {
     }
 
     _addExtraProperty(name) {
-        let propertyProps = { configurable: false, enumerable: true };
+        if (this._proxyPropertyList.includes(name))
+            return;
 
-        propertyProps.get = () => {
-            let v = this._proxy.get_cached_property(name);
-            return v ? v.deep_unpack() : null
-        };
+        if (!(name in this._proxy)) {
+            Object.defineProperty(this._proxy, name, {
+                configurable: false,
+                enumerable: true,
+                get: () => {
+                    const v = this._proxy.get_cached_property(name);
+                    return v ? v.deep_unpack() : null;
+                }
+            });
+        }
 
-        Object.defineProperty(this._proxy, name, propertyProps);
         this._proxyPropertyList.push(name);
     }
 
+    _setupProxyPropertyList() {
+        let interfaceProps = this._proxy.g_interface_info.properties;
+        this._proxyPropertyList =
+            (this._proxy.get_cached_property_names() || []).filter(p =>
+                interfaceProps.some(propinfo => propinfo.name == p));
+
+        if (this._proxyPropertyList.length) {
+            this._addExtraProperty('XAyatanaLabel');
+            this._addExtraProperty('XAyatanaLabelGuide');
+            this._addExtraProperty('XAyatanaOrderingIndex');
+        }
+    }
+
     // The Author of the spec didn't like the PropertiesChanged signal, so he invented his own
-    _translateNewSignals(proxy, sender, signal, params) {
+    _translateNewSignals(signal) {
         let prop = null;
 
-        if (signal.substr(0, 3) == 'New')
+        if (signal.startsWith('New'))
             prop = signal.substr(3)
-        else if (signal.substr(0, 11) == 'XAyatanaNew')
+        else if (signal.startsWith('XAyatanaNew'))
             prop = 'XAyatana' + signal.substr(11)
 
-        if (prop) {
-            if (this._proxyPropertyList.indexOf(prop) > -1)
-                Util.refreshPropertyOnProxy(this._proxy, prop)
+        if (!prop)
+            return;
 
-            if (this._proxyPropertyList.indexOf(prop + 'Pixmap') > -1)
-                Util.refreshPropertyOnProxy(this._proxy, prop + 'Pixmap')
+        [prop, `${prop}Name`, `${prop}Pixmap`].filter(p =>
+            this._proxyPropertyList.includes(p)).forEach(p =>
+                Util.refreshPropertyOnProxy(this._proxy, p, {
+                    skipEqualtyCheck: p.endsWith('Pixmap'),
+                })
+            );
+    }
 
-            if (this._proxyPropertyList.indexOf(prop + 'Name') > -1)
-                Util.refreshPropertyOnProxy(this._proxy, prop + 'Name')
-        }
+    _onProxySignal(_proxy, _sender, signal, _params) {
+        this._accumuledSignals.add(signal);
+
+        if (this._signalsAccumulatorId)
+            return;
+
+        this._signalsAccumulatorId = GLib.timeout_add(
+            GLib.PRIORITY_DEFAULT_IDLE, MAX_UPDATE_FREQUENCY, () => {
+                this._accumuledSignals.forEach((s) => this._translateNewSignals(s));
+                this._accumuledSignals.clear();
+                delete this._signalsAccumulatorId;
+            });
     }
 
     //public property getters
@@ -209,39 +240,45 @@ var AppIndicator = class AppIndicators_AppIndicator {
     }
 
     _onPropertiesChanged(proxy, changed, invalidated) {
-        let props = Object.keys(changed.deep_unpack())
+        let props = Object.keys(changed.unpack());
+        let signalsToEmit = new Set();
 
         props.forEach((property) => {
             // some property changes require updates on our part,
             // a few need to be passed down to the displaying code
 
             // all these can mean that the icon has to be changed
-            if (property == 'Status' || property.substr(0, 4) == 'Icon' || property.substr(0, 13) == 'AttentionIcon')
-                this.emit('icon')
+            if (property == 'Status' ||
+                property.startsWith('Icon') ||
+                property.startsWith('AttentionIcon')) {
+                signalsToEmit.add('icon')
+            }
 
             // same for overlays
-            if (property.substr(0, 11) == 'OverlayIcon')
-                this.emit('overlay-icon')
+            if (property.startsWith('OverlayIcon'))
+                signalsToEmit.add('overlay-icon')
 
             // this may make all of our icons invalid
             if (property == 'IconThemePath') {
-                this.emit('icon')
-                this.emit('overlay-icon')
+                signalsToEmit.add('icon')
+                signalsToEmit.add('overlay-icon')
             }
 
             // the label will be handled elsewhere
             if (property == 'XAyatanaLabel')
-                this.emit('label')
+                signalsToEmit.add('label')
 
             if (property == 'Menu') {
                 if (!this._checkIfReady() && this.isReady)
-                    this.emit('menu')
+                    signalsToEmit.add('menu')
             }
 
             // status updates may cause the indicator to be hidden
             if (property == 'Status')
-                this.emit('status')
-        }, this);
+                signalsToEmit.add('status')
+        });
+
+        signalsToEmit.forEach(s => this.emit(s));
     }
 
     reset() {
@@ -256,6 +293,11 @@ var AppIndicator = class AppIndicators_AppIndicator {
         Util.cancelRefreshPropertyOnProxy(this._proxy);
         delete this._cancellable;
         delete this._proxy
+
+        if (this._signalsAccumulatorId) {
+            GLib.Source.remove(this._signalsAccumulatorId);
+            delete this._signalsAccumulatorId;
+        }
 
         if (this._delayCheck) {
             GLib.Source.remove(this._delayCheck);
@@ -297,6 +339,7 @@ class AppIndicators_IconActor extends St.Icon {
 
         this.name = this.constructor.name;
         this.add_style_class_name('appindicator-icon');
+        this.set_style('padding:0');
 
         let themeContext = St.ThemeContext.get_for_stage(global.stage);
         this.height = icon_size * themeContext.scale_factor;
@@ -330,6 +373,11 @@ class AppIndicators_IconActor extends St.Icon {
         this.connect('destroy', () => {
             this._iconCache.destroy();
             this._cancellable.cancel();
+
+            if (this._callbackIdle) {
+                GLib.source_remove(this._callbackIdle);
+                delete this._callbackIdle;
+            }
         });
     }
 
@@ -340,10 +388,6 @@ class AppIndicators_IconActor extends St.Icon {
 
     // Will look the icon up in the cache, if it's found
     // it will return it. Otherwise, it will create it and cache it.
-    // The .inUse flag will be set to true. So when you don't need
-    // the returned icon anymore, make sure to check the .inUse property
-    // and set it to false if needed so that it can be picked up by the garbage
-    // collector.
     _cacheOrCreateIconByName(iconSize, iconName, themePath, callback) {
         let {scale_factor} = St.ThemeContext.get_for_stage(global.stage);
         let id = `${iconName}@${iconSize * scale_factor}${themePath || ''}`;
@@ -367,10 +411,8 @@ class AppIndicators_IconActor extends St.Icon {
         let path = this._getIconInfo(iconName, themePath, iconSize, scale_factor);
         this._createIconByName(path, (gicon) => {
             this._loadingIcons.delete(id);
-            if (gicon) {
-                gicon.inUse = true;
-                this._iconCache.add(id, gicon);
-            }
+            if (gicon)
+                gicon = this._iconCache.add(id, gicon);
             callback(gicon);
         });
     }
@@ -403,6 +445,21 @@ class AppIndicators_IconActor extends St.Icon {
     }
 
     _createIconByName(path, callback) {
+        if (!path) {
+            if (this._callbackIdle)
+                return;
+
+            this._callbackIdle = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                delete this._callbackIdle;
+                callback(null);
+                return false;
+            });
+            return;
+        } else if (this._callbackIdle) {
+            GLib.source_remove(this._callbackIdle);
+            delete this._callbackIdle;
+        }
+
         GdkPixbuf.Pixbuf.get_file_info_async(path, this._cancellable, (_p, res) => {
             try {
                 let [format, width, height] = GdkPixbuf.Pixbuf.get_file_info_finish(res);
@@ -464,7 +521,8 @@ class AppIndicators_IconActor extends St.Icon {
                     Gtk.IconLookupFlags.GENERIC_FALLBACK);
                 // no icon? that's bad!
                 if (iconInfo === null) {
-                    Util.Logger.warn(`${this._indicator.id}, Impossible to lookup icon for '${name}'`);
+                    let msg = `${this._indicator.id}, Impossible to lookup icon for '${name}' in`;
+                    Util.Logger.warn(`${msg} ${themePath ? `path ${themePath}` : 'default theme'}`);
                 } else { // we have an icon
                     // get the icon path
                     path = iconInfo.get_filename();
@@ -529,10 +587,17 @@ class AppIndicators_IconActor extends St.Icon {
             }
     }
 
+    // The .inUse flag will be set to true if the used gicon matches the cached
+    // one (as in some cases it may be equal, but not the same object).
+    // So when it's not need anymore we make sure to check the .inUse property
+    // and set it to false so that it can be picked up by the garbage collector.
     _setGicon(iconType, gicon) {
         if (iconType != SNIconType.OVERLAY) {
             if (gicon) {
                 this.gicon = new Gio.EmblemedIcon({ gicon });
+
+                if (!(gicon instanceof GdkPixbuf.Pixbuf))
+                  gicon.inUse = (this.gicon.get_icon() == gicon);
             } else {
                 this.gicon = null;
                 Util.Logger.critical(`unable to update icon for ${this._indicator.id}`);
@@ -540,6 +605,9 @@ class AppIndicators_IconActor extends St.Icon {
         } else {
             if (gicon) {
                 this._emblem = new Gio.Emblem({ icon: gicon });
+
+                if (!(gicon instanceof GdkPixbuf.Pixbuf))
+                    gicon.inUse = true;
             } else {
                 this._emblem = null;
                 Util.Logger.debug(`unable to update icon emblem for ${this._indicator.id}`);
@@ -547,7 +615,7 @@ class AppIndicators_IconActor extends St.Icon {
         }
 
         if (this.gicon) {
-            if (!this._emblem || !this.gicon.get_emblems().includes(this._emblem)) {
+            if (!this.gicon.get_emblems().some(e => e.equal(this._emblem))) {
                 this.gicon.clear_emblems();
                 if (this._emblem)
                     this.gicon.add_emblem(this._emblem);
@@ -587,8 +655,8 @@ class AppIndicators_IconActor extends St.Icon {
 
     // updates the base icon
     _updateIcon() {
-        if (this.gicon) {
-            let { gicon } = this;
+        if (this.gicon instanceof Gio.EmblemedIcon) {
+            let { gicon } = this.gicon;
 
             if (gicon.inUse)
                 gicon.inUse = false
@@ -602,12 +670,11 @@ class AppIndicators_IconActor extends St.Icon {
     }
 
     _updateOverlayIcon() {
-        // remove old icon
-        if (this.gicon && this.gicon.get_emblems().length) {
-            let [emblem] = this.gicon.get_emblems();
+        if (this._emblem) {
+            let { icon } = this._emblem;
 
-            if (emblem.inUse)
-                emblem.inUse = false
+            if (icon.inUse)
+                icon.inUse = false;
         }
 
         // KDE hardcodes the overlay icon size to 10px (normal icon size 16px)

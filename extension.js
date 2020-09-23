@@ -13,8 +13,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-const Gio = imports.gi.Gio
-const GLib = imports.gi.GLib
+const Gio = imports.gi.Gio;
+const GLib = imports.gi.GLib;
+const Gtk = imports.gi.Gtk;
+const Gdk = imports.gi.Gdk;
+const Main = imports.ui.main;
+const Mainloop = imports.mainloop;
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension()
 
@@ -24,6 +28,10 @@ const Util = Extension.imports.util
 let statusNotifierWatcher = null;
 let isEnabled = false;
 let watchDog = null;
+let startupPreparedId = 0;
+let waitForThemeId = 0;
+let startupComplete = false;
+let displayAvailable = false;
 
 function init() {
     watchDog = new NameWatchdog();
@@ -51,9 +59,36 @@ function maybe_enable_after_name_available() {
         statusNotifierWatcher = new StatusNotifierWatcher.StatusNotifierWatcher(watchDog);
 }
 
+function inner_enable() {
+    if (startupComplete && displayAvailable) {
+        isEnabled = true;
+        maybe_enable_after_name_available();
+    }
+}
+
 function enable() {
-    isEnabled = true;
-    maybe_enable_after_name_available();
+    // If the desktop is still starting up, we must wait until it is ready
+    if (Main.layoutManager._startingUp) {
+        startupPreparedId = Main.layoutManager.connect('startup-complete', () => {
+            Main.layoutManager.disconnect(startupPreparedId);
+            startupComplete = true;
+            inner_enable();
+        });
+    } else {
+        startupComplete = true;
+    }
+
+    // Ensure that the default Gdk Screen is available
+    if (Gtk.IconTheme.get_default() == null) {
+        waitForThemeId = Gdk.DisplayManager.get().connect('display-opened', () => {
+            Gdk.DisplayManager.get().disconnect(waitForThemeId);
+            displayAvailable = true;
+            inner_enable();
+        });
+    } else {
+        displayAvailable = true;
+    }
+    inner_enable();
 }
 
 function disable() {

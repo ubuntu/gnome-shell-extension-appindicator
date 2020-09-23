@@ -192,19 +192,15 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems', GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
     }
 
-    RegisterNotificationHost(service) {
-        throw new Gio.DBusError('org.gnome.Shell.UnsupportedMethod',
-                        'Registering additional notification hosts is not supported');
+    RegisterStatusNotifierHostAsync(_service, invocation) {
+        invocation.return_error_literal(
+            Gio.DBusError,
+            Gio.DBusError.NOT_SUPPORTED,
+            'Registering additional notification hosts is not supported');
     }
 
     IsNotificationHostRegistered() {
         return true;
-    }
-
-    ProtocolVersion() {
-        // "The version of the protocol the StatusNotifierWatcher instance implements." [sic]
-        // in what syntax?
-        return `${Extension.uuid} (KDE; compatible; mostly) GNOME Shell/${ShellConfig.PACKAGE_VERSION}`;
     }
 
     get RegisteredStatusNotifierItems() {
@@ -213,6 +209,10 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
 
     get IsStatusNotifierHostRegistered() {
         return true;
+    }
+
+    get ProtocolVersion() {
+        return 0;
     }
 
     destroy() {

@@ -206,7 +206,12 @@ const BusClientProxy = Gio.DBusProxy.makeProxyWrapper(DBusInterfaces.DBusMenu);
 var DBusClient = class AppIndicators_DBusClient {
 
     constructor(busName, busPath) {
-        this._proxy = new BusClientProxy(Gio.DBus.session, busName, busPath, this._clientReady.bind(this))
+        this._cancellable = new Gio.Cancellable();
+        this._proxy = new BusClientProxy(Gio.DBus.session,
+            busName,
+            busPath,
+            this._clientReady.bind(this),
+            this._cancellable)
         this._items = { 0: new DbusMenuItem(this, 0, { 'children-display': GLib.Variant.new_string('submenu') }, []) }
 
         // will be set to true if a layout update is requested while one is already in progress
@@ -240,8 +245,10 @@ var DBusClient = class AppIndicators_DBusClient {
 
     _requestProperties(id) {
         // if we don't have any requests queued, we'll need to add one
-        if (this._propertiesRequestedFor.length < 1)
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, this._beginRequestProperties.bind(this))
+        if (!this._propertiesRequestId) {
+            this._propertiesRequestId = GLib.idle_add(
+                GLib.PRIORITY_DEFAULT_IDLE, () => this._beginRequestProperties())
+        }
 
         if (this._propertiesRequestedFor.filter((e) => { return e === id }).length == 0)
             this._propertiesRequestedFor.push(id)
@@ -249,16 +256,21 @@ var DBusClient = class AppIndicators_DBusClient {
     }
 
     _beginRequestProperties() {
-        this._proxy.GetGroupPropertiesRemote(this._propertiesRequestedFor, [], this._endRequestProperties.bind(this))
+        this._proxy.GetGroupPropertiesRemote(this._propertiesRequestedFor,
+                [],
+                this._cancellable,
+                this._endRequestProperties.bind(this))
 
         this._propertiesRequestedFor = []
+        delete this._propertiesRequestId;
 
         return false
     }
 
     _endRequestProperties(result, error) {
         if (error) {
-            Util.Logger.warn("Could not retrieve properties: "+error)
+            if (!error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                Util.Logger.warn(`Could not retrieve properties: ${error}`);
             return
         }
 
@@ -294,7 +306,10 @@ var DBusClient = class AppIndicators_DBusClient {
     _beginLayoutUpdate() {
         // we only read the type property, because if the type changes after reading all properties,
         // the view would have to replace the item completely which we try to avoid
-        this._proxy.GetLayoutRemote(0, -1, [ 'type', 'children-display' ], this._endLayoutUpdate.bind(this))
+        this._proxy.GetLayoutRemote(0, -1,
+            [ 'type', 'children-display' ],
+            this._cancellable,
+            this._endLayoutUpdate.bind(this))
 
         this._flagLayoutUpdateRequired = false
         this._flagLayoutUpdateInProgress = true
@@ -302,7 +317,8 @@ var DBusClient = class AppIndicators_DBusClient {
 
     _endLayoutUpdate(result, error) {
         if (error) {
-            Util.Logger.warn("While reading menu layout on proxy '"+this._proxy.g_name_owner+": "+error)
+            if (!error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                Util.Logger.warn(`While reading menu layout on proxy ${this._proxy.g_name_owner}: ${error}`);
             return
         }
 
@@ -366,7 +382,8 @@ var DBusClient = class AppIndicators_DBusClient {
 
     _clientReady(result, error) {
         if (error) {
-            Util.Logger.warn("Could not initialize menu proxy: "+error)
+            if (!error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                Util.Logger.warn(`Could not initialize menu proxy: ${error}`);
             return;
         }
 
@@ -411,7 +428,8 @@ var DBusClient = class AppIndicators_DBusClient {
         if (!this._proxy)
             return
 
-        this._proxy.EventRemote(id, event, params, timestamp, function(result, error) { /* we don't care */ })
+        this._proxy.EventRemote(id, event, params, timestamp, this._cancellable,
+            () => { /* we don't care */ })
     }
 
     _onLayoutUpdated() {
@@ -439,6 +457,12 @@ var DBusClient = class AppIndicators_DBusClient {
     destroy() {
         this.emit('destroy')
 
+        if (this._propertiesRequestId) {
+            GLib.Source.remove(this._propertiesRequestId);
+            delete this._propertiesRequestId;
+        }
+
+        this._cancellable.cancel();
         Signals._disconnectAll.apply(this._proxy)
 
         this._proxy = null
