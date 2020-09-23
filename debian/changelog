@@ -1,4 +1,4 @@
-gnome-shell-extension-appindicator (33.1-0ubuntu0.20.04.1) UNRELEASED; urgency=medium
+gnome-shell-extension-appindicator (33.1-0ubuntu0.20.04.1) focal; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
   * New upstream stable release
@@ -52,7 +52,7 @@ gnome-shell-extension-appindicator (33.1-0ubuntu0.20.04.1) UNRELEASED; urgency=m
   [ Tasos Sahanidis ]
   * kstatusnotifierwatcher: Implement ProtocolVersion property (LP: #1896785)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 23 Sep 2020 17:40:19 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 23 Sep 2020 18:47:33 +0200
 
 gnome-shell-extension-appindicator (33-1) experimental; urgency=medium
 
