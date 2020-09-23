@@ -149,9 +149,13 @@ var traverseBusNames = function(bus, cancellable, callback) {
                 let unique_names = [];
 
                 for (let name of names) {
-                    let unique = getUniqueBusNameSync(bus, name);
-                    if (unique_names.indexOf(unique) == -1)
-                        unique_names.push(unique);
+                    try {
+                        let unique = getUniqueBusNameSync(bus, name);
+                        if (unique_names.indexOf(unique) == -1)
+                            unique_names.push(unique);
+                    } catch (e) {
+                        Logger.debug(`Impossible to get the unique name of ${name}: ${e}`);
+                    }
                 }
 
                 for (let name of unique_names)
