@@ -14,6 +14,7 @@ This extension integrates Ubuntu AppIndicators and KStatusNotifierItems (KDE's b
 
 ## Known issues
 * ClassicMenu Indicator takes ages to load and has been reported to freeze the shell forever. This is probably caused by the insane amount of embedded PNG icons. Try at your own risk.
+* Some Electron-based applications doesn't show. To fix this add `XDG_CURRENT_DESKTOP=Unity` to `/etc/environment` and reboot.
 
 ## Installation
 Normal users are recommended to get the extension from [extensions.gnome.org](https://extensions.gnome.org/extension/615/appindicator-support/).
