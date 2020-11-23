@@ -15,11 +15,11 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 const Gio = imports.gi.Gio
 const GLib = imports.gi.GLib
+const Gtk = imports.gi.Gtk;
+const Main = imports.ui.main;
 const GObject = imports.gi.GObject
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Params = imports.misc.params;
-
-const Signals = imports.signals
 
 var refreshPropertyOnProxy = function(proxy, propertyName, params) {
     if (!proxy._proxyCancellables)
@@ -250,6 +250,56 @@ var connectSmart = function() {
     else
         return connectSmart3A.apply(null, arguments)
 }
+
+/**
+ * Helper class to wait for the system startup to be completed.
+ * Adding widgets before the desktop is ready to accept them can result in errors.
+ */
+var StartUpCompletionHelper = class AppIndicators_StartUpCompletionHelper {
+
+    constructor() {
+        this._startupComplete = false;
+        this._displayAvailable = false;
+        this._listeners = new Set();
+
+        // If the desktop is still starting up, we must wait until it is ready
+        if (Main.layoutManager._startingUp) {
+            let startupPreparedId = Main.layoutManager.connect('startup-complete', () => {
+                Main.layoutManager.disconnect(startupPreparedId);
+                this._startupComplete = true;
+                this._checkStartUpComplete();
+            });
+        } else {
+            this._startupComplete = true;
+        }
+
+        // Ensure that the default Gdk Screen is available
+        if (Gtk.IconTheme.get_default() == null) {
+            let waitForThemeId = Gdk.DisplayManager.get().connect('display-opened', () => {
+                Gdk.DisplayManager.get().disconnect(waitForThemeId);
+                this._displayAvailable = true;
+                this._checkStartUpComplete();
+            });
+        } else {
+            this._displayAvailable = true;
+        }
+    }
+
+    _checkStartUpComplete() {
+        if (this._startupComplete && this._displayAvailable) {
+            this._listeners.forEach(callback => callback());
+            this._listeners.clear();
+        }
+    }
+
+    whenStartUpComplete(callback) {
+        if (this._startupComplete && this._displayAvailable) {
+            callback();
+        } else {
+            this._listeners.add(callback);
+        }
+    }
+};
 
 /**
  * Helper class for logging stuff

@@ -16,11 +16,6 @@
 
 const Gio = imports.gi.Gio
 const GLib = imports.gi.GLib
-const Gtk = imports.gi.Gtk
-
-const Mainloop = imports.mainloop
-const ShellConfig = imports.misc.config
-const Signals = imports.signals
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension()
 
@@ -34,7 +29,6 @@ const Util = Extension.imports.util
 const KDE_PREFIX = 'org.kde';
 
 const WATCHER_BUS_NAME = KDE_PREFIX + '.StatusNotifierWatcher';
-const WATCHER_INTERFACE = WATCHER_BUS_NAME;
 const WATCHER_OBJECT = '/StatusNotifierWatcher';
 
 const DEFAULT_ITEM_OBJECT_PATH = '/StatusNotifierItem';
@@ -59,6 +53,7 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         this._items = new Map();
         this._nameWatcher = new Map();
         this._serviceWatcher = new Map();
+        this._startUpCompletionHelper = new Util.StartUpCompletionHelper();
 
         this._seekStatusNotifierItems();
     }
@@ -92,10 +87,17 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         Util.Logger.debug(`Registering StatusNotifierItem ${id}`);
 
         let indicator = new AppIndicator.AppIndicator(bus_name, obj_path);
-        let visual = new IndicatorStatusIcon.IndicatorStatusIcon(indicator);
-        indicator.connect('destroy', () => visual.destroy());
-
         this._items.set(id, indicator);
+
+        // if the desktop is not ready delay the icon creation
+        this._startUpCompletionHelper.whenStartUpComplete(() => {
+            // check that the indicator has not been removed while we were waiting for the startup completion
+            let indicatorItem = this._items.get(id);
+            if (indicatorItem != null) {
+                let visual = new IndicatorStatusIcon.IndicatorStatusIcon(indicatorItem);
+                indicator.connect('destroy', () => visual.destroy());
+            }
+        });
 
         this._dbusImpl.emit_signal('StatusNotifierItemRegistered', GLib.Variant.new('(s)', service));
         this._nameWatcher.set(id, Gio.DBus.session.watch_name(bus_name,
