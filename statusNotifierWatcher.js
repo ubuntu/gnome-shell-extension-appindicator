@@ -93,7 +93,7 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         this._startUpCompletionHelper.whenStartUpComplete(() => {
             // check that the indicator has not been removed while we were waiting for the startup completion
             let indicatorItem = this._items.get(id);
-            if (indicatorItem != null) {
+            if (indicatorItem !== null) {
                 let visual = new IndicatorStatusIcon.IndicatorStatusIcon(indicatorItem);
                 indicator.connect('destroy', () => visual.destroy());
             }
