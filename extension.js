@@ -14,8 +14,6 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 const Gio = imports.gi.Gio;
-const Gdk = imports.gi.Gdk;
-
 const Extension = imports.misc.extensionUtils.getCurrentExtension()
 
 const StatusNotifierWatcher = Extension.imports.statusNotifierWatcher
