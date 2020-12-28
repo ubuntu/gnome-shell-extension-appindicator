@@ -275,7 +275,7 @@ var StartUpCompletionHelper = class AppIndicators_StartUpCompletionHelper {
         }
 
         // Ensure that the default Gdk Screen is available
-        if (Gtk.IconTheme.get_default() == null) {
+        if (Gtk.IconTheme.get_default() === null) {
             let waitForThemeId = Gdk.DisplayManager.get().connect('display-opened', () => {
                 Gdk.DisplayManager.get().disconnect(waitForThemeId);
                 this._displayAvailable = true;
