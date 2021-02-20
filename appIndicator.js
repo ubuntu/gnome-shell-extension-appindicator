@@ -339,7 +339,7 @@ class AppIndicators_IconActor extends St.Icon {
 
         this.name = this.constructor.name;
         this.add_style_class_name('appindicator-icon');
-        this.set_style('padding:0');
+        this.set_style('padding:2');
 
         let themeContext = St.ThemeContext.get_for_stage(global.stage);
         this.height = icon_size * themeContext.scale_factor;
