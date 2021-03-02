@@ -3,7 +3,9 @@
         "3.33",
         "3.34",
         "3.36",
-        "3.38"
+        "3.38",
+        "40.beta",
+        "40"
     ],
     "uuid": "appindicatorsupport@rgcjonas.gmail.com",
     "name": "KStatusNotifierItem/AppIndicator Support",
