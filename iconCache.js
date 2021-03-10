@@ -17,7 +17,9 @@
 const GLib = imports.gi.GLib
 const Gio = imports.gi.Gio
 
-const Util = imports.misc.extensionUtils.getCurrentExtension().imports.util;
+const Extension = imports.misc.extensionUtils.getCurrentExtension();
+const PromiseUtils = Extension.imports.promiseUtils;
+const Util = Extension.imports.util;
 
 // The icon cache caches icon objects in case they're reused shortly aftwerwards.
 // This is necessary for some indicators like skype which rapidly switch between serveral icons.
@@ -103,18 +105,17 @@ var IconCache = class AppIndicators_IconCache {
         return null;
     }
 
-    _checkGC() {
+    async _checkGC() {
         let cacheIsEmpty = this._cache.size == 0;
 
         if (!cacheIsEmpty && !this._gcTimeout) {
             Util.Logger.debug("IconCache: garbage collector started");
-            this._gcTimeout = GLib.timeout_add_seconds(
-                GLib.PRIORITY_LOW,
-                GC_INTERVAL,
-                () => this._gc());
+            this._gcTimeout = new PromiseUtils.TimeoutSecondsPromise(GC_INTERVAL,
+                GLib.PRIORITY_LOW);
+            await this._gcTimeout;
         } else if (cacheIsEmpty && this._gcTimeout) {
             Util.Logger.debug("IconCache: garbage collector stopped");
-            GLib.Source.remove(this._gcTimeout);
+            this._gcTimeout.cancel();
             delete this._gcTimeout;
         }
     }

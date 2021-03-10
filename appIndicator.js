@@ -85,15 +85,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
                 try {
                     initable.init_finish(result);
                     this._checkIfReady();
-
-                    if (!this.isReady && !this.menuPath) {
-                        let checks = 0;
-                        this._delayCheck = GLib.timeout_add_seconds(
-                            GLib.PRIORITY_DEFAULT_IDLE, 1, () => {
-                            Util.refreshPropertyOnProxy(this._proxy, 'Menu');
-                            return !this.isReady && ++checks < 3;
-                        });
-                    }
+                    this._checkMenuReady();
                 } catch(e) {
                     if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                         Util.Logger.warn(`While intializing proxy for ${bus_name} ${object}: ${e}`);
@@ -117,7 +109,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
 
         if (this.isReady && !wasReady) {
             if (this._delayCheck) {
-                GLib.Source.remove(this._delayCheck);
+                this._delayCheck.cancel();
                 delete this._delayCheck;
             }
 
@@ -128,9 +120,26 @@ var AppIndicator = class AppIndicators_AppIndicator {
         return false;
     }
 
+    async _checkMenuReady() {
+        if (this.menuPath)
+            return true;
+
+        const cancellable = this._cancellable;
+        for (let checks = 0; checks < 3 && !this.isReady; ++checks) {
+            this._delayCheck = new PromiseUtils.TimeoutSecondsPromise(1,
+                GLib.PRIORITY_DEFAULT_IDLE, cancellable);
+            await this._delayCheck;
+            Util.refreshPropertyOnProxy(this._proxy, 'Menu');
+        }
+
+        return !!this.menuPath;
+    }
+
     _nameOwnerChanged() {
         if (!this._proxy.g_name_owner)
             this._checkIfReady();
+        else
+            this._checkMenuReady();
     }
 
     _addExtraProperty(name) {
@@ -184,18 +193,21 @@ var AppIndicator = class AppIndicators_AppIndicator {
             );
     }
 
-    _onProxySignal(_proxy, _sender, signal, _params) {
+    async _onProxySignal(_proxy, _sender, signal, _params) {
         this._accumuledSignals.add(signal);
 
-        if (this._signalsAccumulatorId)
+        if (this._signalsAccumulator)
             return;
 
-        this._signalsAccumulatorId = GLib.timeout_add(
-            GLib.PRIORITY_DEFAULT_IDLE, MAX_UPDATE_FREQUENCY, () => {
-                this._accumuledSignals.forEach((s) => this._translateNewSignals(s));
-                this._accumuledSignals.clear();
-                delete this._signalsAccumulatorId;
-            });
+        this._signalsAccumulator = new PromiseUtils.TimeoutPromise(
+            GLib.PRIORITY_DEFAULT_IDLE, MAX_UPDATE_FREQUENCY, this._cancellable);
+        try {
+            await this._signalsAccumulator;
+            this._accumuledSignals.forEach((s) => this._translateNewSignals(s));
+            this._accumuledSignals.clear();
+        } finally {
+            delete this._signalsAccumulator;
+        }
     }
 
     //public property getters
@@ -298,17 +310,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
         this._cancellable.cancel();
         Util.cancelRefreshPropertyOnProxy(this._proxy);
         delete this._cancellable;
-        delete this._proxy
-
-        if (this._signalsAccumulatorId) {
-            GLib.Source.remove(this._signalsAccumulatorId);
-            delete this._signalsAccumulatorId;
-        }
-
-        if (this._delayCheck) {
-            GLib.Source.remove(this._delayCheck);
-            delete this._delayCheck;
-        }
+        delete this._proxy;
     }
 
     open() {

@@ -21,6 +21,7 @@ const Main = imports.ui.main;
 const GObject = imports.gi.GObject
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Params = imports.misc.params;
+const PromiseUtils = Extension.imports.promiseUtils;
 
 var refreshPropertyOnProxy = function(proxy, propertyName, params) {
     if (!proxy._proxyCancellables)
@@ -61,16 +62,12 @@ var refreshPropertyOnProxy = function(proxy, propertyName, params) {
                 proxy._proxyChangedProperties = {};
             proxy._proxyChangedProperties[propertyName] = valueVariant;
 
-            if (!proxy._proxyPropertiesEmitId) {
-                proxy._proxyPropertiesEmitId = GLib.timeout_add(
-                    GLib.PRIORITY_DEFAULT_IDLE, 16, () => {
-                    delete proxy._proxyPropertiesEmitId;
-
+            if (!proxy._proxyPropertiesEmit || !proxy._proxyPropertiesEmit.pending()) {
+                proxy._proxyPropertiesEmit = new PromiseUtils.TimeoutPromise(16,
+                    GLib.PRIORITY_DEFAULT_IDLE, cancellable).then(() => {
                     proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}',
                         proxy._proxyChangedProperties), []);
                     delete proxy._proxyChangedProperties;
-
-                    return GLib.SOURCE_REMOVE;
                 });
             }
         } catch (e) {
@@ -108,10 +105,6 @@ var cancelRefreshPropertyOnProxy = function(proxy, params) {
             return cancellable;
         }
     } else {
-        if (proxy._proxyPropertiesEmitId) {
-            GLib.source_remove(proxy._proxyPropertiesEmitId);
-            delete proxy._proxyPropertiesEmitId;
-        }
         proxy._proxyCancellables.forEach(c => c.cancel());
         delete proxy._proxyChangedProperties;
         delete proxy._proxyCancellables;

@@ -25,6 +25,7 @@ const St = imports.gi.St
 const Extension = imports.misc.extensionUtils.getCurrentExtension()
 
 const DBusInterfaces = Extension.imports.interfaces
+const PromiseUtils = Extension.imports.promiseUtils;
 const Util = Extension.imports.util
 
 //////////////////////////////////////////////////////////////////////////
@@ -249,14 +250,16 @@ var DBusClient = class AppIndicators_DBusClient {
             this._beginLayoutUpdate()
     }
 
-    _requestProperties(id) {
-        // if we don't have any requests queued, we'll need to add one
-        if (!this._propertiesRequestId) {
-            this._propertiesRequestId = GLib.idle_add(
-                GLib.PRIORITY_DEFAULT_IDLE, () => this._beginRequestProperties())
-        }
-
+    async _requestProperties(id) {
         this._propertiesRequestedFor.add(id);
+
+        // if we don't have any requests queued, we'll need to add one
+        if (!this._propertiesRequest || !this._propertiesRequest.pending()) {
+            this._propertiesRequest = new PromiseUtils.IdlePromise(
+                GLib.PRIORITY_DEFAULT_IDLE, this._cancellable);
+            await this._propertiesRequest;
+            this._beginRequestProperties();
+        }
     }
 
     _beginRequestProperties() {
@@ -267,8 +270,6 @@ var DBusClient = class AppIndicators_DBusClient {
                 this._endRequestProperties.bind(this))
 
         this._propertiesRequestedFor.clear();
-        delete this._propertiesRequestId;
-
         return false
     }
 
@@ -463,11 +464,6 @@ var DBusClient = class AppIndicators_DBusClient {
 
     destroy() {
         this.emit('destroy')
-
-        if (this._propertiesRequestId) {
-            GLib.Source.remove(this._propertiesRequestId);
-            delete this._propertiesRequestId;
-        }
 
         this._cancellable.cancel();
         Signals._disconnectAll.apply(this._proxy)
