@@ -530,18 +530,34 @@ class AppIndicators_IconActor extends St.Icon {
         return path;
     }
 
-    async argbToRgba(src) {
-        let dest = new Uint8Array(src.length);
+    async argbToRgba(src, cancellable) {
+        const CHUNK_SIZE = 1024;
+        const ops = [];
+        const dest = new Uint8Array(src.length);
 
-        for (let i = 0; i < src.length; i += 4) {
-            let srcAlpha = src[i]
+        for (let i = 0; i < src.length;) {
+            const chunkSize = Math.min(CHUNK_SIZE, src.length - i);
 
-            dest[i]     = src[i + 1]; /* red */
-            dest[i + 1] = src[i + 2]; /* green */
-            dest[i + 2] = src[i + 3]; /* blue */
-            dest[i + 3] = srcAlpha; /* alpha */
+            ops.push(new PromiseUtils.CancellablePromise(async resolve => {
+                const start = i;
+                const end = i + chunkSize;
+                await new PromiseUtils.IdlePromise(GLib.PRIORITY_LOW, cancellable);
+
+                for (let j = start; j < end; j += 4) {
+                    let srcAlpha = src[j]
+
+                    dest[j] = src[j + 1]; /* red */
+                    dest[j + 1] = src[j + 2]; /* green */
+                    dest[j + 2] = src[j + 3]; /* blue */
+                    dest[j + 3] = srcAlpha; /* alpha */
+                }
+                resolve();
+            }, cancellable));
+
+            i += chunkSize;
         }
 
+        await Promise.all(ops);
         return dest;
     }
 
@@ -573,15 +589,30 @@ class AppIndicators_IconActor extends St.Icon {
         const [ width, height, bytes ] = iconPixmap
         const rowStride = width * 4 // hopefully this is correct
 
+        const id = `__PIXMAP_ICON_${width}x${height}`;
+        if (this._loadingIcons.has(id)) {
+            Util.Logger.debug(`${this._indicator.id}, Pixmap ${width}x${height} ` +
+                'Is still loading, ignoring the request');
+            throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING,
+                'Already in progress');
+        } else {
+            this._cancelLoading();
+        }
+
+        this._loadingIcons.add(id);
+
         try {
             return GdkPixbuf.Pixbuf.new_from_bytes(
-                await this.argbToRgba(bytes),
+                await this.argbToRgba(bytes, this._cancellable),
                 GdkPixbuf.Colorspace.RGB, true,
                 8, width, height, rowStride);
         } catch (e) {
             // the image data was probably bogus. We don't really know why, but it _does_ happen.
-            Util.Logger.warn(`${this._indicator.id}, Impossible to create image from data: ${e}`)
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                Util.Logger.warn(`${this._indicator.id}, Impossible to create image from data: ${e}`);
             throw e;
+        } finally {
+            this._loadingIcons.delete(id);
         }
     }
 
