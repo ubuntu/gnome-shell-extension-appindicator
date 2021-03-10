@@ -549,34 +549,34 @@ class AppIndicators_IconActor extends St.Icon {
         if (!iconPixmapArray || iconPixmapArray.length < 1)
             throw TypeError('Empty Icon found');
 
-            let sortedIconPixmapArray = iconPixmapArray.sort((pixmapA, pixmapB) => {
-                // we sort smallest to biggest
-                let areaA = pixmapA[0] * pixmapA[1]
-                let areaB = pixmapB[0] * pixmapB[1]
+        const sortedIconPixmapArray = iconPixmapArray.sort((pixmapA, pixmapB) => {
+            // we sort smallest to biggest
+            const areaA = pixmapA[0] * pixmapA[1]
+            const areaB = pixmapB[0] * pixmapB[1]
 
-                return areaA - areaB
-            })
+            return areaA - areaB
+        })
 
-            let qualifiedIconPixmapArray = sortedIconPixmapArray.filter((pixmap) => {
-                // we prefer any pixmap that is equal or bigger than our requested size
-                return pixmap[0] >= iconSize && pixmap[1] >= iconSize;
-            })
+        const qualifiedIconPixmapArray = sortedIconPixmapArray.filter(pixmap =>
+            // we prefer any pixmap that is equal or bigger than our requested size
+            pixmap[0] >= iconSize && pixmap[1] >= iconSize)
 
-            let iconPixmap = qualifiedIconPixmapArray.length > 0 ? qualifiedIconPixmapArray[0] : sortedIconPixmapArray.pop()
+        const iconPixmap = qualifiedIconPixmapArray.length > 0 ?
+            qualifiedIconPixmapArray[0] : sortedIconPixmapArray.pop()
 
-            let [ width, height, bytes ] = iconPixmap
-            let rowstride = width * 4 // hopefully this is correct
+        const [ width, height, bytes ] = iconPixmap
+        const rowStride = width * 4 // hopefully this is correct
 
-            try {
-                return GdkPixbuf.Pixbuf.new_from_bytes(
-                    await this.argbToRgba(bytes),
-                    GdkPixbuf.Colorspace.RGB, true,
-                    8, width, height, rowstride);
-            } catch (e) {
-                // the image data was probably bogus. We don't really know why, but it _does_ happen.
-                Util.Logger.warn(`${this._indicator.id}, Impossible to create image from data: ${e}`)
-                throw e;
-            }
+        try {
+            return GdkPixbuf.Pixbuf.new_from_bytes(
+                await this.argbToRgba(bytes),
+                GdkPixbuf.Colorspace.RGB, true,
+                8, width, height, rowStride);
+        } catch (e) {
+            // the image data was probably bogus. We don't really know why, but it _does_ happen.
+            Util.Logger.warn(`${this._indicator.id}, Impossible to create image from data: ${e}`)
+            throw e;
+        }
     }
 
     // The .inUse flag will be set to true if the used gicon matches the cached
