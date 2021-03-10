@@ -387,6 +387,14 @@ class AppIndicators_IconActor extends St.Icon {
             `appindicator-icon-${this._indicator.id.toLowerCase().replace(/_|\s/g, '-')}`);
     }
 
+    _cancelLoading() {
+        if (this._loadingIcons.size > 0) {
+            this._cancellable.cancel();
+            this._cancellable = new Gio.Cancellable();
+            this._loadingIcons.clear();
+        }
+    }
+
     // Will look the icon up in the cache, if it's found
     // it will return it. Otherwise, it will create it and cache it.
     async _cacheOrCreateIconByName(iconSize, iconName, themePath) {
@@ -401,10 +409,8 @@ class AppIndicators_IconActor extends St.Icon {
             Util.Logger.debug(`${this._indicator.id}, Icon ${id} Is still loading, ignoring the request`);
             throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING,
                 'Already in progress');
-        } else if (this._loadingIcons.size > 0) {
-            this._cancellable.cancel();
-            this._cancellable = new Gio.Cancellable();
-            this._loadingIcons.clear();
+        } else {
+            this._cancelLoading();
         }
 
         this._loadingIcons.add(id);
@@ -707,6 +713,7 @@ class AppIndicators_IconActor extends St.Icon {
     // called when the icon theme changes
     _invalidateIcon() {
         this._iconCache.clear()
+        this._cancelLoading();
 
         this._updateIcon()
         this._updateOverlayIcon()
