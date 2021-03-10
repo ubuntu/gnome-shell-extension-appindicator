@@ -31,6 +31,12 @@ const DBusMenu = Extension.imports.dbusMenu;
 const IconCache = Extension.imports.iconCache;
 const Util = Extension.imports.util;
 const Interfaces = Extension.imports.interfaces;
+const PromiseUtils = Extension.imports.promiseUtils;
+
+Gio._promisify(Gio.File.prototype, 'read_async', 'read_finish');
+Gio._promisify(Gio._LocalFilePrototype, 'read_async', 'read_finish');
+Gio._promisify(GdkPixbuf.Pixbuf, 'get_file_info_async', 'get_file_info_finish');
+Gio._promisify(GdkPixbuf.Pixbuf, 'new_from_stream_at_scale_async', 'new_from_stream_finish');
 
 const MAX_UPDATE_FREQUENCY = 100; // In ms
 
@@ -373,11 +379,6 @@ class AppIndicators_IconActor extends St.Icon {
         this.connect('destroy', () => {
             this._iconCache.destroy();
             this._cancellable.cancel();
-
-            if (this._callbackIdle) {
-                GLib.source_remove(this._callbackIdle);
-                delete this._callbackIdle;
-            }
         });
     }
 
@@ -388,19 +389,18 @@ class AppIndicators_IconActor extends St.Icon {
 
     // Will look the icon up in the cache, if it's found
     // it will return it. Otherwise, it will create it and cache it.
-    _cacheOrCreateIconByName(iconSize, iconName, themePath, callback) {
+    async _cacheOrCreateIconByName(iconSize, iconName, themePath) {
         let {scale_factor} = St.ThemeContext.get_for_stage(global.stage);
         let id = `${iconName}@${iconSize * scale_factor}${themePath || ''}`;
         let gicon = this._iconCache.get(id);
 
-        if (gicon) {
-            callback(gicon);
-            return;
-        }
+        if (gicon)
+            return gicon;
 
         if (this._loadingIcons.has(id)) {
             Util.Logger.debug(`${this._indicator.id}, Icon ${id} Is still loading, ignoring the request`);
-            return;
+            throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING,
+                'Already in progress');
         } else if (this._loadingIcons.size > 0) {
             this._cancellable.cancel();
             this._cancellable = new Gio.Cancellable();
@@ -409,83 +409,75 @@ class AppIndicators_IconActor extends St.Icon {
 
         this._loadingIcons.add(id);
         let path = this._getIconInfo(iconName, themePath, iconSize, scale_factor);
-        this._createIconByName(path, (gicon) => {
-            this._loadingIcons.delete(id);
-            if (gicon)
-                gicon = this._iconCache.add(id, gicon);
-            callback(gicon);
-        });
+        gicon = await this._createIconByName(path);
+        this._loadingIcons.delete(id);
+        if (gicon)
+            gicon = this._iconCache.add(id, gicon);
+        return gicon;
     }
 
-    _createIconByPath(path, width, height, callback) {
+    async _createIconByPath(path, width, height) {
         let file = Gio.File.new_for_path(path);
-        file.read_async(GLib.PRIORITY_DEFAULT, this._cancellable, (file, res) => {
-            try {
-                let inputStream = file.read_finish(res);
-
-                GdkPixbuf.Pixbuf.new_from_stream_at_scale_async(
-                    inputStream, height, width, true, this._cancellable, (_p, res) => {
-                        try {
-                            callback(GdkPixbuf.Pixbuf.new_from_stream_finish(res));
-                            this.icon_size = width > 0 ? width : this._iconSize;
-                        } catch (e) {
-                            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
-                                Util.Logger.warn(`${this._indicator.id}, Impossible to create image from path '${path}': ${e}`);
-                                callback(null);
-                            }
-                        }
-                    });
-            } catch (e) {
-                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
-                    Util.Logger.warn(`${this._indicator.id}, Impossible to read image from path '${path}': ${e}`);
-                    callback(null);
-                }
-            }
-        });
+        try {
+            const inputStream = await file.read_async(GLib.PRIORITY_DEFAULT, this._cancellable);
+            const pixbuf = GdkPixbuf.Pixbuf.new_from_stream_at_scale_async(inputStream,
+                height, width, true, this._cancellable);
+            this.icon_size = width > 0 ? width : this._iconSize;
+            return pixbuf;
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                Util.Logger.warn(`${this._indicator.id}, Impossible to read image from path '${path}': ${e}`);
+            throw e;
+        }
     }
 
-    _createIconByName(path, callback) {
+    async _createIconByName(path) {
         if (!path) {
-            if (this._callbackIdle)
-                return;
+            if (this._createIconIdle) {
+                throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING,
+                    'Already in progress');
+            }
 
-            this._callbackIdle = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-                delete this._callbackIdle;
-                callback(null);
-                return false;
-            });
-            return;
-        } else if (this._callbackIdle) {
-            GLib.source_remove(this._callbackIdle);
-            delete this._callbackIdle;
+            try {
+                this._createIconIdle = new PromiseUtils.IdlePromise(GLib.PRIORITY_DEFAULT_IDLE,
+                    this._cancellable);
+                await this._createIconIdle;
+            } catch (e) {
+                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                    logError(e);
+                throw e;
+            } finally {
+                delete this._createIconIdle;
+            }
+            return null;
+        } else if (this._createIconIdle) {
+            this._createIconIdle.cancel();
+            delete this._createIconIdle;
         }
 
-        GdkPixbuf.Pixbuf.get_file_info_async(path, this._cancellable, (_p, res) => {
-            try {
-                let [format, width, height] = GdkPixbuf.Pixbuf.get_file_info_finish(res);
+        try {
+            const [format, width, height] = await GdkPixbuf.Pixbuf.get_file_info_async(
+                path, this._cancellable);
 
-                if (!format) {
-                    Util.Logger.critical(`${this._indicator.id}, Invalid image format: ${path}`);
-                    callback(null);
-                    return;
-                }
-
-                if (width >= height * 1.5) {
-                    /* Hello indicator-multiload! */
-                    this._createIconByPath(path, width, -1, callback);
-                } else {
-                    callback(new Gio.FileIcon({
-                        file: Gio.File.new_for_path(path)
-                    }));
-                    this.icon_size = this._iconSize;
-                }
-            } catch (e) {
-                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
-                    Util.Logger.warn(`${this._indicator.id}, Impossible to read image info from path '${path}': ${e}`);
-                    callback(null);
-                }
+            if (!format) {
+                Util.Logger.critical(`${this._indicator.id}, Invalid image format: ${path}`);
+                return null;
             }
-        });
+
+            if (width >= height * 1.5) {
+                /* Hello indicator-multiload! */
+                return this._createIconByPath(path, width, -1);
+            } else {
+                this.icon_size = this._iconSize;
+                return new Gio.FileIcon({
+                    file: Gio.File.new_for_path(path)
+                });
+            }
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                Util.Logger.warn(`${this._indicator.id}, Impossible to read image info from path '${path}': ${e}`);
+            throw e;
+        }
     }
 
     _getIconInfo(name, themePath, size, scale) {
@@ -532,7 +524,7 @@ class AppIndicators_IconActor extends St.Icon {
         return path;
     }
 
-    argbToRgba(src) {
+    async argbToRgba(src) {
         let dest = new Uint8Array(src.length);
 
         for (let i = 0; i < src.length; i += 4) {
@@ -547,7 +539,7 @@ class AppIndicators_IconActor extends St.Icon {
         return dest;
     }
 
-    _createIconFromPixmap(iconSize, iconPixmapArray, snIconType) {
+    async _createIconFromPixmap(iconSize, iconPixmapArray) {
         let {scale_factor} = St.ThemeContext.get_for_stage(global.stage);
         iconSize = iconSize * scale_factor
         // the pixmap actually is an array of pixmaps with different sizes
@@ -555,7 +547,7 @@ class AppIndicators_IconActor extends St.Icon {
 
         // maybe it's empty? that's bad.
         if (!iconPixmapArray || iconPixmapArray.length < 1)
-            return null
+            throw TypeError('Empty Icon found');
 
             let sortedIconPixmapArray = iconPixmapArray.sort((pixmapA, pixmapB) => {
                 // we sort smallest to biggest
@@ -577,13 +569,13 @@ class AppIndicators_IconActor extends St.Icon {
 
             try {
                 return GdkPixbuf.Pixbuf.new_from_bytes(
-                    this.argbToRgba(bytes),
+                    await this.argbToRgba(bytes),
                     GdkPixbuf.Colorspace.RGB, true,
                     8, width, height, rowstride);
             } catch (e) {
                 // the image data was probably bogus. We don't really know why, but it _does_ happen.
                 Util.Logger.warn(`${this._indicator.id}, Impossible to create image from data: ${e}`)
-                return null
+                throw e;
             }
     }
 
@@ -623,7 +615,7 @@ class AppIndicators_IconActor extends St.Icon {
         }
     }
 
-    _updateIconByType(iconType, iconSize) {
+    async _updateIconByType(iconType, iconSize) {
         let icon;
         switch (iconType) {
             case SNIconType.ATTENTION:
@@ -637,19 +629,23 @@ class AppIndicators_IconActor extends St.Icon {
                 break;
         }
 
-        let [name, pixmap, theme] = icon;
-        if (name && name.length) {
-            this._cacheOrCreateIconByName(iconSize, name, theme, (gicon) => {
-                if (!gicon && pixmap) {
-                    gicon = this._createIconFromPixmap(iconSize,
-                        pixmap, iconType);
-                }
-                this._setGicon(iconType, gicon);
-            });
-        } else if (pixmap) {
-            let gicon = this._createIconFromPixmap(iconSize,
-                pixmap, iconType);
+        const [name, pixmap, theme] = icon;
+        let gicon = null;
+        try {
+            if (name && name.length) {
+                gicon = await this._cacheOrCreateIconByName(iconSize, name, theme);
+                if (!gicon && pixmap)
+                    gicon = await this._createIconFromPixmap(iconSize, pixmap, iconType);
+            } else if (pixmap) {
+                gicon = await this._createIconFromPixmap(iconSize, pixmap, iconType);
+            }
+
             this._setGicon(iconType, gicon);
+        } catch (e) {
+            /* We handle the error messages already */
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED) &&
+                !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING))
+                Util.Logger.debug(`${this._indicator.id}, Impossible to load icon: ${e}`);
         }
     }
 
