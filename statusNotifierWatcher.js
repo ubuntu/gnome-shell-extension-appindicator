@@ -22,6 +22,7 @@ const Extension = imports.misc.extensionUtils.getCurrentExtension()
 const AppIndicator = Extension.imports.appIndicator
 const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon
 const Interfaces = Extension.imports.interfaces
+const PromiseUtils = Extension.imports.promiseUtils;
 const Util = Extension.imports.util
 
 
@@ -131,8 +132,10 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         // Some indicators (*coff*, dropbox, *coff*) do not re-register again
         // when the plugin is enabled/disabled, thus we need to manually look
         // for the objects in the session bus that implements the
-        // StatusNotifierItem interface...
+        // StatusNotifierItem interface... However let's do it after a low
+        // priority idle, so that it won't affect startup.
         const cancellable = this._cancellable;
+        await new PromiseUtils.IdlePromise(GLib.PRIORITY_LOW, cancellable);
         const bus = Gio.DBus.session;
         const uniqueNames = await Util.getBusNames(bus, cancellable);
         uniqueNames.forEach(async name => {
