@@ -54,7 +54,6 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         this._items = new Map();
         this._nameWatcher = new Map();
         this._serviceWatcher = new Map();
-        this._startUpCompletionHelper = new Util.StartUpCompletionHelper();
 
         this._seekStatusNotifierItems();
     }
@@ -77,7 +76,7 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         return bus_name + obj_path;
     }
 
-    _registerItem(service, bus_name, obj_path) {
+    async _registerItem(service, bus_name, obj_path) {
         let id = this._getItemId(bus_name, obj_path);
 
         if (this._items.has(id)) {
@@ -90,17 +89,6 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         let indicator = new AppIndicator.AppIndicator(bus_name, obj_path);
         this._items.set(id, indicator);
 
-        // if the desktop is not ready delay the icon creation
-        this._startUpCompletionHelper.whenStartUpComplete(() => {
-            // check that the indicator has not been removed while we were waiting for the startup completion
-            let indicatorItem = this._items.get(id);
-            if (indicatorItem !== null) {
-                let visual = new IndicatorStatusIcon.IndicatorStatusIcon(indicatorItem);
-                indicator.connect('destroy', () => visual.destroy());
-            }
-        });
-
-        this._dbusImpl.emit_signal('StatusNotifierItemRegistered', GLib.Variant.new('(s)', service));
         this._nameWatcher.set(id, Gio.DBus.session.watch_name(bus_name,
             Gio.BusNameWatcherFlags.NONE, null,
             () => this._itemVanished(id)));
@@ -111,6 +99,12 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
                 () => this._itemVanished(id)));
         }
 
+        // if the desktop is not ready delay the icon creation and signal emissions
+        await Util.waitForStartupCompletion(indicator.cancellable);
+        const visual = new IndicatorStatusIcon.IndicatorStatusIcon(indicator);
+        indicator.connect('destroy', () => visual.destroy());
+
+        this._dbusImpl.emit_signal('StatusNotifierItemRegistered', GLib.Variant.new('(s)', service));
         this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems', GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
     }
 

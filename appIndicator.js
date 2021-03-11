@@ -260,6 +260,10 @@ var AppIndicator = class AppIndicators_AppIndicator {
         ]
     }
 
+    get cancellable() {
+        return this._cancellable;
+    }
+
     _onPropertiesChanged(proxy, changed, invalidated) {
         let props = Object.keys(changed.unpack());
         let signalsToEmit = new Set();

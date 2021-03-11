@@ -15,7 +15,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 /* exported refreshPropertyOnProxy, getUniqueBusName, getBusNames,
-   introspectBusObject, dbusNodeImplementsInterfaces */
+   introspectBusObject, dbusNodeImplementsInterfaces, waitForStartupCompletion */
 
 const Gio = imports.gi.Gio
 const GLib = imports.gi.GLib
@@ -239,55 +239,18 @@ var connectSmart = function() {
         return connectSmart3A.apply(null, arguments)
 }
 
+// eslint-disable-next-line valid-jsdoc
 /**
- * Helper class to wait for the system startup to be completed.
+ * Helper function to wait for the system startup to be completed.
  * Adding widgets before the desktop is ready to accept them can result in errors.
  */
-var StartUpCompletionHelper = class AppIndicators_StartUpCompletionHelper {
+async function waitForStartupCompletion(cancellable) {
+    if (Main.layoutManager._startingUp)
+        await Main.layoutManager.connect_once('startup-complete', cancellable);
 
-    constructor() {
-        this._startupComplete = false;
-        this._displayAvailable = false;
-        this._listeners = new Set();
-
-        // If the desktop is still starting up, we must wait until it is ready
-        if (Main.layoutManager._startingUp) {
-            let startupPreparedId = Main.layoutManager.connect('startup-complete', () => {
-                Main.layoutManager.disconnect(startupPreparedId);
-                this._startupComplete = true;
-                this._checkStartUpComplete();
-            });
-        } else {
-            this._startupComplete = true;
-        }
-
-        // Ensure that the default Gdk Screen is available
-        if (Gtk.IconTheme.get_default() === null) {
-            let waitForThemeId = Gdk.DisplayManager.get().connect('display-opened', () => {
-                Gdk.DisplayManager.get().disconnect(waitForThemeId);
-                this._displayAvailable = true;
-                this._checkStartUpComplete();
-            });
-        } else {
-            this._displayAvailable = true;
-        }
-    }
-
-    _checkStartUpComplete() {
-        if (this._startupComplete && this._displayAvailable) {
-            this._listeners.forEach(callback => callback());
-            this._listeners.clear();
-        }
-    }
-
-    whenStartUpComplete(callback) {
-        if (this._startupComplete && this._displayAvailable) {
-            callback();
-        } else {
-            this._listeners.add(callback);
-        }
-    }
-};
+    if (Gtk.IconTheme.get_default() === null)
+        await Gdk.DisplayManager.get().connect_once('display-opened', cancellable);
+}
 
 /**
  * Helper class for logging stuff
