@@ -739,12 +739,12 @@ var Client = class AppIndicatorsClient {
             menu._setOpenedSubMenu = this._setOpenedSubmenu.bind(this);
 
         // connect handlers
-        Util.connectSmart(menu, 'open-state-changed', this, '_onMenuOpened');
-        Util.connectSmart(menu, 'destroy',            this, 'destroy');
+        Util.connectSmart(menu, 'open-state-changed', this, this._onMenuOpened);
+        Util.connectSmart(menu, 'destroy', this, this.destroy);
 
-        Util.connectSmart(this._rootItem, 'child-added',   this, '_onRootChildAdded');
-        Util.connectSmart(this._rootItem, 'child-removed', this, '_onRootChildRemoved');
-        Util.connectSmart(this._rootItem, 'child-moved',   this, '_onRootChildMoved');
+        Util.connectSmart(this._rootItem, 'child-added', this, this._onRootChildAdded);
+        Util.connectSmart(this._rootItem, 'child-removed', this, this._onRootChildRemoved);
+        Util.connectSmart(this._rootItem, 'child-moved', this, this._onRootChildMoved);
 
         // Dropbox requires us to call AboutToShow(0) first
         this._rootItem.sendAboutToShow();

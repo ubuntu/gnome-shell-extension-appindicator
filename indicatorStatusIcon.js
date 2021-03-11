@@ -48,10 +48,10 @@ class AppIndicatorsIndicatorStatusIcon extends PanelMenu.Button {
 
         this._box.add_child(this._iconBox);
 
-        Util.connectSmart(this._indicator, 'ready',  this, '_display');
-        Util.connectSmart(this._indicator, 'menu',  this, '_updateMenu');
-        Util.connectSmart(this._indicator, 'label',  this, '_updateLabel');
-        Util.connectSmart(this._indicator, 'status', this, '_updateStatus');
+        Util.connectSmart(this._indicator, 'ready', this, this._display);
+        Util.connectSmart(this._indicator, 'menu', this, this._updateMenu);
+        Util.connectSmart(this._indicator, 'label', this, this._updateLabel);
+        Util.connectSmart(this._indicator, 'status', this, this._updateStatus);
         Util.connectSmart(this._indicator, 'reset', this, () => {
             this._updateStatus();
             this._updateLabel();

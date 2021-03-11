@@ -83,14 +83,14 @@ var AppIndicator = class AppIndicatorsAppIndicator {
             g_flags: Gio.DBusProxyFlags.GET_INVALIDATED_PROPERTIES });
 
         this._setupProxy();
-        Util.connectSmart(this._proxy, 'g-properties-changed', this, '_onPropertiesChanged');
+        Util.connectSmart(this._proxy, 'g-properties-changed', this, this._onPropertiesChanged);
         Util.connectSmart(this._proxy, 'g-signal', this, this._onProxySignal);
-        Util.connectSmart(this._proxy, 'notify::g-name-owner', this, '_nameOwnerChanged');
+        Util.connectSmart(this._proxy, 'notify::g-name-owner', this, this._nameOwnerChanged);
 
         if (service !== busName && service.match(Util.BUS_ADDRESS_REGEX)) {
             this._uniqueId = service;
             this._nameWatcher = new Util.NameWatcher(service);
-            Util.connectSmart(this._nameWatcher, 'changed', () => this._nameOwnerChanged());
+            Util.connectSmart(this._nameWatcher, 'changed', this, this._nameOwnerChanged);
         }
     }
 
@@ -387,9 +387,9 @@ class AppIndicatorsIconActor extends St.Icon {
         this._cancellable   = new Gio.Cancellable();
         this._loadingIcons  = new Set();
 
-        Util.connectSmart(this._indicator, 'icon',         this, '_updateIcon');
-        Util.connectSmart(this._indicator, 'overlay-icon', this, '_updateOverlayIcon');
-        Util.connectSmart(this._indicator, 'reset',        this, '_invalidateIcon');
+        Util.connectSmart(this._indicator, 'icon', this, this._updateIcon);
+        Util.connectSmart(this._indicator, 'overlay-icon', this, this._updateOverlayIcon);
+        Util.connectSmart(this._indicator, 'reset', this, this._invalidateIcon);
 
         Util.connectSmart(themeContext, 'notify::scale-factor', this, tc => {
             this.height = iconSize * tc.scale_factor;
@@ -401,7 +401,7 @@ class AppIndicatorsIconActor extends St.Icon {
             this._invalidateIcon();
         });
 
-        Util.connectSmart(Gtk.IconTheme.get_default(), 'changed', this, '_invalidateIcon');
+        Util.connectSmart(Gtk.IconTheme.get_default(), 'changed', this, this._invalidateIcon);
 
         if (indicator.isReady)
             this._invalidateIcon();

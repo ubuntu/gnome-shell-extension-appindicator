@@ -232,11 +232,10 @@ function connectSmart3A(src, signal, handler) {
 }
 
 function connectSmart4A(src, signal, target, method) {
-    if (typeof method === 'string')
-        method = target[method].bind(target);
-    if (typeof method === 'function')
-        method = method.bind(target);
+    if (typeof method !== 'function')
+        throw new TypeError('Unsupported function');
 
+    method = method.bind(target);
     const signalId = src.connect(signal, method);
     const onDestroy = () => {
         src.disconnect(signalId);
