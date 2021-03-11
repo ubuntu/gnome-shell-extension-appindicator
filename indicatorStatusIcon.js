@@ -36,7 +36,7 @@ const Util = Extension.imports.util;
 var IndicatorStatusIcon = GObject.registerClass(
 class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
     _init(indicator) {
-        super._init(0.5, indicator._uniqueId);
+        super._init(0.5, indicator.uniqueId);
         this._indicator = indicator;
 
         this._iconBox = new AppIndicator.IconActor(indicator, Panel.PANEL_ICON_SIZE);

@@ -89,6 +89,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
         Util.connectSmart(this._proxy, 'notify::g-name-owner', this, '_nameOwnerChanged')
 
         if (service !== bus_name && service.match(Util.BUS_ADDRESS_REGEX)) {
+            this._uniqueId = service;
             this._serviceWatchId = Gio.DBus.session.watch_name(service,
                 Gio.BusNameWatcherFlags.NONE, () => {
                     this._nameOnBus = true

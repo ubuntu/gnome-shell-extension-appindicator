@@ -101,7 +101,7 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
             indicator.connect('destroy', () => statusIcon.destroy());
 
             this._dbusImpl.emit_signal('StatusNotifierItemRegistered',
-                GLib.Variant.new('(s)', service));
+                GLib.Variant.new('(s)', [indicator.uniqueId]));
             this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems',
                 GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
         } catch (e) {
@@ -193,11 +193,15 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
     }
 
     _remove(id) {
-        this._items.get(id).destroy();
+        const indicator = this._items.get(id);
+        const { uniqueId } = indicator;
+        indicator.destroy();
         this._items.delete(id);
 
-        this._dbusImpl.emit_signal('StatusNotifierItemUnregistered', GLib.Variant.new('(s)', id));
-        this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems', GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
+        this._dbusImpl.emit_signal('StatusNotifierItemUnregistered',
+            GLib.Variant.new('(s)', [uniqueId]));
+        this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems',
+            GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
     }
 
     RegisterStatusNotifierHostAsync(_service, invocation) {
@@ -212,7 +216,7 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
     }
 
     get RegisteredStatusNotifierItems() {
-        return Array.from(this._items.keys());
+        return Array.from(this._items.values()).map(i => i.uniqueId);
     }
 
     get IsStatusNotifierHostRegistered() {
