@@ -308,7 +308,7 @@ var StartUpCompletionHelper = class AppIndicators_StartUpCompletionHelper {
 var Logger = class AppIndicators_Logger {
     static _logStructured(logLevel, message, extraFields = {}) {
         if (!Object.values(GLib.LogLevelFlags).includes(logLevel)) {
-            _logStructured(GLib.LogLevelFlags.LEVEL_WARNING,
+            Logger._logStructured(GLib.LogLevelFlags.LEVEL_WARNING,
                 'logLevel is not a valid GLib.LogLevelFlags');
             return;
         }
