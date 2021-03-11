@@ -23,12 +23,16 @@ const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Params = imports.misc.params;
 const PromiseUtils = Extension.imports.promiseUtils;
 
-var refreshPropertyOnProxy = function(proxy, propertyName, params) {
+const Signals = imports.signals
+
+PromiseUtils._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
+
+async function refreshPropertyOnProxy(proxy, propertyName, params) {
     if (!proxy._proxyCancellables)
         proxy._proxyCancellables = new Map();
 
     params = Params.parse(params, {
-        skipEqualtyCheck: false,
+        skipEqualityCheck: false,
     });
 
     let cancellable = cancelRefreshPropertyOnProxy(proxy, {
@@ -36,49 +40,42 @@ var refreshPropertyOnProxy = function(proxy, propertyName, params) {
         addNew: true
     });
 
-    proxy.g_connection.call(
-        proxy.g_name,
-        proxy.g_object_path,
-        'org.freedesktop.DBus.Properties',
-        'Get',
-        GLib.Variant.new('(ss)', [ proxy.g_interface_name, propertyName ]),
-        GLib.VariantType.new('(v)'),
-        Gio.DBusCallFlags.NONE,
-        -1,
-        cancellable,
-        (conn, result) => {
-        try {
-            let valueVariant = conn.call_finish(result).deep_unpack()[0];
-            proxy._proxyCancellables.delete(propertyName);
+    try {
+        const [valueVariant] = (await proxy.g_connection.call(proxy.g_name,
+            proxy.g_object_path, 'org.freedesktop.DBus.Properties', 'Get',
+            GLib.Variant.new('(ss)', [ proxy.g_interface_name, propertyName ]),
+            GLib.VariantType.new('(v)'), Gio.DBusCallFlags.NONE, -1,
+            cancellable)).deep_unpack();
 
-            if (!params.skipEqualtyCheck &&
-                proxy.get_cached_property(propertyName).equal(valueVariant))
-                return;
+        proxy._proxyCancellables.delete(propertyName);
 
-            proxy.set_cached_property(propertyName, valueVariant)
+        if (!params.skipEqualityCheck &&
+            proxy.get_cached_property(propertyName).equal(valueVariant))
+            return;
 
-            // synthesize a batched property changed event
-            if (!proxy._proxyChangedProperties)
-                proxy._proxyChangedProperties = {};
-            proxy._proxyChangedProperties[propertyName] = valueVariant;
+        proxy.set_cached_property(propertyName, valueVariant)
 
-            if (!proxy._proxyPropertiesEmit || !proxy._proxyPropertiesEmit.pending()) {
-                proxy._proxyPropertiesEmit = new PromiseUtils.TimeoutPromise(16,
-                    GLib.PRIORITY_DEFAULT_IDLE, cancellable).then(() => {
-                    proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}',
-                        proxy._proxyChangedProperties), []);
-                    delete proxy._proxyChangedProperties;
-                });
-            }
-        } catch (e) {
-            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
-                // the property may not even exist, silently ignore it
-                Logger.debug(`While refreshing property ${propertyName}: ${e}`);
-                proxy._proxyCancellables.delete(propertyName);
-                delete proxy._proxyChangedProperties[propertyName];
-            }
+        // synthesize a batched property changed event
+        if (!proxy._proxyChangedProperties)
+            proxy._proxyChangedProperties = {};
+        proxy._proxyChangedProperties[propertyName] = valueVariant;
+
+        if (!proxy._proxyPropertiesEmit || !proxy._proxyPropertiesEmit.pending()) {
+            proxy._proxyPropertiesEmit = new PromiseUtils.TimeoutPromise(16,
+                GLib.PRIORITY_DEFAULT_IDLE, cancellable);
+            await proxy._proxyPropertiesEmit;
+            proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}',
+                proxy._proxyChangedProperties), []);
+            delete proxy._proxyChangedProperties;
         }
-    });
+    } catch (e) {
+        if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+            // the property may not even exist, silently ignore it
+            Logger.debug(`While refreshing property ${propertyName}: ${e}`);
+            proxy._proxyCancellables.delete(propertyName);
+            delete proxy._proxyChangedProperties[propertyName];
+        }
+    }
 }
 
 var cancelRefreshPropertyOnProxy = function(proxy, params) {
