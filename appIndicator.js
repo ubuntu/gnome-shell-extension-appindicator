@@ -82,20 +82,22 @@ var AppIndicator = class AppIndicators_AppIndicator {
                                           g_name: bus_name,
                                           g_object_path: object,
                                           g_flags: Gio.DBusProxyFlags.GET_INVALIDATED_PROPERTIES })
-        this._proxy.init_async(GLib.PRIORITY_DEFAULT, this._cancellable, ((initable, result) => {
-                try {
-                    initable.init_finish(result);
-                    this._checkIfReady();
-                    this._checkMenuReady();
-                } catch(e) {
-                    if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                        Util.Logger.warn(`While intializing proxy for ${bus_name} ${object}: ${e}`);
-                }
-            }))
 
+        this._setupProxy();
         Util.connectSmart(this._proxy, 'g-properties-changed', this, '_onPropertiesChanged')
         Util.connectSmart(this._proxy, 'g-signal', this, this._onProxySignal)
         Util.connectSmart(this._proxy, 'notify::g-name-owner', this, '_nameOwnerChanged')
+    }
+
+    async _setupProxy() {
+        try {
+            await this._proxy.init_async(GLib.PRIORITY_DEFAULT, this._cancellable);
+            this._checkIfReady();
+            this._checkMenuReady();
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                Util.Logger.warn(`While initalizing proxy for ${bus_name} ${object}: ${e}`);
+        }
     }
 
     _checkIfReady() {
