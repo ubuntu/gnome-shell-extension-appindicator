@@ -1,6 +1,6 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported CancellablePromise, SignalConnectionPromise, IdlePromise,
-   TimeoutPromise, TimeoutSecondsPromise, MetaLaterPromise */
+   TimeoutPromise, TimeoutSecondsPromise, MetaLaterPromise, _promisify */
 
 const { Gio, GLib, GObject, Meta } = imports.gi;
 
@@ -275,3 +275,36 @@ var MetaLaterPromise = class extends CancellablePromise {
         return super.cancel();
     }
 };
+
+var _promisify = Gio._promisify;
+if (imports.system.version < 16501) {
+    /* This is backported from upstream gjs, so that all the features are available */
+    _promisify = function(proto, asyncFunc, finishFunc) {
+        if (proto[`_original_${asyncFunc}`] !== undefined)
+            return;
+        proto[`_original_${asyncFunc}`] = proto[asyncFunc];
+        proto[asyncFunc] = function (...args) {
+            if (!args.every(arg => typeof arg !== 'function'))
+                return this[`_original_${asyncFunc}`](...args);
+            return new Promise((resolve, reject) => {
+                const callStack = new Error().stack.split('\n').filter(line => !line.match(/promisify/)).join('\n');
+                this[`_original_${asyncFunc}`](...args, function (source, res) {
+                    try {
+                        const result = source !== null && source[finishFunc] !== undefined
+                            ? source[finishFunc](res)
+                            : proto[finishFunc](res);
+                        if (Array.isArray(result) && result.length > 1 && result[0] === true)
+                            result.shift();
+                        resolve(result);
+                    } catch (error) {
+                        if (error.stack)
+                            error.stack += `### Promise created here: ###\n${callStack}`;
+                        else
+                            error.stack = callStack;
+                        reject(error);
+                    }
+                });
+            });
+        };
+    }
+}

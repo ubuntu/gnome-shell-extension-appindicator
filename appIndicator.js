@@ -33,10 +33,11 @@ const Util = Extension.imports.util;
 const Interfaces = Extension.imports.interfaces;
 const PromiseUtils = Extension.imports.promiseUtils;
 
-Gio._promisify(Gio.File.prototype, 'read_async', 'read_finish');
-Gio._promisify(Gio._LocalFilePrototype, 'read_async', 'read_finish');
-Gio._promisify(GdkPixbuf.Pixbuf, 'get_file_info_async', 'get_file_info_finish');
-Gio._promisify(GdkPixbuf.Pixbuf, 'new_from_stream_at_scale_async', 'new_from_stream_finish');
+PromiseUtils._promisify(Gio.File.prototype, 'read_async', 'read_finish');
+PromiseUtils._promisify(Gio._LocalFilePrototype, 'read_async', 'read_finish');
+PromiseUtils._promisify(GdkPixbuf.Pixbuf, 'get_file_info_async', 'get_file_info_finish');
+PromiseUtils._promisify(GdkPixbuf.Pixbuf, 'new_from_stream_at_scale_async', 'new_from_stream_finish');
+PromiseUtils._promisify(Gio.DBusProxy.prototype, 'init_async', 'init_finish');
 
 const MAX_UPDATE_FREQUENCY = 100; // In ms
 
