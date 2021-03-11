@@ -308,3 +308,13 @@ if (imports.system.version < 16501) {
         };
     }
 }
+
+if (!Promise.allSettled) {
+    Promise.allSettled = function (promises) {
+        let wrappedPromises = promises.map(p => Promise.resolve(p)
+            .then(
+                val => ({ status: 'fulfilled', value: val }),
+                err => ({ status: 'rejected', reason: err })));
+        return Promise.all(wrappedPromises);
+    };
+}
