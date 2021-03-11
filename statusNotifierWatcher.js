@@ -86,26 +86,34 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
 
         Util.Logger.debug(`Registering StatusNotifierItem ${id}`);
 
-        let indicator = new AppIndicator.AppIndicator(bus_name, obj_path);
-        this._items.set(id, indicator);
+        try {
+            const indicator = new AppIndicator.AppIndicator(bus_name, obj_path);
+            this._items.set(id, indicator);
 
-        this._nameWatcher.set(id, Gio.DBus.session.watch_name(bus_name,
-            Gio.BusNameWatcherFlags.NONE, null,
-            () => this._itemVanished(id)));
-
-        if (service != bus_name && service.match(BUS_ADDRESS_REGEX)) {
-            this._serviceWatcher.set(id, Gio.DBus.session.watch_name(service,
+            this._nameWatcher.set(id, Gio.DBus.session.watch_name(bus_name,
                 Gio.BusNameWatcherFlags.NONE, null,
                 () => this._itemVanished(id)));
+
+            if (service != bus_name && service.match(BUS_ADDRESS_REGEX)) {
+                this._serviceWatcher.set(id, Gio.DBus.session.watch_name(service,
+                    Gio.BusNameWatcherFlags.NONE, null,
+                    () => this._itemVanished(id)));
+            }
+
+            // if the desktop is not ready delay the icon creation and signal emissions
+            await Util.waitForStartupCompletion(indicator.cancellable);
+            const statusIcon = new IndicatorStatusIcon.IndicatorStatusIcon(indicator);
+            indicator.connect('destroy', () => statusIcon.destroy());
+
+            this._dbusImpl.emit_signal('StatusNotifierItemRegistered',
+                GLib.Variant.new('(s)', service));
+            this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems',
+                GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                logError(e);
+            throw e;
         }
-
-        // if the desktop is not ready delay the icon creation and signal emissions
-        await Util.waitForStartupCompletion(indicator.cancellable);
-        const visual = new IndicatorStatusIcon.IndicatorStatusIcon(indicator);
-        indicator.connect('destroy', () => visual.destroy());
-
-        this._dbusImpl.emit_signal('StatusNotifierItemRegistered', GLib.Variant.new('(s)', service));
-        this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems', GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
     }
 
     _ensureItemRegistered(service, bus_name, obj_path) {
