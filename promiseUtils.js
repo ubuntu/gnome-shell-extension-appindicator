@@ -1,8 +1,10 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported CancellablePromise, SignalConnectionPromise, IdlePromise,
-   TimeoutPromise, TimeoutSecondsPromise, MetaLaterPromise, _promisify */
+   TimeoutPromise, TimeoutSecondsPromise, MetaLaterPromise, _promisify,
+   _promisifySignals */
 
 const { Gio, GLib, GObject, Meta } = imports.gi;
+const Signals = imports.signals;
 
 var CancellablePromise = class extends Promise {
     constructor(executor, cancellable) {
@@ -275,6 +277,23 @@ var MetaLaterPromise = class extends CancellablePromise {
         return super.cancel();
     }
 };
+
+function _promisifySignals(proto) {
+    if (proto.connect_once)
+        return;
+
+    proto.connect_once = function (signal, cancellable) {
+        return new SignalConnectionPromise(this, signal, cancellable);
+    };
+}
+
+const addSignalMethods = Signals.addSignalMethods;
+Signals.addSignalMethods = proto => {
+    addSignalMethods(proto);
+    _promisifySignals(proto);
+};
+
+_promisifySignals(GObject.Object.prototype);
 
 var _promisify = Gio._promisify;
 if (imports.system.version < 16501) {
