@@ -382,7 +382,6 @@ class AppIndicators_IconActor extends St.Icon {
         Util.connectSmart(this._indicator, 'icon',         this, '_updateIcon')
         Util.connectSmart(this._indicator, 'overlay-icon', this, '_updateOverlayIcon')
         Util.connectSmart(this._indicator, 'reset',        this, '_invalidateIcon')
-        Util.connectSmart(this, 'scroll-event',            this, '_handleScrollEvent')
 
         Util.connectSmart(themeContext, 'notify::scale-factor', this, (tc) => {
             this.height = icon_size * tc.scale_factor;
@@ -739,29 +738,6 @@ class AppIndicators_IconActor extends St.Icon {
         let iconSize = Math.floor(this._iconSize / 1.6)
 
         this._updateIconByType(SNIconType.OVERLAY, iconSize);
-    }
-
-    _handleScrollEvent(actor, event) {
-        if (actor != this)
-            return Clutter.EVENT_PROPAGATE
-
-        if (event.get_source() != this)
-            return Clutter.EVENT_PROPAGATE
-
-        if (event.type() != Clutter.EventType.SCROLL)
-            return Clutter.EVENT_PROPAGATE
-
-        // Since Clutter 1.10, clutter will always send a smooth scrolling event
-        // with explicit deltas, no matter what input device is used
-        // In fact, for every scroll there will be a smooth and non-smooth scroll
-        // event, and we can choose which one we interpret.
-        if (event.get_scroll_direction() == Clutter.ScrollDirection.SMOOTH) {
-            let [ dx, dy ] = event.get_scroll_delta()
-
-            this._indicator.scroll(dx, dy)
-        }
-
-        return Clutter.EVENT_STOP
     }
 
     // called when the icon theme changes

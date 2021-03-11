@@ -137,4 +137,20 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
             this._lastClicked = now;
         }
     }
+
+    vfunc_scroll_event(scrollEvent) {
+        // Since Clutter 1.10, clutter will always send a smooth scrolling event
+        // with explicit deltas, no matter what input device is used
+        // In fact, for every scroll there will be a smooth and non-smooth scroll
+        // event, and we can choose which one we interpret.
+        if (scrollEvent.direction === Clutter.ScrollDirection.SMOOTH) {
+            const event = Clutter.get_current_event();
+            let [dx, dy] = event.get_scroll_delta()
+
+            this._indicator.scroll(dx, dy)
+            return Clutter.EVENT_STOP;
+        }
+
+        return Clutter.EVENT_PROPAGATE;
+    }
 });
