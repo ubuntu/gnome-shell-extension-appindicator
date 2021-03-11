@@ -14,22 +14,22 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-const Gio = imports.gi.Gio
-const GLib = imports.gi.GLib
+const Gio = imports.gi.Gio;
+const GLib = imports.gi.GLib;
 
-const Extension = imports.misc.extensionUtils.getCurrentExtension()
+const Extension = imports.misc.extensionUtils.getCurrentExtension();
 
-const AppIndicator = Extension.imports.appIndicator
-const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon
-const Interfaces = Extension.imports.interfaces
+const AppIndicator = Extension.imports.appIndicator;
+const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon;
+const Interfaces = Extension.imports.interfaces;
 const PromiseUtils = Extension.imports.promiseUtils;
-const Util = Extension.imports.util
+const Util = Extension.imports.util;
 
 
 // TODO: replace with org.freedesktop and /org/freedesktop when approved
 const KDE_PREFIX = 'org.kde';
 
-var WATCHER_BUS_NAME = KDE_PREFIX + '.StatusNotifierWatcher';
+var WATCHER_BUS_NAME = `${KDE_PREFIX}.StatusNotifierWatcher`;
 const WATCHER_OBJECT = '/StatusNotifierWatcher';
 
 const DEFAULT_ITEM_OBJECT_PATH = '/StatusNotifierItem';
@@ -43,12 +43,12 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         this._watchDog = watchDog;
         this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(Interfaces.StatusNotifierWatcher, this);
         this._dbusImpl.export(Gio.DBus.session, WATCHER_OBJECT);
-        this._cancellable = new Gio.Cancellable;
+        this._cancellable = new Gio.Cancellable();
         this._everAcquiredName = false;
         this._ownName = Gio.DBus.session.own_name(WATCHER_BUS_NAME,
-                                                  Gio.BusNameOwnerFlags.NONE,
-                                                  this._acquiredName.bind(this),
-                                                  this._lostName.bind(this));
+            Gio.BusNameOwnerFlags.NONE,
+            this._acquiredName.bind(this),
+            this._lostName.bind(this));
         this._items = new Map();
 
         this._seekStatusNotifierItems();
@@ -60,9 +60,9 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
 
     _lostName() {
         if (this._everAcquiredName)
-            Util.Logger.debug('Lost name' + WATCHER_BUS_NAME);
+            Util.Logger.debug(`Lost name${WATCHER_BUS_NAME}`);
         else
-            Util.Logger.warn('Failed to acquire ' + WATCHER_BUS_NAME);
+            Util.Logger.warn(`Failed to acquire ${WATCHER_BUS_NAME}`);
         this._watchDog.nameAcquired = false;
     }
 
@@ -92,7 +92,7 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
                         GLib.PRIORITY_DEFAULT, this._cancellable);
                     if (!indicator.hasNameOwner)
                         this._itemVanished(id);
-                };
+                }
             });
 
             // if the desktop is not ready delay the icon creation and signal emissions
@@ -116,13 +116,13 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         let item = this._items.get(id);
 
         if (item) {
-            //delete the old one and add the new indicator
+            // delete the old one and add the new indicator
             Util.Logger.debug(`Attempting to re-register ${id}; resetting instead`);
             item.reset();
             return;
         }
 
-        this._registerItem(service, bus_name, obj_path)
+        this._registerItem(service, bus_name, obj_path);
     }
 
     async _seekStatusNotifierItems() {
@@ -171,12 +171,12 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         }
 
         if (!bus_name || !obj_path) {
-            let error = "Impossible to register an indicator for parameters '"+
-                        service.toString()+"'";
+            let error = `Impossible to register an indicator for parameters '${
+                service.toString()}'`;
             Util.Logger.warn(error);
 
             invocation.return_dbus_error('org.gnome.gjs.JSError.ValueError',
-                                         error);
+                error);
             return;
         }
 
@@ -187,9 +187,9 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
 
     _itemVanished(id) {
         // FIXME: this is useless if the path name disappears while the bus stays alive (not unheard of)
-        if (this._items.has(id)) {
+        if (this._items.has(id))
             this._remove(id);
-        }
+
     }
 
     _remove(id) {

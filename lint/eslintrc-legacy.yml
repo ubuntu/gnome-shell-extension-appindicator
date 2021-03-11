@@ -1,0 +1,14 @@
+rules:
+  eqeqeq: off
+  indent:
+    - error
+    - 4
+    - ignoredNodes:
+      - 'CallExpression[callee.object.name=GObject][callee.property.name=registerClass] > ClassExpression:first-child'
+      CallExpression:
+        arguments: first
+      ArrayExpression: first
+      ObjectExpression: first
+      MemberExpression: off
+  prefer-template: off
+  quotes: off

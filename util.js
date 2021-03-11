@@ -18,19 +18,19 @@
    introspectBusObject, dbusNodeImplementsInterfaces, waitForStartupCompletion,
    BUS_ADDRESS_REGEX */
 
-const Gio = imports.gi.Gio
-const GLib = imports.gi.GLib
+const Gio = imports.gi.Gio;
+const GLib = imports.gi.GLib;
 const Gtk = imports.gi.Gtk;
 const Gdk = imports.gi.Gdk;
 const Main = imports.ui.main;
-const GObject = imports.gi.GObject
+const GObject = imports.gi.GObject;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Params = imports.misc.params;
 const PromiseUtils = Extension.imports.promiseUtils;
 
-const Signals = imports.signals
+const Signals = imports.signals;
 
-var BUS_ADDRESS_REGEX = /([a-zA-Z0-9._-]+\.[a-zA-Z0-9.-]+)|(:[0-9]+\.[0-9]+)$/
+var BUS_ADDRESS_REGEX = /([a-zA-Z0-9._-]+\.[a-zA-Z0-9.-]+)|(:[0-9]+\.[0-9]+)$/;
 
 PromiseUtils._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
 
@@ -44,13 +44,13 @@ async function refreshPropertyOnProxy(proxy, propertyName, params) {
 
     let cancellable = cancelRefreshPropertyOnProxy(proxy, {
         propertyName,
-        addNew: true
+        addNew: true,
     });
 
     try {
         const [valueVariant] = (await proxy.g_connection.call(proxy.g_name,
             proxy.g_object_path, 'org.freedesktop.DBus.Properties', 'Get',
-            GLib.Variant.new('(ss)', [ proxy.g_interface_name, propertyName ]),
+            GLib.Variant.new('(ss)', [proxy.g_interface_name, propertyName]),
             GLib.VariantType.new('(v)'), Gio.DBusCallFlags.NONE, -1,
             cancellable)).deep_unpack();
 
@@ -60,7 +60,7 @@ async function refreshPropertyOnProxy(proxy, propertyName, params) {
             proxy.get_cached_property(propertyName).equal(valueVariant))
             return;
 
-        proxy.set_cached_property(propertyName, valueVariant)
+        proxy.set_cached_property(propertyName, valueVariant);
 
         // synthesize a batched property changed event
         if (!proxy._proxyChangedProperties)
@@ -85,7 +85,7 @@ async function refreshPropertyOnProxy(proxy, propertyName, params) {
     }
 }
 
-var cancelRefreshPropertyOnProxy = function(proxy, params) {
+var cancelRefreshPropertyOnProxy = function (proxy, params) {
     if (!proxy._proxyCancellables)
         return;
 
@@ -113,7 +113,7 @@ var cancelRefreshPropertyOnProxy = function(proxy, params) {
         delete proxy._proxyChangedProperties;
         delete proxy._proxyCancellables;
     }
-}
+};
 
 async function getUniqueBusName(bus, name, cancellable) {
     if (name[0] == ':')
@@ -155,7 +155,7 @@ async function getBusNames(bus, cancellable) {
 
 async function introspectBusObject(bus, name, cancellable, path = undefined) {
     if (!path)
-        path = "/";
+        path = '/';
 
     const [introspection] = (await bus.call(name, path, 'org.freedesktop.DBus.Introspectable',
         'Introspect', null, new GLib.VariantType('(s)'), Gio.DBusCallFlags.NONE,
@@ -183,7 +183,7 @@ async function introspectBusObject(bus, name, cancellable, path = undefined) {
     return nodes;
 }
 
-var dbusNodeImplementsInterfaces = function(node_info, interfaces) {
+var dbusNodeImplementsInterfaces = function (node_info, interfaces) {
     if (!(node_info instanceof Gio.DBusNodeInfo) || !Array.isArray(interfaces))
         return false;
 
@@ -193,13 +193,13 @@ var dbusNodeImplementsInterfaces = function(node_info, interfaces) {
     }
 
     return false;
-}
+};
 
 var NameWatcher = class AppIndicatorsNameWatcher {
     constructor(name) {
         this._watcherId = Gio.DBus.session.watch_name(name,
             Gio.BusNameWatcherFlags.NONE, () => {
-                this._nameOnBus = true
+                this._nameOnBus = true;
                 Logger.debug(`Name ${name} appeared`);
                 this.emit('changed');
                 this.emit('appeared');
@@ -224,36 +224,38 @@ var NameWatcher = class AppIndicatorsNameWatcher {
 };
 Signals.addSignalMethods(NameWatcher.prototype);
 
-const connectSmart3A = function(src, signal, handler) {
-    let id = src.connect(signal, handler)
+const connectSmart3A = function (src, signal, handler) {
+    let id = src.connect(signal, handler);
 
     if (src.connect && (!(src instanceof GObject.Object) || GObject.signal_lookup('destroy', src))) {
         let destroy_id = src.connect('destroy', () => {
-            src.disconnect(id)
-            src.disconnect(destroy_id)
-        })
+            src.disconnect(id);
+            src.disconnect(destroy_id);
+        });
     }
-}
+};
 
-const connectSmart4A = function(src, signal, target, method) {
+const connectSmart4A = function (src, signal, target, method) {
     if (typeof method === 'string')
-        method = target[method].bind(target)
+        method = target[method].bind(target);
     if (typeof method === 'function')
-        method = method.bind(target)
+        method = method.bind(target);
 
-    let signal_id = src.connect(signal, method)
+    let signal_id = src.connect(signal, method);
 
     // GObject classes might or might not have a destroy signal
     // JS Classes will not complain when connecting to non-existent signals
-    let src_destroy_id = src.connect && (!(src instanceof GObject.Object) || GObject.signal_lookup('destroy', src)) ? src.connect('destroy', on_destroy) : 0
-    let tgt_destroy_id = target.connect && (!(target instanceof GObject.Object) || GObject.signal_lookup('destroy', target)) ? target.connect('destroy', on_destroy) : 0
+    let src_destroy_id = src.connect && (!(src instanceof GObject.Object) || GObject.signal_lookup('destroy', src)) ? src.connect('destroy', on_destroy) : 0;
+    let tgt_destroy_id = target.connect && (!(target instanceof GObject.Object) || GObject.signal_lookup('destroy', target)) ? target.connect('destroy', on_destroy) : 0;
 
     function on_destroy() {
-        src.disconnect(signal_id)
-        if (src_destroy_id) src.disconnect(src_destroy_id)
-        if (tgt_destroy_id) target.disconnect(tgt_destroy_id)
+        src.disconnect(signal_id);
+        if (src_destroy_id)
+            src.disconnect(src_destroy_id);
+        if (tgt_destroy_id)
+            target.disconnect(tgt_destroy_id);
     }
-}
+};
 
 /**
  * Connect signals to slots, and remove the connection when either source or
@@ -264,12 +266,12 @@ const connectSmart4A = function(src, signal, target, method) {
  * or
  *      Util.connectSmart(srcOb, 'signal', () => { ... })
  */
-var connectSmart = function() {
+var connectSmart = function () {
     if (arguments.length == 4)
-        return connectSmart4A.apply(null, arguments)
+        return connectSmart4A.apply(null, arguments);
     else
-        return connectSmart3A.apply(null, arguments)
-}
+        return connectSmart3A.apply(null, arguments);
+};
 
 // eslint-disable-next-line valid-jsdoc
 /**

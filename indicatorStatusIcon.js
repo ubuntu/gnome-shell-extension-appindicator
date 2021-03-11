@@ -13,6 +13,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+/* exported IndicatorStatusIcon */
+
 const Clutter = imports.gi.Clutter;
 const GObject = imports.gi.GObject;
 const St = imports.gi.St;
@@ -20,13 +23,12 @@ const St = imports.gi.St;
 const Main = imports.ui.main;
 const Panel = imports.ui.panel;
 const PanelMenu = imports.ui.panelMenu;
-const PopupMenu = imports.ui.popupMenu;
 
 const Config = imports.misc.config;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Extension = ExtensionUtils.getCurrentExtension();
 
-const AppIndicator = Extension.imports.appIndicator
+const AppIndicator = Extension.imports.appIndicator;
 const DBusMenu = Extension.imports.dbusMenu;
 const Util = Extension.imports.util;
 
@@ -34,7 +36,7 @@ const Util = Extension.imports.util;
  * IndicatorStatusIcon implements an icon in the system status area
  */
 var IndicatorStatusIcon = GObject.registerClass(
-class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
+class AppIndicatorsIndicatorStatusIcon extends PanelMenu.Button {
     _init(indicator) {
         super._init(0.5, indicator.uniqueId);
         this._indicator = indicator;
@@ -46,10 +48,10 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
 
         this._box.add_child(this._iconBox);
 
-        Util.connectSmart(this._indicator, 'ready',  this, '_display')
-        Util.connectSmart(this._indicator, 'menu',  this, '_updateMenu')
-        Util.connectSmart(this._indicator, 'label',  this, '_updateLabel')
-        Util.connectSmart(this._indicator, 'status', this, '_updateStatus')
+        Util.connectSmart(this._indicator, 'ready',  this, '_display');
+        Util.connectSmart(this._indicator, 'menu',  this, '_updateMenu');
+        Util.connectSmart(this._indicator, 'label',  this, '_updateLabel');
+        Util.connectSmart(this._indicator, 'status', this, '_updateStatus');
         Util.connectSmart(this._indicator, 'reset', this, () => {
             this._updateStatus();
             this._updateLabel();
@@ -60,10 +62,10 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
                 this._menuClient.destroy();
                 this._menuClient = null;
             }
-        })
+        });
 
         if (this._indicator.isReady)
-            this._display()
+            this._display();
     }
 
     _updateLabel() {
@@ -71,28 +73,27 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
         if (label) {
             if (!this._label || !this._labelBin) {
                 this._labelBin = new St.Bin({
-                    y_align: ExtensionUtils.versionCheck(['3.34'], Config.PACKAGE_VERSION) ?
-                        St.Align.MIDDLE : Clutter.ActorAlign.CENTER,
+                    y_align: ExtensionUtils.versionCheck(['3.34'], Config.PACKAGE_VERSION)
+                        ? St.Align.MIDDLE : Clutter.ActorAlign.CENTER,
                 });
                 this._label = new St.Label();
                 this._labelBin.add_actor(this._label);
                 this._box.add_actor(this._labelBin);
             }
             this._label.set_text(label);
-            if (!this._box.contains(this._labelBin)) this._box.add_actor(this._labelBin); //FIXME: why is it suddenly necessary?
-        } else {
-            if (this._label) {
-                this._labelBin.destroy_all_children();
-                this._box.remove_actor(this._labelBin);
-                this._labelBin.destroy();
-                delete this._labelBin;
-                delete this._label;
-            }
+            if (!this._box.contains(this._labelBin))
+                this._box.add_actor(this._labelBin); // FIXME: why is it suddenly necessary?
+        } else if (this._label) {
+            this._labelBin.destroy_all_children();
+            this._box.remove_actor(this._labelBin);
+            this._labelBin.destroy();
+            delete this._labelBin;
+            delete this._label;
         }
     }
 
     _updateStatus() {
-        this.visible = this._indicator.status != AppIndicator.SNIStatus.PASSIVE;
+        this.visible = this._indicator.status !== AppIndicator.SNIStatus.PASSIVE;
     }
 
     _updateMenu() {
@@ -104,7 +105,7 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
 
         if (this._indicator.menuPath) {
             this._menuClient = new DBusMenu.Client(this._indicator.busName,
-                                                   this._indicator.menuPath);
+                this._indicator.menuPath);
             this._menuClient.attachToMenu(this.menu);
         }
     }
@@ -114,7 +115,7 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
         this._updateStatus();
         this._updateMenu();
 
-        Main.panel.addToStatusArea("appindicator-"+this._indicator.uniqueId, this, 1, 'right')
+        Main.panel.addToStatusArea(`appindicator-${this._indicator.uniqueId}`, this, 1, 'right');
     }
 
     vfunc_button_press_event(buttonEvent) {
@@ -140,9 +141,9 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
         // event, and we can choose which one we interpret.
         if (scrollEvent.direction === Clutter.ScrollDirection.SMOOTH) {
             const event = Clutter.get_current_event();
-            let [dx, dy] = event.get_scroll_delta()
+            let [dx, dy] = event.get_scroll_delta();
 
-            this._indicator.scroll(dx, dy)
+            this._indicator.scroll(dx, dy);
             return Clutter.EVENT_STOP;
         }
 

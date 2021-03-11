@@ -298,7 +298,7 @@ _promisifySignals(GObject.Object.prototype);
 var _promisify = Gio._promisify;
 if (imports.system.version < 16501) {
     /* This is backported from upstream gjs, so that all the features are available */
-    _promisify = function(proto, asyncFunc, finishFunc) {
+    _promisify = function (proto, asyncFunc, finishFunc) {
         if (proto[`_original_${asyncFunc}`] !== undefined)
             return;
         proto[`_original_${asyncFunc}`] = proto[asyncFunc];
@@ -307,7 +307,7 @@ if (imports.system.version < 16501) {
                 return this[`_original_${asyncFunc}`](...args);
             return new Promise((resolve, reject) => {
                 const callStack = new Error().stack.split('\n').filter(line => !line.match(/promisify/)).join('\n');
-                this[`_original_${asyncFunc}`](...args, function (source, res) {
+                this[`_original_${asyncFunc}`](...args, (source, res) => {
                     try {
                         const result = source !== null && source[finishFunc] !== undefined
                             ? source[finishFunc](res)
@@ -325,7 +325,7 @@ if (imports.system.version < 16501) {
                 });
             });
         };
-    }
+    };
 }
 
 if (!Promise.allSettled) {
