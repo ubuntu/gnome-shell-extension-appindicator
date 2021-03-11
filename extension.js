@@ -24,8 +24,8 @@ let isEnabled = false;
 let watchDog = null;
 
 function init() {
-    watchDog = new NameWatchdog();
-    watchDog.onVanished = maybe_enable_after_name_available;
+    watchDog = new Util.NameWatcher(StatusNotifierWatcher.WATCHER_BUS_NAME);
+    watchDog.connect('vanished', () => maybe_enable_after_name_available());
 
     //HACK: we want to leave the watchdog alive when disabling the extension,
     // but if we are being reloaded, we destroy it since it could be considered
@@ -45,7 +45,7 @@ function init() {
 // monitor the bus manually to find out when the name vanished so we can reclaim it again.
 function maybe_enable_after_name_available() {
     // by the time we get called whe might not be enabled
-    if (isEnabled && (!watchDog.nameAcquired || !watchDog.isPresent) && statusNotifierWatcher === null)
+    if (isEnabled && (!watchDog.nameAcquired || !watchDog.nameOnBus) && statusNotifierWatcher === null)
         statusNotifierWatcher = new StatusNotifierWatcher.StatusNotifierWatcher(watchDog);
 }
 
@@ -59,36 +59,5 @@ function disable() {
     if (statusNotifierWatcher !== null) {
         statusNotifierWatcher.destroy();
         statusNotifierWatcher = null;
-    }
-}
-
-/**
- * NameWatchdog will monitor the ork.kde.StatusNotifierWatcher bus name for us
- */
-var NameWatchdog = class AppIndicators_NameWatchdog {
-
-    constructor() {
-        this.onAppeared = null;
-        this.onVanished = null;
-
-        // will be set in the handlers which are guaranteed to be called at least once
-        this.isPresent = false;
-
-        this._watcher_id = Gio.DBus.session.watch_name("org.kde.StatusNotifierWatcher", 0,
-            this._appeared_handler.bind(this), this._vanished_handler.bind(this));
-    }
-
-    destroy() {
-        Gio.DBus.session.unwatch_name(this._watcher_id);
-    }
-
-    _appeared_handler() {
-        this.isPresent = true;
-        if (this.onAppeared) this.onAppeared();
-    }
-
-    _vanished_handler() {
-        this.isPresent = false;
-        if (this.onVanished) this.onVanished();
     }
 }

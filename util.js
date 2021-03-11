@@ -195,6 +195,35 @@ var dbusNodeImplementsInterfaces = function(node_info, interfaces) {
     return false;
 }
 
+var NameWatcher = class AppIndicatorsNameWatcher {
+    constructor(name) {
+        this._watcherId = Gio.DBus.session.watch_name(name,
+            Gio.BusNameWatcherFlags.NONE, () => {
+                this._nameOnBus = true
+                Logger.debug(`Name ${name} appeared`);
+                this.emit('changed');
+                this.emit('appeared');
+            }, () => {
+                this._nameOnBus = false;
+                Logger.debug(`Name ${name} vanished`);
+                this.emit('changed');
+                this.emit('vanished');
+            });
+    }
+
+    destroy() {
+        this.emit('destroy');
+
+        Gio.DBus.session.unwatch_name(this._watcherId);
+        delete this._watcherId;
+    }
+
+    get nameOnBus() {
+        return !!this._nameOnBus;
+    }
+};
+Signals.addSignalMethods(NameWatcher.prototype);
+
 const connectSmart3A = function(src, signal, handler) {
     let id = src.connect(signal, handler)
 

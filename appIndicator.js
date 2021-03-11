@@ -90,14 +90,8 @@ var AppIndicator = class AppIndicators_AppIndicator {
 
         if (service !== bus_name && service.match(Util.BUS_ADDRESS_REGEX)) {
             this._uniqueId = service;
-            this._serviceWatchId = Gio.DBus.session.watch_name(service,
-                Gio.BusNameWatcherFlags.NONE, () => {
-                    this._nameOnBus = true
-                    this._nameOwnerChanged();
-                }, () => {
-                    this._nameOnBus = false;
-                    this._nameOwnerChanged();
-                });
+            this._nameWatcher = new Util.NameWatcher(service);
+            Util.connectSmart(this._nameWatcher, 'changed', () => this._nameOwnerChanged());
         }
     }
 
@@ -275,7 +269,8 @@ var AppIndicator = class AppIndicators_AppIndicator {
     }
 
     get hasNameOwner() {
-        return !!this._proxy.g_name_owner || !!this._nameOnBus;
+        return !!this._proxy.g_name_owner ||
+            this._nameWatcher && this._nameWatcher.nameOnBus;
     }
 
     get cancellable() {
@@ -333,14 +328,10 @@ var AppIndicator = class AppIndicators_AppIndicator {
 
         this.disconnectAll()
         this._cancellable.cancel();
+        this._nameWatcher && this._nameWatcher.destroy();
         Util.cancelRefreshPropertyOnProxy(this._proxy);
         delete this._cancellable;
         delete this._proxy;
-
-        if (this._serviceWatchId) {
-            Gio.DBus.session.unwatch_name(this._serviceWatchId);
-            delete this._serviceWatchId;
-        }
     }
 
     open() {

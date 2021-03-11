@@ -29,7 +29,7 @@ const Util = Extension.imports.util
 // TODO: replace with org.freedesktop and /org/freedesktop when approved
 const KDE_PREFIX = 'org.kde';
 
-const WATCHER_BUS_NAME = KDE_PREFIX + '.StatusNotifierWatcher';
+var WATCHER_BUS_NAME = KDE_PREFIX + '.StatusNotifierWatcher';
 const WATCHER_OBJECT = '/StatusNotifierWatcher';
 
 const DEFAULT_ITEM_OBJECT_PATH = '/StatusNotifierItem';
