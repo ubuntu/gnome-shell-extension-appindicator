@@ -66,7 +66,7 @@ const SNIconType = {
  */
 var AppIndicator = class AppIndicators_AppIndicator {
 
-    constructor(bus_name, object) {
+    constructor(service, bus_name, object) {
         this.busName = bus_name
         this._uniqueId = bus_name + object
         this._accumulatedSignals = new Set();
@@ -87,6 +87,17 @@ var AppIndicator = class AppIndicators_AppIndicator {
         Util.connectSmart(this._proxy, 'g-properties-changed', this, '_onPropertiesChanged')
         Util.connectSmart(this._proxy, 'g-signal', this, this._onProxySignal)
         Util.connectSmart(this._proxy, 'notify::g-name-owner', this, '_nameOwnerChanged')
+
+        if (service !== bus_name && service.match(Util.BUS_ADDRESS_REGEX)) {
+            this._serviceWatchId = Gio.DBus.session.watch_name(service,
+                Gio.BusNameWatcherFlags.NONE, () => {
+                    this._nameOnBus = true
+                    this._nameOwnerChanged();
+                }, () => {
+                    this._nameOnBus = false;
+                    this._nameOwnerChanged();
+                });
+        }
     }
 
     async _setupProxy() {
@@ -104,7 +115,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
         let wasReady = this.isReady;
         let isReady = false;
 
-        if (this._proxy.g_name_owner && this.menuPath)
+        if (this.hasNameOwner && this.menuPath)
             isReady = true;
 
         this.isReady = isReady;
@@ -139,10 +150,12 @@ var AppIndicator = class AppIndicators_AppIndicator {
     }
 
     _nameOwnerChanged() {
-        if (!this._proxy.g_name_owner)
+        if (!this.hasNameOwner)
             this._checkIfReady();
         else
             this._checkMenuReady();
+
+        this.emit('name-owner-changed');
     }
 
     _addExtraProperty(name) {
@@ -260,6 +273,10 @@ var AppIndicator = class AppIndicators_AppIndicator {
         ]
     }
 
+    get hasNameOwner() {
+        return !!this._proxy.g_name_owner || !!this._nameOnBus;
+    }
+
     get cancellable() {
         return this._cancellable;
     }
@@ -318,6 +335,11 @@ var AppIndicator = class AppIndicators_AppIndicator {
         Util.cancelRefreshPropertyOnProxy(this._proxy);
         delete this._cancellable;
         delete this._proxy;
+
+        if (this._serviceWatchId) {
+            Gio.DBus.session.unwatch_name(this._serviceWatchId);
+            delete this._serviceWatchId;
+        }
     }
 
     open() {

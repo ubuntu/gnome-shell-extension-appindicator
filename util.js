@@ -15,7 +15,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 /* exported refreshPropertyOnProxy, getUniqueBusName, getBusNames,
-   introspectBusObject, dbusNodeImplementsInterfaces, waitForStartupCompletion */
+   introspectBusObject, dbusNodeImplementsInterfaces, waitForStartupCompletion,
+   BUS_ADDRESS_REGEX */
 
 const Gio = imports.gi.Gio
 const GLib = imports.gi.GLib
@@ -28,6 +29,8 @@ const Params = imports.misc.params;
 const PromiseUtils = Extension.imports.promiseUtils;
 
 const Signals = imports.signals
+
+var BUS_ADDRESS_REGEX = /([a-zA-Z0-9._-]+\.[a-zA-Z0-9.-]+)|(:[0-9]+\.[0-9]+)$/
 
 PromiseUtils._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
 

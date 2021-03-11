@@ -34,8 +34,6 @@ const WATCHER_OBJECT = '/StatusNotifierWatcher';
 
 const DEFAULT_ITEM_OBJECT_PATH = '/StatusNotifierItem';
 
-const BUS_ADDRESS_REGEX = /([a-zA-Z0-9._-]+\.[a-zA-Z0-9.-]+)|(:[0-9]+\.[0-9]+)$/
-
 /*
  * The StatusNotifierWatcher class implements the StatusNotifierWatcher dbus object
  */
@@ -52,8 +50,6 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
                                                   this._acquiredName.bind(this),
                                                   this._lostName.bind(this));
         this._items = new Map();
-        this._nameWatcher = new Map();
-        this._serviceWatcher = new Map();
 
         this._seekStatusNotifierItems();
     }
@@ -87,18 +83,17 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         Util.Logger.debug(`Registering StatusNotifierItem ${id}`);
 
         try {
-            const indicator = new AppIndicator.AppIndicator(bus_name, obj_path);
+            const indicator = new AppIndicator.AppIndicator(service, bus_name, obj_path);
             this._items.set(id, indicator);
 
-            this._nameWatcher.set(id, Gio.DBus.session.watch_name(bus_name,
-                Gio.BusNameWatcherFlags.NONE, null,
-                () => this._itemVanished(id)));
-
-            if (service != bus_name && service.match(BUS_ADDRESS_REGEX)) {
-                this._serviceWatcher.set(id, Gio.DBus.session.watch_name(service,
-                    Gio.BusNameWatcherFlags.NONE, null,
-                    () => this._itemVanished(id)));
-            }
+            indicator.connect('name-owner-changed', async () => {
+                if (!indicator.hasNameOwner) {
+                    await new PromiseUtils.TimeoutPromise(500,
+                        GLib.PRIORITY_DEFAULT, this._cancellable);
+                    if (!indicator.hasNameOwner)
+                        this._itemVanished(id);
+                };
+            });
 
             // if the desktop is not ready delay the icon creation and signal emissions
             await Util.waitForStartupCompletion(indicator.cancellable);
@@ -165,7 +160,7 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         if (service.charAt(0) == '/') { // looks like a path
             bus_name = invocation.get_sender();
             obj_path = service;
-        } else if (service.match(BUS_ADDRESS_REGEX)) {
+        } else if (service.match(Util.BUS_ADDRESS_REGEX)) {
             try {
                 bus_name = await Util.getUniqueBusName(invocation.get_connection(),
                     service, this._cancellable);
@@ -200,13 +195,7 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
     _remove(id) {
         this._items.get(id).destroy();
         this._items.delete(id);
-        Gio.DBus.session.unwatch_name(this._nameWatcher.get(id));
-        this._nameWatcher.delete(id);
 
-        if (this._serviceWatcher.has(id)) {
-            Gio.DBus.session.unwatch_name(this._serviceWatcher.get(id));
-            this._serviceWatcher.delete(id);
-        }
         this._dbusImpl.emit_signal('StatusNotifierItemUnregistered', GLib.Variant.new('(s)', id));
         this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems', GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
     }
@@ -241,10 +230,6 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
             Gio.DBus.session.unown_name(this._ownName);
             this._cancellable.cancel();
             this._dbusImpl.unexport();
-            this._nameWatcher.forEach(n => Gio.DBus.session.unwatch_name(n));
-            delete this._nameWatcher;
-            this._serviceWatcher.forEach(s => Gio.DBus.session.unwatch_name(s));
-            delete this._serviceWatcher;
             this._items.forEach(i => i.destroy());
             delete this._items;
             this._isDestroyed = true;
