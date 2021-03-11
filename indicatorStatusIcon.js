@@ -45,7 +45,6 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
         this.add_child(this._box);
 
         this._box.add_child(this._iconBox);
-        Util.connectSmart(this, 'button-press-event', this, '_boxClicked')
 
         Util.connectSmart(this._indicator, 'ready',  this, '_display')
         Util.connectSmart(this._indicator, 'menu',  this, '_updateMenu')
@@ -118,24 +117,20 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
         Main.panel.addToStatusArea("appindicator-"+this._indicator.uniqueId, this, 1, 'right')
     }
 
-    _boxClicked(actor, event) {
+    vfunc_button_press_event(buttonEvent) {
         // if middle mouse button clicked send SecondaryActivate dbus event and do not show appindicator menu
-        if (event.get_button() == 2) {
+        if (buttonEvent.button === 2) {
             Main.panel.menuManager._closeMenu(true, Main.panel.menuManager.activeMenu);
             this._indicator.secondaryActivate();
-            return;
+            return Clutter.EVENT_STOP;
         }
 
-        //HACK: event should be a ClutterButtonEvent but we get only a ClutterEvent (why?)
-        //      because we can't access click_count, we'll create our own double click detector.
-        var treshold = Clutter.Settings.get_default().double_click_time;
-        var now = new Date().getTime();
-        if (this._lastClicked && (now - this._lastClicked) < treshold) {
-            this._lastClicked = null; //reset double click detector
+        if (buttonEvent.button === 1 && buttonEvent.click_count === 2) {
             this._indicator.open();
-        } else {
-            this._lastClicked = now;
+            return Clutter.EVENT_STOP;
         }
+
+        return Clutter.EVENT_PROPAGATE;
     }
 
     vfunc_scroll_event(scrollEvent) {
