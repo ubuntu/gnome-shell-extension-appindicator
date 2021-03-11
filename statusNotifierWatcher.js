@@ -14,6 +14,8 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+/* exported StatusNotifierWatcher */
+
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
 
@@ -37,7 +39,7 @@ const DEFAULT_ITEM_OBJECT_PATH = '/StatusNotifierItem';
 /*
  * The StatusNotifierWatcher class implements the StatusNotifierWatcher dbus object
  */
-var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
+var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
 
     constructor(watchDog) {
         this._watchDog = watchDog;
@@ -68,12 +70,12 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
 
 
     // create a unique index for the _items dictionary
-    _getItemId(bus_name, obj_path) {
-        return bus_name + obj_path;
+    _getItemId(busName, objPath) {
+        return busName + objPath;
     }
 
-    async _registerItem(service, bus_name, obj_path) {
-        let id = this._getItemId(bus_name, obj_path);
+    async _registerItem(service, busName, objPath) {
+        let id = this._getItemId(busName, objPath);
 
         if (this._items.has(id)) {
             Util.Logger.warn(`Item ${id} is already registered`);
@@ -83,7 +85,7 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         Util.Logger.debug(`Registering StatusNotifierItem ${id}`);
 
         try {
-            const indicator = new AppIndicator.AppIndicator(service, bus_name, obj_path);
+            const indicator = new AppIndicator.AppIndicator(service, busName, objPath);
             this._items.set(id, indicator);
 
             indicator.connect('name-owner-changed', async () => {
@@ -111,8 +113,8 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         }
     }
 
-    _ensureItemRegistered(service, bus_name, obj_path) {
-        let id = this._getItemId(bus_name, obj_path);
+    _ensureItemRegistered(service, busName, objPath) {
+        let id = this._getItemId(busName, objPath);
         let item = this._items.get(id);
 
         if (item) {
@@ -122,7 +124,7 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
             return;
         }
 
-        this._registerItem(service, bus_name, obj_path);
+        this._registerItem(service, busName, objPath);
     }
 
     async _seekStatusNotifierItems() {
@@ -155,22 +157,22 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         // instead, ayatana patched gnome apps to send a path
         // while kde apps send a bus name
         let [service] = params;
-        let bus_name = null, obj_path = null;
+        let busName, objPath;
 
-        if (service.charAt(0) == '/') { // looks like a path
-            bus_name = invocation.get_sender();
-            obj_path = service;
+        if (service.charAt(0) === '/') { // looks like a path
+            busName = invocation.get_sender();
+            objPath = service;
         } else if (service.match(Util.BUS_ADDRESS_REGEX)) {
             try {
-                bus_name = await Util.getUniqueBusName(invocation.get_connection(),
+                busName = await Util.getUniqueBusName(invocation.get_connection(),
                     service, this._cancellable);
             } catch (e) {
                 logError(e);
             }
-            obj_path = DEFAULT_ITEM_OBJECT_PATH;
+            objPath = DEFAULT_ITEM_OBJECT_PATH;
         }
 
-        if (!bus_name || !obj_path) {
+        if (!busName || !objPath) {
             let error = `Impossible to register an indicator for parameters '${
                 service.toString()}'`;
             Util.Logger.warn(error);
@@ -180,7 +182,7 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
             return;
         }
 
-        this._ensureItemRegistered(service, bus_name, obj_path);
+        this._ensureItemRegistered(service, busName, objPath);
 
         invocation.return_value(null);
     }

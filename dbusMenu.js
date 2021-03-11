@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-const Atk = imports.gi.Atk;
-const Clutter = imports.gi.Clutter;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
 const GdkPixbuf = imports.gi.GdkPixbuf;
@@ -36,14 +34,14 @@ const Util = Extension.imports.util;
 /**
  * Saves menu property values and handles type checking and defaults
  */
-var PropertyStore = class AppIndicators_PropertyStore {
+var PropertyStore = class AppIndicatorsPropertyStore {
 
-    constructor(initial_properties) {
+    constructor(initialProperties) {
         this._props = new Map();
 
-        if (initial_properties) {
-            for (let i in initial_properties)
-                this.set(i, initial_properties[i]);
+        if (initialProperties) {
+            for (let i in initialProperties)
+                this.set(i, initialProperties[i]);
 
         }
     }
@@ -92,55 +90,55 @@ PropertyStore.DefaultValues = {
 /**
  * Represents a single menu item
  */
-var DbusMenuItem = class AppIndicators_DbusMenuItem {
+var DbusMenuItem = class AppIndicatorsDbusMenuItem {
 
     // will steal the properties object
-    constructor(client, id, properties, children_ids) {
+    constructor(client, id, properties, childrenIds) {
         this._client = client;
         this._id = id;
         this._propStore = new PropertyStore(properties);
-        this._children_ids = children_ids;
+        this._children_ids = childrenIds;
     }
 
-    property_get(prop_name) {
-        let prop = this.property_get_variant(prop_name);
+    propertyGet(propName) {
+        let prop = this.propertyGetVariant(propName);
         return prop ? prop.get_string()[0] : null;
     }
 
-    property_get_variant(prop_name) {
-        return this._propStore.get(prop_name);
+    propertyGetVariant(propName) {
+        return this._propStore.get(propName);
     }
 
-    property_get_bool(prop_name) {
-        let prop  = this.property_get_variant(prop_name);
+    propertyGetBool(propName) {
+        let prop  = this.propertyGetVariant(propName);
         return prop ? prop.get_boolean() : false;
     }
 
-    property_get_int(prop_name) {
-        let prop = this.property_get_variant(prop_name);
+    propertyGetInt(propName) {
+        let prop = this.propertyGetVariant(propName);
         return prop ? prop.get_int32() : 0;
     }
 
-    property_set(prop, value) {
+    propertySet(prop, value) {
         this._propStore.set(prop, value);
 
-        this.emit('property-changed', prop, this.property_get_variant(prop));
+        this.emit('property-changed', prop, this.propertyGetVariant(prop));
     }
 
-    get_children_ids() {
+    getChildrenIds() {
         return this._children_ids.concat(); // clone it!
     }
 
-    add_child(pos, child_id) {
-        this._children_ids.splice(pos, 0, child_id);
-        this.emit('child-added', this._client.get_item(child_id), pos);
+    addChild(pos, childId) {
+        this._children_ids.splice(pos, 0, childId);
+        this.emit('child-added', this._client.getItem(childId), pos);
     }
 
-    remove_child(child_id) {
+    removeChild(childId) {
         // find it
         let pos = -1;
         for (let i = 0; i < this._children_ids.length; ++i) {
-            if (this._children_ids[i] == child_id) {
+            if (this._children_ids[i] === childId) {
                 pos = i;
                 break;
             }
@@ -150,49 +148,49 @@ var DbusMenuItem = class AppIndicators_DbusMenuItem {
             Util.Logger.critical("Trying to remove child which doesn't exist");
         } else {
             this._children_ids.splice(pos, 1);
-            this.emit('child-removed', this._client.get_item(child_id));
+            this.emit('child-removed', this._client.getItem(childId));
         }
     }
 
-    move_child(child_id, newpos) {
+    moveChild(childId, newPos) {
         // find the old position
-        let oldpos = -1;
+        let oldPos = -1;
         for (let i = 0; i < this._children_ids.length; ++i) {
-            if (this._children_ids[i] == child_id) {
-                oldpos = i;
+            if (this._children_ids[i] === childId) {
+                oldPos = i;
                 break;
             }
         }
 
-        if (oldpos < 0) {
+        if (oldPos < 0) {
             Util.Logger.critical("tried to move child which wasn't in the list");
             return;
         }
 
-        if (oldpos != newpos) {
-            this._children_ids.splice(oldpos, 1);
-            this._children_ids.splice(newpos, 0, child_id);
-            this.emit('child-moved', oldpos, newpos, this._client.get_item(child_id));
+        if (oldPos !== newPos) {
+            this._children_ids.splice(oldPos, 1);
+            this._children_ids.splice(newPos, 0, childId);
+            this.emit('child-moved', oldPos, newPos, this._client.getItem(childId));
         }
     }
 
-    get_children() {
-        return this._children_ids.map(el => this._client.get_item(el));
+    getChildren() {
+        return this._children_ids.map(el => this._client.getItem(el));
     }
 
-    handle_event(event, data, timestamp) {
+    handleEvent(event, data, timestamp) {
         if (!data)
             data = GLib.Variant.new_int32(0);
 
-        this._client.send_event(this._id, event, data, timestamp);
+        this._client.sendEvent(this._id, event, data, timestamp);
     }
 
-    get_id() {
+    getId() {
         return this._id;
     }
 
-    send_about_to_show() {
-        this._client.send_about_to_show(this._id);
+    sendAboutToShow() {
+        this._client.sendAboutToShow(this._id);
     }
 };
 Signals.addSignalMethods(DbusMenuItem.prototype);
@@ -203,7 +201,7 @@ const BusClientProxy = Gio.DBusProxy.makeProxyWrapper(DBusInterfaces.DBusMenu);
 /**
  * The client does the heavy lifting of actually reading layouts and distributing events
  */
-var DBusClient = class AppIndicators_DBusClient {
+var DBusClient = class AppIndicatorsDBusClient {
 
     constructor(busName, busPath) {
         this._cancellable = new Gio.Cancellable();
@@ -239,7 +237,7 @@ var DBusClient = class AppIndicators_DBusClient {
         return !!this._proxy.g_name_owner;
     }
 
-    get_root() {
+    getRoot() {
         return this._items.get(0);
     }
 
@@ -287,7 +285,7 @@ var DBusClient = class AppIndicators_DBusClient {
                 return;
 
             for (let prop in properties)
-                item.property_set(prop, properties[prop]);
+                item.propertySet(prop, properties[prop]);
         });
     }
 
@@ -298,13 +296,13 @@ var DBusClient = class AppIndicators_DBusClient {
 
         let toTraverse = [0];
         while (toTraverse.length > 0) {
-            let item = this.get_item(toTraverse.shift());
+            let item = this.getItem(toTraverse.shift());
             item._dbusClientGcTag = tag;
-            Array.prototype.push.apply(toTraverse, item.get_children_ids());
+            Array.prototype.push.apply(toTraverse, item.getChildrenIds());
         }
 
         this._items.forEach((i, id) => {
-            if (i._dbusClientGcTag != tag)
+            if (i._dbusClientGcTag !== tag)
                 this._items.delete(id);
         });
     }
@@ -330,7 +328,7 @@ var DBusClient = class AppIndicators_DBusClient {
             return;
         }
 
-        let [revision, root] = result;
+        let [revision_, root] = result;
         this._doLayoutUpdate(root);
         this._gcItems();
 
@@ -354,16 +352,16 @@ var DBusClient = class AppIndicators_DBusClient {
         if (menuItem) {
             // we do, update our properties if necessary
             for (let prop in properties)
-                menuItem.property_set(prop, properties[prop]);
+                menuItem.propertySet(prop, properties[prop]);
 
 
             // make sure our children are all at the right place, and exist
-            let oldChildrenIds = menuItem.get_children_ids();
+            let oldChildrenIds = menuItem.getChildrenIds();
             for (let i = 0; i < childrenIds.length; ++i) {
                 // try to recycle an old child
                 let oldChild = -1;
                 for (let j = 0; j < oldChildrenIds.length; ++j) {
-                    if (oldChildrenIds[j] == childrenIds[i]) {
+                    if (oldChildrenIds[j] === childrenIds[i]) {
                         oldChild = oldChildrenIds.splice(j, 1)[0];
                         break;
                     }
@@ -371,15 +369,15 @@ var DBusClient = class AppIndicators_DBusClient {
 
                 if (oldChild < 0) {
                     // no old child found, so create a new one!
-                    menuItem.add_child(i, childrenIds[i]);
+                    menuItem.addChild(i, childrenIds[i]);
                 } else {
                     // old child found, reuse it!
-                    menuItem.move_child(childrenIds[i], i);
+                    menuItem.moveChild(childrenIds[i], i);
                 }
             }
 
             // remove any old children that weren't reused
-            oldChildrenIds.forEach(child_id => menuItem.remove_child(child_id));
+            oldChildrenIds.forEach(c => menuItem.removeChild(c));
         } else {
             // we don't, so let's create us
             this._items.set(id, new DbusMenuItem(this, id, properties, childrenIds));
@@ -403,7 +401,7 @@ var DBusClient = class AppIndicators_DBusClient {
         this._proxy.connectSignal('ItemsPropertiesUpdated', this._onPropertiesUpdated.bind(this));
     }
 
-    get_item(id) {
+    getItem(id) {
         let item = this._items.get(id);
         if (!item)
             Util.Logger.warn(`trying to retrieve item for non-existing id ${id} !?`);
@@ -411,7 +409,7 @@ var DBusClient = class AppIndicators_DBusClient {
     }
 
     // we don't need to cache and burst-send that since it will not happen that frequently
-    send_about_to_show(id) {
+    sendAboutToShow(id) {
         /* Some indicators (you, dropbox!) don't use the right signature
          * and don't return a boolean, so we need to support both cases */
         let connection = this._proxy.get_connection();
@@ -432,7 +430,7 @@ var DBusClient = class AppIndicators_DBusClient {
             });
     }
 
-    send_event(id, event, params, timestamp) {
+    sendEvent(id, event, params, timestamp) {
         if (!this._proxy)
             return;
 
@@ -451,14 +449,14 @@ var DBusClient = class AppIndicators_DBusClient {
                 return;
 
             for (let prop in props)
-                item.property_set(prop, props[prop]);
+                item.propertySet(prop, props[prop]);
         });
         removed.forEach(([id, propNames]) => {
             let item = this._items.get(id);
             if (!item)
                 return;
 
-            propNames.forEach(propName => item.property_set(propName, null));
+            propNames.forEach(propName => item.propertySet(propName, null));
         });
     }
 
@@ -493,12 +491,13 @@ const NEED_NESTED_SUBMENU_FIX = '_setOpenedSubMenu' in PopupMenu.PopupMenu.proto
 const MenuItemFactory = {
     createItem(client, dbusItem) {
         // first, decide whether it's a submenu or not
-        if (dbusItem.property_get('children-display') == 'submenu')
-            var shellItem = new PopupMenu.PopupSubMenuMenuItem('FIXME');
-        else if (dbusItem.property_get('type') == 'separator')
-            var shellItem = new PopupMenu.PopupSeparatorMenuItem('');
+        let shellItem;
+        if (dbusItem.propertyGet('children-display') === 'submenu')
+            shellItem = new PopupMenu.PopupSubMenuMenuItem('FIXME');
+        else if (dbusItem.propertyGet('type') === 'separator')
+            shellItem = new PopupMenu.PopupSeparatorMenuItem('');
         else
-            var shellItem = new PopupMenu.PopupMenuItem('FIXME');
+            shellItem = new PopupMenu.PopupMenuItem('FIXME');
 
         shellItem._dbusItem = dbusItem;
         shellItem._dbusClient = client;
@@ -518,7 +517,7 @@ const MenuItemFactory = {
 
         // initially create children
         if (shellItem instanceof PopupMenu.PopupSubMenuMenuItem) {
-            let children = dbusItem.get_children();
+            let children = dbusItem.getChildren();
             for (let i = 0; i < children.length; ++i)
                 shellItem.menu.addMenuItem(MenuItemFactory.createItem(client, children[i]));
 
@@ -551,8 +550,8 @@ const MenuItemFactory = {
                 menu._parent._openedSubMenu = menu;
             }
 
-            this._dbusItem.handle_event('opened', null, 0);
-            this._dbusItem.send_about_to_show();
+            this._dbusItem.handleEvent('opened', null, 0);
+            this._dbusItem.sendAboutToShow();
         } else {
             if (NEED_NESTED_SUBMENU_FIX) {
                 // close our own submenus
@@ -560,29 +559,29 @@ const MenuItemFactory = {
                     menu._openedSubMenu.close(false);
             }
 
-            this._dbusItem.handle_event('closed', null, 0);
+            this._dbusItem.handleEvent('closed', null, 0);
         }
     },
 
     _onActivate() {
-        this._dbusItem.handle_event('clicked', GLib.Variant.new('i', 0), 0);
+        this._dbusItem.handleEvent('clicked', GLib.Variant.new('i', 0), 0);
     },
 
-    _onPropertyChanged(dbusItem, prop, value) {
-        if (prop == 'toggle-type' || prop == 'toggle-state')
+    _onPropertyChanged(dbusItem, prop, _value) {
+        if (prop === 'toggle-type' || prop === 'toggle-state')
             MenuItemFactory._updateOrnament.call(this);
-        else if (prop == 'label')
+        else if (prop === 'label')
             MenuItemFactory._updateLabel.call(this);
-        else if (prop == 'enabled')
+        else if (prop === 'enabled')
             MenuItemFactory._updateSensitive.call(this);
-        else if (prop == 'visible')
+        else if (prop === 'visible')
             MenuItemFactory._updateVisible.call(this);
-        else if (prop == 'icon-name' || prop == 'icon-data')
+        else if (prop === 'icon-name' || prop === 'icon-data')
             MenuItemFactory._updateImage.call(this);
-        else if (prop == 'type' || prop == 'children-display')
+        else if (prop === 'type' || prop === 'children-display')
             MenuItemFactory._replaceSelf.call(this);
-        // else
-        //    Util.Logger.debug("Unhandled property change: "+prop)
+        else
+            Util.Logger.debug(`Unhandled property change: ${prop}`);
     },
 
     _onChildAdded(dbusItem, child, position) {
@@ -601,7 +600,7 @@ const MenuItemFactory = {
         } else {
             // find it!
             this.menu._getMenuItems().forEach(item => {
-                if (item._dbusItem == child)
+                if (item._dbusItem === child)
                     item.destroy();
             });
         }
@@ -617,7 +616,7 @@ const MenuItemFactory = {
     },
 
     _updateLabel() {
-        let label = this._dbusItem.property_get('label').replace(/_([^_])/, '$1');
+        let label = this._dbusItem.propertyGet('label').replace(/_([^_])/, '$1');
 
         if (this.label) // especially on GS3.8, the separator item might not even have a hidden label
             this.label.set_text(label);
@@ -627,9 +626,9 @@ const MenuItemFactory = {
         if (!this.setOrnament)
             return; // separators and alike might not have gotten the polyfill
 
-        if (this._dbusItem.property_get('toggle-type') == 'checkmark' && this._dbusItem.property_get_int('toggle-state'))
+        if (this._dbusItem.propertyGet('toggle-type') === 'checkmark' && this._dbusItem.propertyGetInt('toggle-state'))
             this.setOrnament(PopupMenu.Ornament.CHECK);
-        else if (this._dbusItem.property_get('toggle-type') == 'radio' && this._dbusItem.property_get_int('toggle-state'))
+        else if (this._dbusItem.propertyGet('toggle-type') === 'radio' && this._dbusItem.propertyGetInt('toggle-state'))
             this.setOrnament(PopupMenu.Ornament.DOT);
         else
             this.setOrnament(PopupMenu.Ornament.NONE);
@@ -639,8 +638,8 @@ const MenuItemFactory = {
         if (!this._icon)
             return; // might be missing on submenus / separators
 
-        let iconName = this._dbusItem.property_get('icon-name');
-        let iconData = this._dbusItem.property_get_variant('icon-data');
+        let iconName = this._dbusItem.propertyGet('icon-name');
+        let iconData = this._dbusItem.propertyGetVariant('icon-data');
         if (iconName)
             this._icon.icon_name = iconName;
         else if (iconData)
@@ -648,11 +647,11 @@ const MenuItemFactory = {
     },
 
     _updateVisible() {
-        this.visible = this._dbusItem.property_get_bool('visible');
+        this.visible = this._dbusItem.propertyGetBool('visible');
     },
 
     _updateSensitive() {
-        this.setSensitive(this._dbusItem.property_get_bool('enabled'));
+        this.setSensitive(this._dbusItem.propertyGetBool('enabled'));
     },
 
     _replaceSelf(newSelf) {
@@ -690,12 +689,12 @@ const MenuUtils = {
         // First, find our wrapper. Children tend to lie. We do not trust the old positioning.
         let family = menu._getMenuItems();
         for (let i = 0; i < family.length; ++i) {
-            if (family[i]._dbusItem == dbusItem) {
+            if (family[i]._dbusItem === dbusItem) {
                 // now, remove it
                 menu.box.remove_child(family[i]);
 
                 // and add it again somewhere else
-                if (newpos < family.length && family[newpos] != family[i])
+                if (newpos < family.length && family[newpos] !== family[i])
                     menu.box.insert_child_below(family[i], family[newpos]);
                 else
                     menu.box.add(family[i]);
@@ -713,7 +712,7 @@ const MenuUtils = {
  *
  * Something like a mini-god-object
  */
-var Client = class AppIndicators_Client {
+var Client = class AppIndicatorsClient {
 
     constructor(busName, path) {
         this._busName  = busName;
@@ -731,7 +730,7 @@ var Client = class AppIndicators_Client {
     // it will also connect the client to be automatically destroyed when the menu dies.
     attachToMenu(menu) {
         this._rootMenu = menu;
-        this._rootItem = this._client.get_root();
+        this._rootItem = this._client.getRoot();
 
         // cleanup: remove existing children (just in case)
         this._rootMenu.removeAll();
@@ -748,10 +747,10 @@ var Client = class AppIndicators_Client {
         Util.connectSmart(this._rootItem, 'child-moved',   this, '_onRootChildMoved');
 
         // Dropbox requires us to call AboutToShow(0) first
-        this._rootItem.send_about_to_show();
+        this._rootItem.sendAboutToShow();
 
         // fill the menu for the first time
-        this._rootItem.get_children().forEach(child =>
+        this._rootItem.getChildren().forEach(child =>
             this._rootMenu.addMenuItem(MenuItemFactory.createItem(this, child)),
         );
     }
@@ -760,7 +759,7 @@ var Client = class AppIndicators_Client {
         if (!submenu)
             return;
 
-        if (submenu._parent != this._rootMenu)
+        if (submenu._parent !== this._rootMenu)
             return;
 
         if (submenu === this._openedSubMenu)
@@ -780,7 +779,7 @@ var Client = class AppIndicators_Client {
         // children like to play hide and seek
         // but we know how to find it for sure!
         this._rootMenu._getMenuItems().forEach(item => {
-            if (item._dbusItem == child)
+            if (item._dbusItem === child)
                 item.destroy();
         });
     }
@@ -797,10 +796,10 @@ var Client = class AppIndicators_Client {
             if (this._openedSubMenu && this._openedSubMenu.isOpen)
                 this._openedSubMenu.close();
 
-            this._rootItem.handle_event('opened', null, 0);
-            this._rootItem.send_about_to_show();
+            this._rootItem.handleEvent('opened', null, 0);
+            this._rootItem.sendAboutToShow();
         } else {
-            this._rootItem.handle_event('closed', null, 0);
+            this._rootItem.handleEvent('closed', null, 0);
         }
     }
 

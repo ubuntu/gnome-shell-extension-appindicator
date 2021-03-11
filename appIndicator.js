@@ -14,20 +14,18 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-const Clutter = imports.gi.Clutter;
-const Cogl = imports.gi.Cogl;
+/* exported AppIndicator, IconActor */
+
 const GdkPixbuf = imports.gi.GdkPixbuf;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
 const GObject = imports.gi.GObject;
 const Gtk = imports.gi.Gtk;
 const St = imports.gi.St;
-const Shell = imports.gi.Shell;
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Signals = imports.signals;
 
-const DBusMenu = Extension.imports.dbusMenu;
 const IconCache = Extension.imports.iconCache;
 const Util = Extension.imports.util;
 const Interfaces = Extension.imports.interfaces;
@@ -41,6 +39,7 @@ PromiseUtils._promisify(Gio.DBusProxy.prototype, 'init_async', 'init_finish');
 
 const MAX_UPDATE_FREQUENCY = 100; // In ms
 
+// eslint-disable-next-line no-unused-vars
 const SNICategory = {
     APPLICATION: 'ApplicationStatus',
     COMMUNICATIONS: 'Communications',
@@ -64,22 +63,22 @@ const SNIconType = {
  * the AppIndicator class serves as a generic container for indicator information and functions common
  * for every displaying implementation (IndicatorMessageSource and IndicatorStatusIcon)
  */
-var AppIndicator = class AppIndicators_AppIndicator {
+var AppIndicator = class AppIndicatorsAppIndicator {
 
-    constructor(service, bus_name, object) {
-        this.busName = bus_name;
-        this._uniqueId = bus_name + object;
+    constructor(service, busName, object) {
+        this.busName = busName;
+        this._uniqueId = busName + object;
         this._accumulatedSignals = new Set();
 
-        let interface_info = Gio.DBusInterfaceInfo.new_for_xml(Interfaces.StatusNotifierItem);
+        const interfaceInfo = Gio.DBusInterfaceInfo.new_for_xml(Interfaces.StatusNotifierItem);
 
         // HACK: we cannot use Gio.DBusProxy.makeProxyWrapper because we need
         //      to specify G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES
         this._cancellable = new Gio.Cancellable();
         this._proxy = new Gio.DBusProxy({ g_connection: Gio.DBus.session,
-            g_interface_name: interface_info.name,
-            g_interface_info: interface_info,
-            g_name: bus_name,
+            g_interface_name: interfaceInfo.name,
+            g_interface_info: interfaceInfo,
+            g_name: busName,
             g_object_path: object,
             g_flags: Gio.DBusProxyFlags.GET_INVALIDATED_PROPERTIES });
 
@@ -88,7 +87,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
         Util.connectSmart(this._proxy, 'g-signal', this, this._onProxySignal);
         Util.connectSmart(this._proxy, 'notify::g-name-owner', this, '_nameOwnerChanged');
 
-        if (service !== bus_name && service.match(Util.BUS_ADDRESS_REGEX)) {
+        if (service !== busName && service.match(Util.BUS_ADDRESS_REGEX)) {
             this._uniqueId = service;
             this._nameWatcher = new Util.NameWatcher(service);
             Util.connectSmart(this._nameWatcher, 'changed', () => this._nameOwnerChanged());
@@ -102,7 +101,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
             this._checkMenuReady();
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                Util.Logger.warn(`While initalizing proxy for ${bus_name} ${object}: ${e}`);
+                Util.Logger.warn(`While initalizing proxy for ${this._uniqueId}: ${e}`);
         }
     }
 
@@ -137,6 +136,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
         for (let checks = 0; checks < 3 && !this.isReady; ++checks) {
             this._delayCheck = new PromiseUtils.TimeoutSecondsPromise(1,
                 GLib.PRIORITY_DEFAULT_IDLE, cancellable);
+            // eslint-disable-next-line no-await-in-loop
             await this._delayCheck;
             Util.refreshPropertyOnProxy(this._proxy, 'Menu');
         }
@@ -175,7 +175,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
         let interfaceProps = this._proxy.g_interface_info.properties;
         this._proxyPropertyList =
             (this._proxy.get_cached_property_names() || []).filter(p =>
-                interfaceProps.some(propinfo => propinfo.name == p));
+                interfaceProps.some(propinfo => propinfo.name === p));
 
         if (this._proxyPropertyList.length) {
             this._addExtraProperty('XAyatanaLabel');
@@ -243,7 +243,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
     }
 
     get menuPath() {
-        if (this._proxy.Menu == '/NO_DBUSMENU')
+        if (this._proxy.Menu === '/NO_DBUSMENU')
             return null;
 
         return this._proxy.Menu || '/MenuBar';
@@ -282,7 +282,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
         return this._cancellable;
     }
 
-    _onPropertiesChanged(proxy, changed, invalidated) {
+    _onPropertiesChanged(_proxy, changed, _invalidated) {
         let props = Object.keys(changed.unpack());
         let signalsToEmit = new Set();
 
@@ -291,7 +291,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
             // a few need to be passed down to the displaying code
 
             // all these can mean that the icon has to be changed
-            if (property == 'Status' ||
+            if (property === 'Status' ||
                 property.startsWith('Icon') ||
                 property.startsWith('AttentionIcon'))
                 signalsToEmit.add('icon');
@@ -302,22 +302,22 @@ var AppIndicator = class AppIndicators_AppIndicator {
                 signalsToEmit.add('overlay-icon');
 
             // this may make all of our icons invalid
-            if (property == 'IconThemePath') {
+            if (property === 'IconThemePath') {
                 signalsToEmit.add('icon');
                 signalsToEmit.add('overlay-icon');
             }
 
             // the label will be handled elsewhere
-            if (property == 'XAyatanaLabel')
+            if (property === 'XAyatanaLabel')
                 signalsToEmit.add('label');
 
-            if (property == 'Menu') {
+            if (property === 'Menu') {
                 if (!this._checkIfReady() && this.isReady)
                     signalsToEmit.add('menu');
             }
 
             // status updates may cause the indicator to be hidden
-            if (property == 'Status')
+            if (property === 'Status')
                 signalsToEmit.add('status');
         });
 
@@ -333,10 +333,12 @@ var AppIndicator = class AppIndicators_AppIndicator {
 
         this.disconnectAll();
         this._cancellable.cancel();
-        this._nameWatcher && this._nameWatcher.destroy();
         Util.cancelRefreshPropertyOnProxy(this._proxy);
+        if (this._nameWatcher)
+            this._nameWatcher.destroy();
         delete this._cancellable;
         delete this._proxy;
+        delete this._nameWatcher;
     }
 
     open() {
@@ -352,19 +354,19 @@ var AppIndicator = class AppIndicators_AppIndicator {
     }
 
     scroll(dx, dy) {
-        if (dx != 0)
+        if (dx !== 0)
             this._proxy.ScrollRemote(Math.floor(dx), 'horizontal');
 
-        if (dy != 0)
+        if (dy !== 0)
             this._proxy.ScrollRemote(Math.floor(dy), 'vertical');
     }
 };
 Signals.addSignalMethods(AppIndicator.prototype);
 
 var IconActor = GObject.registerClass(
-class AppIndicators_IconActor extends St.Icon {
+class AppIndicatorsIconActor extends St.Icon {
 
-    _init(indicator, icon_size) {
+    _init(indicator, iconSize) {
         super._init({
             reactive: true,
             style_class: 'system-status-icon',
@@ -375,11 +377,12 @@ class AppIndicators_IconActor extends St.Icon {
         this.add_style_class_name('appindicator-icon');
         this.set_style('padding:0');
 
+        // eslint-disable-next-line no-undef
         let themeContext = St.ThemeContext.get_for_stage(global.stage);
-        this.height = icon_size * themeContext.scale_factor;
+        this.height = iconSize * themeContext.scale_factor;
 
         this._indicator     = indicator;
-        this._iconSize      = icon_size;
+        this._iconSize      = iconSize;
         this._iconCache     = new IconCache.IconCache();
         this._cancellable   = new Gio.Cancellable();
         this._loadingIcons  = new Set();
@@ -389,7 +392,7 @@ class AppIndicators_IconActor extends St.Icon {
         Util.connectSmart(this._indicator, 'reset',        this, '_invalidateIcon');
 
         Util.connectSmart(themeContext, 'notify::scale-factor', this, tc => {
-            this.height = icon_size * tc.scale_factor;
+            this.height = iconSize * tc.scale_factor;
             this._invalidateIcon();
         });
 
@@ -425,8 +428,9 @@ class AppIndicators_IconActor extends St.Icon {
     // Will look the icon up in the cache, if it's found
     // it will return it. Otherwise, it will create it and cache it.
     async _cacheOrCreateIconByName(iconSize, iconName, themePath) {
-        let { scale_factor } = St.ThemeContext.get_for_stage(global.stage);
-        let id = `${iconName}@${iconSize * scale_factor}${themePath || ''}`;
+        // eslint-disable-next-line no-undef
+        let { scale_factor: scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+        let id = `${iconName}@${iconSize * scaleFactor}${themePath || ''}`;
         let gicon = this._iconCache.get(id);
 
         if (gicon)
@@ -441,7 +445,7 @@ class AppIndicators_IconActor extends St.Icon {
         }
 
         this._loadingIcons.add(id);
-        let path = this._getIconInfo(iconName, themePath, iconSize, scale_factor);
+        let path = this._getIconInfo(iconName, themePath, iconSize, scaleFactor);
         gicon = await this._createIconByName(path);
         this._loadingIcons.delete(id);
         if (gicon)
@@ -515,7 +519,7 @@ class AppIndicators_IconActor extends St.Icon {
 
     _getIconInfo(name, themePath, size, scale) {
         let path = null;
-        if (name && name[0] == '/') {
+        if (name && name[0] === '/') {
             // HACK: icon is a path name. This is not specified by the api but at least inidcator-sensors uses it.
             path = name;
         } else if (name) {
@@ -529,20 +533,19 @@ class AppIndicators_IconActor extends St.Icon {
             let iconInfo = null;
 
             // we try to avoid messing with the default icon theme, so we'll create a new one if needed
-            let icon_theme = null;
+            let iconTheme = null;
             if (themePath) {
-                icon_theme = new Gtk.IconTheme();
-                Gtk.IconTheme.get_default().get_search_path().forEach(path => {
-                    icon_theme.append_search_path(path);
-                });
-                icon_theme.append_search_path(themePath);
-                icon_theme.set_screen(imports.gi.Gdk.Screen.get_default());
+                iconTheme = new Gtk.IconTheme();
+                Gtk.IconTheme.get_default().get_search_path().forEach(p =>
+                    iconTheme.append_search_path(p));
+                iconTheme.append_search_path(themePath);
+                iconTheme.set_screen(imports.gi.Gdk.Screen.get_default());
             } else {
-                icon_theme = Gtk.IconTheme.get_default();
+                iconTheme = Gtk.IconTheme.get_default();
             }
-            if (icon_theme) {
+            if (iconTheme) {
                 // try to look up the icon in the icon theme
-                iconInfo = icon_theme.lookup_icon_for_scale(name, size, scale,
+                iconInfo = iconTheme.lookup_icon_for_scale(name, size, scale,
                     Gtk.IconLookupFlags.GENERIC_FALLBACK);
                 // no icon? that's bad!
                 if (iconInfo === null) {
@@ -589,8 +592,9 @@ class AppIndicators_IconActor extends St.Icon {
     }
 
     async _createIconFromPixmap(iconSize, iconPixmapArray) {
-        let { scale_factor } = St.ThemeContext.get_for_stage(global.stage);
-        iconSize *= scale_factor;
+        // eslint-disable-next-line no-undef
+        const { scale_factor: scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+        iconSize *= scaleFactor;
         // the pixmap actually is an array of pixmaps with different sizes
         // we use the one that is smaller or equal the iconSize
 
@@ -648,12 +652,12 @@ class AppIndicators_IconActor extends St.Icon {
     // So when it's not need anymore we make sure to check the .inUse property
     // and set it to false so that it can be picked up by the garbage collector.
     _setGicon(iconType, gicon) {
-        if (iconType != SNIconType.OVERLAY) {
+        if (iconType !== SNIconType.OVERLAY) {
             if (gicon) {
                 this.gicon = new Gio.EmblemedIcon({ gicon });
 
                 if (!(gicon instanceof GdkPixbuf.Pixbuf))
-                    gicon.inUse = this.gicon.get_icon() == gicon;
+                    gicon.inUse = this.gicon.get_icon() === gicon;
             } else {
                 this.gicon = null;
                 Util.Logger.critical(`unable to update icon for ${this._indicator.id}`);
@@ -721,7 +725,7 @@ class AppIndicators_IconActor extends St.Icon {
         }
 
         // we might need to use the AttentionIcon*, which have precedence over the normal icons
-        let iconType = this._indicator.status == SNIStatus.NEEDS_ATTENTION
+        let iconType = this._indicator.status === SNIStatus.NEEDS_ATTENTION
             ? SNIconType.ATTENTION : SNIconType.NORMAL;
 
         this._updateIconByType(iconType, this._iconSize);

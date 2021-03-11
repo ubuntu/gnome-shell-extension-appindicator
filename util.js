@@ -16,7 +16,7 @@
 
 /* exported refreshPropertyOnProxy, getUniqueBusName, getBusNames,
    introspectBusObject, dbusNodeImplementsInterfaces, waitForStartupCompletion,
-   BUS_ADDRESS_REGEX */
+   connectSmart, BUS_ADDRESS_REGEX */
 
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
@@ -27,7 +27,6 @@ const GObject = imports.gi.GObject;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Params = imports.misc.params;
 const PromiseUtils = Extension.imports.promiseUtils;
-
 const Signals = imports.signals;
 
 var BUS_ADDRESS_REGEX = /([a-zA-Z0-9._-]+\.[a-zA-Z0-9.-]+)|(:[0-9]+\.[0-9]+)$/;
@@ -85,9 +84,9 @@ async function refreshPropertyOnProxy(proxy, propertyName, params) {
     }
 }
 
-var cancelRefreshPropertyOnProxy = function (proxy, params) {
+function cancelRefreshPropertyOnProxy(proxy, params) {
     if (!proxy._proxyCancellables)
-        return;
+        return null;
 
     params = Params.parse(params, {
         propertyName: undefined,
@@ -113,10 +112,12 @@ var cancelRefreshPropertyOnProxy = function (proxy, params) {
         delete proxy._proxyChangedProperties;
         delete proxy._proxyCancellables;
     }
-};
+
+    return null;
+}
 
 async function getUniqueBusName(bus, name, cancellable) {
-    if (name[0] == ':')
+    if (name[0] === ':')
         return name;
 
     if (!bus)
@@ -183,17 +184,12 @@ async function introspectBusObject(bus, name, cancellable, path = undefined) {
     return nodes;
 }
 
-var dbusNodeImplementsInterfaces = function (node_info, interfaces) {
-    if (!(node_info instanceof Gio.DBusNodeInfo) || !Array.isArray(interfaces))
+function dbusNodeImplementsInterfaces(nodeInfo, interfaces) {
+    if (!(nodeInfo instanceof Gio.DBusNodeInfo) || !Array.isArray(interfaces))
         return false;
 
-    for (let iface of interfaces) {
-        if (node_info.lookup_interface(iface) !== null)
-            return true;
-    }
-
-    return false;
-};
+    return interfaces.some(iface => nodeInfo.lookup_interface(iface));
+}
 
 var NameWatcher = class AppIndicatorsNameWatcher {
     constructor(name) {
@@ -224,39 +220,41 @@ var NameWatcher = class AppIndicatorsNameWatcher {
 };
 Signals.addSignalMethods(NameWatcher.prototype);
 
-const connectSmart3A = function (src, signal, handler) {
+function connectSmart3A(src, signal, handler) {
     let id = src.connect(signal, handler);
 
     if (src.connect && (!(src instanceof GObject.Object) || GObject.signal_lookup('destroy', src))) {
-        let destroy_id = src.connect('destroy', () => {
+        let destroyId = src.connect('destroy', () => {
             src.disconnect(id);
-            src.disconnect(destroy_id);
+            src.disconnect(destroyId);
         });
     }
-};
+}
 
-const connectSmart4A = function (src, signal, target, method) {
+function connectSmart4A(src, signal, target, method) {
     if (typeof method === 'string')
         method = target[method].bind(target);
     if (typeof method === 'function')
         method = method.bind(target);
 
-    let signal_id = src.connect(signal, method);
+    const signalId = src.connect(signal, method);
+    const onDestroy = () => {
+        src.disconnect(signalId);
+        if (srcDestroyId)
+            src.disconnect(srcDestroyId);
+        if (tgtDestroyId)
+            target.disconnect(tgtDestroyId);
+    };
 
     // GObject classes might or might not have a destroy signal
     // JS Classes will not complain when connecting to non-existent signals
-    let src_destroy_id = src.connect && (!(src instanceof GObject.Object) || GObject.signal_lookup('destroy', src)) ? src.connect('destroy', on_destroy) : 0;
-    let tgt_destroy_id = target.connect && (!(target instanceof GObject.Object) || GObject.signal_lookup('destroy', target)) ? target.connect('destroy', on_destroy) : 0;
+    const srcDestroyId = src.connect && (!(src instanceof GObject.Object) ||
+        GObject.signal_lookup('destroy', src)) ? src.connect('destroy', onDestroy) : 0;
+    const tgtDestroyId = target.connect && (!(target instanceof GObject.Object) ||
+        GObject.signal_lookup('destroy', target)) ? target.connect('destroy', onDestroy) : 0;
+}
 
-    function on_destroy() {
-        src.disconnect(signal_id);
-        if (src_destroy_id)
-            src.disconnect(src_destroy_id);
-        if (tgt_destroy_id)
-            target.disconnect(tgt_destroy_id);
-    }
-};
-
+// eslint-disable-next-line valid-jsdoc
 /**
  * Connect signals to slots, and remove the connection when either source or
  * target are destroyed
@@ -266,12 +264,12 @@ const connectSmart4A = function (src, signal, target, method) {
  * or
  *      Util.connectSmart(srcOb, 'signal', () => { ... })
  */
-var connectSmart = function () {
-    if (arguments.length == 4)
-        return connectSmart4A.apply(null, arguments);
+function connectSmart(...args) {
+    if (arguments.length === 4)
+        return connectSmart4A(...args);
     else
-        return connectSmart3A.apply(null, arguments);
-};
+        return connectSmart3A(...args);
+}
 
 // eslint-disable-next-line valid-jsdoc
 /**
@@ -289,7 +287,7 @@ async function waitForStartupCompletion(cancellable) {
 /**
  * Helper class for logging stuff
  */
-var Logger = class AppIndicators_Logger {
+var Logger = class AppIndicatorsLogger {
     static _logStructured(logLevel, message, extraFields = {}) {
         if (!Object.values(GLib.LogLevelFlags).includes(logLevel)) {
             Logger._logStructured(GLib.LogLevelFlags.LEVEL_WARNING,

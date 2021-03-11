@@ -14,6 +14,8 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+/* exported IconCache */
+
 const GLib = imports.gi.GLib;
 const Gio = imports.gi.Gio;
 
@@ -31,7 +33,7 @@ const GC_INTERVAL = 60; // seconds
 const LIFETIME_TIMESPAN = 10; // seconds
 
 // how to use: see IconCache.add, IconCache.get
-var IconCache = class AppIndicators_IconCache {
+var IconCache = class AppIndicatorsIconCache {
     constructor() {
         this._cache = new Map();
         this._lifetime = new Map(); // we don't want to attach lifetime to the object
@@ -83,7 +85,7 @@ var IconCache = class AppIndicators_IconCache {
 
     // marks all the icons as removable, if something doesn't claim them before
     weakClear() {
-        this._cache.forEach(icon => icon.inUse = false);
+        this._cache.forEach(icon => (icon.inUse = false));
         this._checkGC();
     }
 
@@ -106,7 +108,7 @@ var IconCache = class AppIndicators_IconCache {
     }
 
     async _checkGC() {
-        let cacheIsEmpty = this._cache.size == 0;
+        let cacheIsEmpty = this._cache.size === 0;
 
         if (!cacheIsEmpty && !this._gcTimeout) {
             Util.Logger.debug('IconCache: garbage collector started');
@@ -129,7 +131,6 @@ var IconCache = class AppIndicators_IconCache {
                 this._remove(id);
             else
                 Util.Logger.debug(`IconCache: ${id} survived this round.`);
-
         });
 
         return true;

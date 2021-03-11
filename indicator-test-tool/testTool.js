@@ -171,7 +171,7 @@ const ScrollType = {
         item.connect('activate', it => {
             if (it.get_active()) {
                 indicator.set_label(`${new Date().getTime()}`, 'Blub');
-                it.connect('activate', () => indicator.set_icon(getRandomIcon()));
+                item.connect('activate', () => indicator.set_icon(getRandomIcon()));
             } else {
                 indicator.set_label('', '');
                 indicator.set_icon(DEFAULT_ICON);
@@ -201,7 +201,7 @@ const ScrollType = {
         item = Gtk.CheckMenuItem.new_with_label('Crazy icons updates');
         item.connect('activate', it => {
             if (it.get_active()) {
-                it._timeoutID = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 16, () => {
+                item._timeoutID = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 16, () => {
                     setRandomIconPath();
                     indicator.set_label(`${new Date().getSeconds()}`, '');
                     return GLib.SOURCE_CONTINUE;
