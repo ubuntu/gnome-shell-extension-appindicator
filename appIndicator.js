@@ -69,7 +69,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
     constructor(bus_name, object) {
         this.busName = bus_name
         this._uniqueId = bus_name + object
-        this._accumuledSignals = new Set();
+        this._accumulatedSignals = new Set();
 
         let interface_info = Gio.DBusInterfaceInfo.new_for_xml(Interfaces.StatusNotifierItem)
 
@@ -197,7 +197,7 @@ var AppIndicator = class AppIndicators_AppIndicator {
     }
 
     async _onProxySignal(_proxy, _sender, signal, _params) {
-        this._accumuledSignals.add(signal);
+        this._accumulatedSignals.add(signal);
 
         if (this._signalsAccumulator)
             return;
@@ -206,8 +206,8 @@ var AppIndicator = class AppIndicators_AppIndicator {
             GLib.PRIORITY_DEFAULT_IDLE, MAX_UPDATE_FREQUENCY, this._cancellable);
         try {
             await this._signalsAccumulator;
-            this._accumuledSignals.forEach((s) => this._translateNewSignals(s));
-            this._accumuledSignals.clear();
+            this._accumulatedSignals.forEach((s) => this._translateNewSignals(s));
+            this._accumulatedSignals.clear();
         } finally {
             delete this._signalsAccumulator;
         }
