@@ -13,6 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+/* exported refreshPropertyOnProxy, getUniqueBusName, getBusNames,
+   introspectBusObject, dbusNodeImplementsInterfaces */
+
 const Gio = imports.gi.Gio
 const GLib = imports.gi.GLib
 const Gtk = imports.gi.Gtk;
@@ -108,79 +112,72 @@ var cancelRefreshPropertyOnProxy = function(proxy, params) {
     }
 }
 
-var getUniqueBusNameSync = function(bus, name) {
+async function getUniqueBusName(bus, name, cancellable) {
     if (name[0] == ':')
         return name;
 
     if (!bus)
         bus = Gio.DBus.session;
 
-    let variant_name = new GLib.Variant("(s)", [name]);
-    let [unique] = bus.call_sync("org.freedesktop.DBus", "/", "org.freedesktop.DBus",
-                                 "GetNameOwner", variant_name, null,
-                                 Gio.DBusCallFlags.NONE, -1, null).deep_unpack();
+    const variantName = new GLib.Variant('(s)', [name]);
+    const [unique] = (await bus.call('org.freedesktop.DBus', '/', 'org.freedesktop.DBus',
+        'GetNameOwner', variantName, new GLib.VariantType('(s)'),
+        Gio.DBusCallFlags.NONE, -1, cancellable)).deep_unpack();
 
     return unique;
 }
 
-var traverseBusNames = function(bus, cancellable, callback) {
+async function getBusNames(bus, cancellable) {
     if (!bus)
         bus = Gio.DBus.session;
 
-    if (typeof(callback) !== "function")
-        throw new Error("No traversal callback provided");
+    const [names] = (await bus.call('org.freedesktop.DBus', '/', 'org.freedesktop.DBus',
+        'ListNames', null, new GLib.VariantType('(as)'), Gio.DBusCallFlags.NONE,
+        -1, cancellable)).deep_unpack();
 
-    bus.call("org.freedesktop.DBus", "/", "org.freedesktop.DBus",
-             "ListNames", null, new GLib.VariantType("(as)"), 0, -1, cancellable,
-             function (bus, task) {
-                if (task.had_error())
-                    return;
+    const uniqueNames = new Set();
+    const requests = names.map(name => getUniqueBusName(bus, name, cancellable));
+    const results = await Promise.allSettled(requests);
 
-                let [names] = bus.call_finish(task).deep_unpack();
-                let unique_names = new Set();
+    for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        if (result.status === 'fulfilled')
+            uniqueNames.add(result.value);
+        else if (!result.reason.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+            Logger.debug(`Impossible to get the unique name of ${names[i]}: ${result.reason}`);
+    }
 
-                for (let name of names) {
-                    try {
-                        unique_names.add(getUniqueBusNameSync(bus, name));
-                    } catch (e) {
-                        Logger.debug(`Impossible to get the unique name of ${name}: ${e}`);
-                    }
-                }
-
-                unique_names.forEach((name) => callback(bus, name, cancellable));
-            });
+    return uniqueNames;
 }
 
-var introspectBusObject = function(bus, name, cancellable, filterFunction, targetCallback, path) {
+async function introspectBusObject(bus, name, cancellable, path = undefined) {
     if (!path)
         path = "/";
 
-    if (typeof targetCallback !== "function")
-        throw new Error("No introspection callback defined");
+    const [introspection] = (await bus.call(name, path, 'org.freedesktop.DBus.Introspectable',
+        'Introspect', null, new GLib.VariantType('(s)'), Gio.DBusCallFlags.NONE,
+        -1, cancellable)).deep_unpack();
 
-    bus.call (name, path, "org.freedesktop.DBus.Introspectable", "Introspect",
-              null, new GLib.VariantType("(s)"), Gio.DBusCallFlags.NONE, -1,
-              cancellable, function (bus, task) {
-                if (task.had_error())
-                    return;
+    const nodeInfo = Gio.DBusNodeInfo.new_for_xml(introspection);
+    const nodes = [{ nodeInfo, path }];
 
-                let introspection = bus.call_finish(task).deep_unpack().toString();
-                let node_info = Gio.DBusNodeInfo.new_for_xml(introspection);
+    if (path === '/')
+        path = '';
 
-                if ((typeof filterFunction === "function" && filterFunction(node_info) === true) ||
-                    !filterFunction) {
-                    targetCallback(name, path);
-                }
+    const requests = [];
+    for (const subNodes of nodeInfo.nodes) {
+        const subPath = `${path}/${subNodes.path}`;
+        requests.push(introspectBusObject(bus, name, cancellable, subPath));
+    }
 
-                if (path === "/")
-                    path = ""
+    for (const result of await Promise.allSettled(requests)) {
+        if (result.status === 'fulfilled')
+            result.value.forEach(n => nodes.push(n));
+        else if (!result.reason.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+            Logger.debug(`Impossible to get node info: ${result.reason}`);
+    }
 
-                for (let sub_nodes of node_info.nodes) {
-                    let sub_path = path+"/"+sub_nodes.path;
-                    introspectBusObject (bus, name, cancellable, filterFunction,
-                                         targetCallback, sub_path);
-                }
-            });
+    return nodes;
 }
 
 var dbusNodeImplementsInterfaces = function(node_info, interfaces) {

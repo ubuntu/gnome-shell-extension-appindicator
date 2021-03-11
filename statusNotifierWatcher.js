@@ -127,25 +127,30 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
         this._registerItem(service, bus_name, obj_path)
     }
 
-    _seekStatusNotifierItems() {
+    async _seekStatusNotifierItems() {
         // Some indicators (*coff*, dropbox, *coff*) do not re-register again
         // when the plugin is enabled/disabled, thus we need to manually look
         // for the objects in the session bus that implements the
         // StatusNotifierItem interface...
-        Util.traverseBusNames(Gio.DBus.session, this._cancellable, (bus, name, cancellable) => {
-            Util.introspectBusObject(bus, name, cancellable, (node_info) => {
-                return Util.dbusNodeImplementsInterfaces(node_info, ['org.kde.StatusNotifierItem']);
-            }, (name, path) => {
-                let id = this._getItemId(name, path);
-                if (!this._items.has(id)) {
-                    Util.Logger.debug(`Using Brute-force mode for StatusNotifierItem ${id}`);
-                    this._registerItem(path, name, path);
+        const cancellable = this._cancellable;
+        const bus = Gio.DBus.session;
+        const uniqueNames = await Util.getBusNames(bus, cancellable);
+        uniqueNames.forEach(async name => {
+            const nodes = await Util.introspectBusObject(bus, name, cancellable);
+            nodes.forEach(({ nodeInfo, path }) => {
+                if (Util.dbusNodeImplementsInterfaces(nodeInfo, ['org.kde.StatusNotifierItem'])) {
+                    Util.Logger.debug(`Found ${name} at ${path} implementing StatusNotifierItem iface`);
+                    const id = this._getItemId(name, path);
+                    if (!this._items.has(id)) {
+                        Util.Logger.warn(`Using Brute-force mode for StatusNotifierItem ${id}`);
+                        this._registerItem(path, name, path);
+                    }
                 }
-            })
+            });
         });
     }
 
-    RegisterStatusNotifierItemAsync(params, invocation) {
+    async RegisterStatusNotifierItemAsync(params, invocation) {
         // it would be too easy if all application behaved the same
         // instead, ayatana patched gnome apps to send a path
         // while kde apps send a bus name
@@ -156,7 +161,12 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
             bus_name = invocation.get_sender();
             obj_path = service;
         } else if (service.match(BUS_ADDRESS_REGEX)) {
-            bus_name = Util.getUniqueBusNameSync(invocation.get_connection(), service);
+            try {
+                bus_name = await Util.getUniqueBusName(invocation.get_connection(),
+                    service, this._cancellable);
+            } catch (e) {
+                logError(e);
+            }
             obj_path = DEFAULT_ITEM_OBJECT_PATH;
         }
 
