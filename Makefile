@@ -10,5 +10,8 @@ zip-file: $(ZIP)
 	rm -f build/appindicator-support.zip
 	zip build/appindicator-support.zip $(ZIP)
 
+check:
+	eslint $(shell find -name '*.js')
+
 clean:
 	rm -rf build
