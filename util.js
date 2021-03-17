@@ -13,79 +13,80 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-const Gio = imports.gi.Gio
-const GLib = imports.gi.GLib
-const GObject = imports.gi.GObject
+
+/* exported refreshPropertyOnProxy, getUniqueBusName, getBusNames,
+   introspectBusObject, dbusNodeImplementsInterfaces, waitForStartupCompletion,
+   connectSmart, BUS_ADDRESS_REGEX */
+
+const Gio = imports.gi.Gio;
+const GLib = imports.gi.GLib;
+const Gtk = imports.gi.Gtk;
+const Gdk = imports.gi.Gdk;
+const Main = imports.ui.main;
+const GObject = imports.gi.GObject;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Params = imports.misc.params;
+const PromiseUtils = Extension.imports.promiseUtils;
+const Signals = imports.signals;
 
-const Signals = imports.signals
+var BUS_ADDRESS_REGEX = /([a-zA-Z0-9._-]+\.[a-zA-Z0-9.-]+)|(:[0-9]+\.[0-9]+)$/;
 
-var refreshPropertyOnProxy = function(proxy, propertyName, params) {
+PromiseUtils._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
+
+async function refreshPropertyOnProxy(proxy, propertyName, params) {
     if (!proxy._proxyCancellables)
         proxy._proxyCancellables = new Map();
 
     params = Params.parse(params, {
-        skipEqualtyCheck: false,
+        skipEqualityCheck: false,
     });
 
     let cancellable = cancelRefreshPropertyOnProxy(proxy, {
         propertyName,
-        addNew: true
+        addNew: true,
     });
 
-    proxy.g_connection.call(
-        proxy.g_name,
-        proxy.g_object_path,
-        'org.freedesktop.DBus.Properties',
-        'Get',
-        GLib.Variant.new('(ss)', [ proxy.g_interface_name, propertyName ]),
-        GLib.VariantType.new('(v)'),
-        Gio.DBusCallFlags.NONE,
-        -1,
-        cancellable,
-        (conn, result) => {
-        try {
-            let valueVariant = conn.call_finish(result).deep_unpack()[0];
-            proxy._proxyCancellables.delete(propertyName);
+    try {
+        const [valueVariant] = (await proxy.g_connection.call(proxy.g_name,
+            proxy.g_object_path, 'org.freedesktop.DBus.Properties', 'Get',
+            GLib.Variant.new('(ss)', [proxy.g_interface_name, propertyName]),
+            GLib.VariantType.new('(v)'), Gio.DBusCallFlags.NONE, -1,
+            cancellable)).deep_unpack();
 
-            if (!params.skipEqualtyCheck &&
-                proxy.get_cached_property(propertyName).equal(valueVariant))
-                return;
+        proxy._proxyCancellables.delete(propertyName);
 
-            proxy.set_cached_property(propertyName, valueVariant)
+        if (!params.skipEqualityCheck &&
+            proxy.get_cached_property(propertyName).equal(valueVariant))
+            return;
 
-            // synthesize a batched property changed event
-            if (!proxy._proxyChangedProperties)
-                proxy._proxyChangedProperties = {};
-            proxy._proxyChangedProperties[propertyName] = valueVariant;
+        proxy.set_cached_property(propertyName, valueVariant);
 
-            if (!proxy._proxyPropertiesEmitId) {
-                proxy._proxyPropertiesEmitId = GLib.timeout_add(
-                    GLib.PRIORITY_DEFAULT_IDLE, 16, () => {
-                    delete proxy._proxyPropertiesEmitId;
+        // synthesize a batched property changed event
+        if (!proxy._proxyChangedProperties)
+            proxy._proxyChangedProperties = {};
+        proxy._proxyChangedProperties[propertyName] = valueVariant;
 
-                    proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}',
-                        proxy._proxyChangedProperties), []);
-                    delete proxy._proxyChangedProperties;
-
-                    return GLib.SOURCE_REMOVE;
-                });
-            }
-        } catch (e) {
-            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
-                // the property may not even exist, silently ignore it
-                Logger.debug(`While refreshing property ${propertyName}: ${e}`);
-                proxy._proxyCancellables.delete(propertyName);
-                delete proxy._proxyChangedProperties[propertyName];
-            }
+        if (!proxy._proxyPropertiesEmit || !proxy._proxyPropertiesEmit.pending()) {
+            proxy._proxyPropertiesEmit = new PromiseUtils.TimeoutPromise(16,
+                GLib.PRIORITY_DEFAULT_IDLE, cancellable);
+            await proxy._proxyPropertiesEmit;
+            proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}',
+                proxy._proxyChangedProperties), []);
+            delete proxy._proxyChangedProperties;
         }
-    });
+    } catch (e) {
+        if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+            // the property may not even exist, silently ignore it
+            Logger.debug(`While refreshing property ${propertyName}: ${e}`);
+            proxy._proxyCancellables.delete(propertyName);
+            delete proxy._proxyChangedProperties[propertyName];
+        }
+    }
 }
 
-var cancelRefreshPropertyOnProxy = function(proxy, params) {
+function cancelRefreshPropertyOnProxy(proxy, params) {
     if (!proxy._proxyCancellables)
-        return;
+        return null;
 
     params = Params.parse(params, {
         propertyName: undefined,
@@ -107,130 +108,152 @@ var cancelRefreshPropertyOnProxy = function(proxy, params) {
             return cancellable;
         }
     } else {
-        if (proxy._proxyPropertiesEmitId) {
-            GLib.source_remove(proxy._proxyPropertiesEmitId);
-            delete proxy._proxyPropertiesEmitId;
-        }
         proxy._proxyCancellables.forEach(c => c.cancel());
         delete proxy._proxyChangedProperties;
         delete proxy._proxyCancellables;
     }
+
+    return null;
 }
 
-var getUniqueBusNameSync = function(bus, name) {
-    if (name[0] == ':')
+async function getUniqueBusName(bus, name, cancellable) {
+    if (name[0] === ':')
         return name;
 
     if (!bus)
         bus = Gio.DBus.session;
 
-    let variant_name = new GLib.Variant("(s)", [name]);
-    let [unique] = bus.call_sync("org.freedesktop.DBus", "/", "org.freedesktop.DBus",
-                                 "GetNameOwner", variant_name, null,
-                                 Gio.DBusCallFlags.NONE, -1, null).deep_unpack();
+    const variantName = new GLib.Variant('(s)', [name]);
+    const [unique] = (await bus.call('org.freedesktop.DBus', '/', 'org.freedesktop.DBus',
+        'GetNameOwner', variantName, new GLib.VariantType('(s)'),
+        Gio.DBusCallFlags.NONE, -1, cancellable)).deep_unpack();
 
     return unique;
 }
 
-var traverseBusNames = function(bus, cancellable, callback) {
+async function getBusNames(bus, cancellable) {
     if (!bus)
         bus = Gio.DBus.session;
 
-    if (typeof(callback) !== "function")
-        throw new Error("No traversal callback provided");
+    const [names] = (await bus.call('org.freedesktop.DBus', '/', 'org.freedesktop.DBus',
+        'ListNames', null, new GLib.VariantType('(as)'), Gio.DBusCallFlags.NONE,
+        -1, cancellable)).deep_unpack();
 
-    bus.call("org.freedesktop.DBus", "/", "org.freedesktop.DBus",
-             "ListNames", null, new GLib.VariantType("(as)"), 0, -1, cancellable,
-             function (bus, task) {
-                if (task.had_error())
-                    return;
+    const uniqueNames = new Set();
+    const requests = names.map(name => getUniqueBusName(bus, name, cancellable));
+    const results = await Promise.allSettled(requests);
 
-                let [names] = bus.call_finish(task).deep_unpack();
-                let unique_names = new Set();
+    for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        if (result.status === 'fulfilled')
+            uniqueNames.add(result.value);
+        else if (!result.reason.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+            Logger.debug(`Impossible to get the unique name of ${names[i]}: ${result.reason}`);
+    }
 
-                for (let name of names) {
-                    unique_names.add(getUniqueBusNameSync(bus, name));
-                }
-
-                unique_names.forEach((name) => callback(bus, name, cancellable));
-            });
+    return uniqueNames;
 }
 
-var introspectBusObject = function(bus, name, cancellable, filterFunction, targetCallback, path) {
+async function introspectBusObject(bus, name, cancellable, path = undefined) {
     if (!path)
-        path = "/";
+        path = '/';
 
-    if (typeof targetCallback !== "function")
-        throw new Error("No introspection callback defined");
+    const [introspection] = (await bus.call(name, path, 'org.freedesktop.DBus.Introspectable',
+        'Introspect', null, new GLib.VariantType('(s)'), Gio.DBusCallFlags.NONE,
+        -1, cancellable)).deep_unpack();
 
-    bus.call (name, path, "org.freedesktop.DBus.Introspectable", "Introspect",
-              null, new GLib.VariantType("(s)"), Gio.DBusCallFlags.NONE, -1,
-              cancellable, function (bus, task) {
-                if (task.had_error())
-                    return;
+    const nodeInfo = Gio.DBusNodeInfo.new_for_xml(introspection);
+    const nodes = [{ nodeInfo, path }];
 
-                let introspection = bus.call_finish(task).deep_unpack().toString();
-                let node_info = Gio.DBusNodeInfo.new_for_xml(introspection);
+    if (path === '/')
+        path = '';
 
-                if ((typeof filterFunction === "function" && filterFunction(node_info) === true) ||
-                    !filterFunction) {
-                    targetCallback(name, path);
-                }
+    const requests = [];
+    for (const subNodes of nodeInfo.nodes) {
+        const subPath = `${path}/${subNodes.path}`;
+        requests.push(introspectBusObject(bus, name, cancellable, subPath));
+    }
 
-                if (path === "/")
-                    path = ""
+    for (const result of await Promise.allSettled(requests)) {
+        if (result.status === 'fulfilled')
+            result.value.forEach(n => nodes.push(n));
+        else if (!result.reason.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+            Logger.debug(`Impossible to get node info: ${result.reason}`);
+    }
 
-                for (let sub_nodes of node_info.nodes) {
-                    let sub_path = path+"/"+sub_nodes.path;
-                    introspectBusObject (bus, name, cancellable, filterFunction,
-                                         targetCallback, sub_path);
-                }
-            });
+    return nodes;
 }
 
-var dbusNodeImplementsInterfaces = function(node_info, interfaces) {
-    if (!(node_info instanceof Gio.DBusNodeInfo) || !Array.isArray(interfaces))
+function dbusNodeImplementsInterfaces(nodeInfo, interfaces) {
+    if (!(nodeInfo instanceof Gio.DBusNodeInfo) || !Array.isArray(interfaces))
         return false;
 
-    for (let iface of interfaces) {
-        if (node_info.lookup_interface(iface) !== null)
-            return true;
-    }
-
-    return false;
+    return interfaces.some(iface => nodeInfo.lookup_interface(iface));
 }
 
-const connectSmart3A = function(src, signal, handler) {
-    let id = src.connect(signal, handler)
+var NameWatcher = class AppIndicatorsNameWatcher {
+    constructor(name) {
+        this._watcherId = Gio.DBus.session.watch_name(name,
+            Gio.BusNameWatcherFlags.NONE, () => {
+                this._nameOnBus = true;
+                Logger.debug(`Name ${name} appeared`);
+                this.emit('changed');
+                this.emit('appeared');
+            }, () => {
+                this._nameOnBus = false;
+                Logger.debug(`Name ${name} vanished`);
+                this.emit('changed');
+                this.emit('vanished');
+            });
+    }
+
+    destroy() {
+        this.emit('destroy');
+
+        Gio.DBus.session.unwatch_name(this._watcherId);
+        delete this._watcherId;
+    }
+
+    get nameOnBus() {
+        return !!this._nameOnBus;
+    }
+};
+Signals.addSignalMethods(NameWatcher.prototype);
+
+function connectSmart3A(src, signal, handler) {
+    let id = src.connect(signal, handler);
 
     if (src.connect && (!(src instanceof GObject.Object) || GObject.signal_lookup('destroy', src))) {
-        let destroy_id = src.connect('destroy', () => {
-            src.disconnect(id)
-            src.disconnect(destroy_id)
-        })
+        let destroyId = src.connect('destroy', () => {
+            src.disconnect(id);
+            src.disconnect(destroyId);
+        });
     }
 }
 
-const connectSmart4A = function(src, signal, target, method) {
-    if (typeof method === 'string')
-        method = target[method].bind(target)
-    if (typeof method === 'function')
-        method = method.bind(target)
+function connectSmart4A(src, signal, target, method) {
+    if (typeof method !== 'function')
+        throw new TypeError('Unsupported function');
 
-    let signal_id = src.connect(signal, method)
+    method = method.bind(target);
+    const signalId = src.connect(signal, method);
+    const onDestroy = () => {
+        src.disconnect(signalId);
+        if (srcDestroyId)
+            src.disconnect(srcDestroyId);
+        if (tgtDestroyId)
+            target.disconnect(tgtDestroyId);
+    };
 
     // GObject classes might or might not have a destroy signal
     // JS Classes will not complain when connecting to non-existent signals
-    let src_destroy_id = src.connect && (!(src instanceof GObject.Object) || GObject.signal_lookup('destroy', src)) ? src.connect('destroy', on_destroy) : 0
-    let tgt_destroy_id = target.connect && (!(target instanceof GObject.Object) || GObject.signal_lookup('destroy', target)) ? target.connect('destroy', on_destroy) : 0
-
-    function on_destroy() {
-        src.disconnect(signal_id)
-        if (src_destroy_id) src.disconnect(src_destroy_id)
-        if (tgt_destroy_id) target.disconnect(tgt_destroy_id)
-    }
+    const srcDestroyId = src.connect && (!(src instanceof GObject.Object) ||
+        GObject.signal_lookup('destroy', src)) ? src.connect('destroy', onDestroy) : 0;
+    const tgtDestroyId = target.connect && (!(target instanceof GObject.Object) ||
+        GObject.signal_lookup('destroy', target)) ? target.connect('destroy', onDestroy) : 0;
 }
 
+// eslint-disable-next-line valid-jsdoc
 /**
  * Connect signals to slots, and remove the connection when either source or
  * target are destroyed
@@ -240,20 +263,33 @@ const connectSmart4A = function(src, signal, target, method) {
  * or
  *      Util.connectSmart(srcOb, 'signal', () => { ... })
  */
-var connectSmart = function() {
-    if (arguments.length == 4)
-        return connectSmart4A.apply(null, arguments)
+function connectSmart(...args) {
+    if (arguments.length === 4)
+        return connectSmart4A(...args);
     else
-        return connectSmart3A.apply(null, arguments)
+        return connectSmart3A(...args);
+}
+
+// eslint-disable-next-line valid-jsdoc
+/**
+ * Helper function to wait for the system startup to be completed.
+ * Adding widgets before the desktop is ready to accept them can result in errors.
+ */
+async function waitForStartupCompletion(cancellable) {
+    if (Main.layoutManager._startingUp)
+        await Main.layoutManager.connect_once('startup-complete', cancellable);
+
+    if (Gtk.IconTheme.get_default() === null)
+        await Gdk.DisplayManager.get().connect_once('display-opened', cancellable);
 }
 
 /**
  * Helper class for logging stuff
  */
-var Logger = class AppIndicators_Logger {
+var Logger = class AppIndicatorsLogger {
     static _logStructured(logLevel, message, extraFields = {}) {
         if (!Object.values(GLib.LogLevelFlags).includes(logLevel)) {
-            _logStructured(GLib.LogLevelFlags.LEVEL_WARNING,
+            Logger._logStructured(GLib.LogLevelFlags.LEVEL_WARNING,
                 'logLevel is not a valid GLib.LogLevelFlags');
             return;
         }

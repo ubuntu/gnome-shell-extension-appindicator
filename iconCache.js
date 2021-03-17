@@ -14,10 +14,14 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-const GLib = imports.gi.GLib
-const Gio = imports.gi.Gio
+/* exported IconCache */
 
-const Util = imports.misc.extensionUtils.getCurrentExtension().imports.util;
+const GLib = imports.gi.GLib;
+const Gio = imports.gi.Gio;
+
+const Extension = imports.misc.extensionUtils.getCurrentExtension();
+const PromiseUtils = Extension.imports.promiseUtils;
+const Util = Extension.imports.util;
 
 // The icon cache caches icon objects in case they're reused shortly aftwerwards.
 // This is necessary for some indicators like skype which rapidly switch between serveral icons.
@@ -29,10 +33,10 @@ const GC_INTERVAL = 60; // seconds
 const LIFETIME_TIMESPAN = 10; // seconds
 
 // how to use: see IconCache.add, IconCache.get
-var IconCache = class AppIndicators_IconCache {
+var IconCache = class AppIndicatorsIconCache {
     constructor() {
         this._cache = new Map();
-        this._lifetime = new Map(); //we don't want to attach lifetime to the object
+        this._lifetime = new Map(); // we don't want to attach lifetime to the object
     }
 
     add(id, icon) {
@@ -81,7 +85,7 @@ var IconCache = class AppIndicators_IconCache {
 
     // marks all the icons as removable, if something doesn't claim them before
     weakClear() {
-        this._cache.forEach((icon) => icon.inUse = false);
+        this._cache.forEach(icon => (icon.inUse = false));
         this._checkGC();
     }
 
@@ -103,18 +107,17 @@ var IconCache = class AppIndicators_IconCache {
         return null;
     }
 
-    _checkGC() {
-        let cacheIsEmpty = this._cache.size == 0;
+    async _checkGC() {
+        let cacheIsEmpty = this._cache.size === 0;
 
         if (!cacheIsEmpty && !this._gcTimeout) {
-            Util.Logger.debug("IconCache: garbage collector started");
-            this._gcTimeout = GLib.timeout_add_seconds(
-                GLib.PRIORITY_LOW,
-                GC_INTERVAL,
-                () => this._gc());
+            Util.Logger.debug('IconCache: garbage collector started');
+            this._gcTimeout = new PromiseUtils.TimeoutSecondsPromise(GC_INTERVAL,
+                GLib.PRIORITY_LOW);
+            await this._gcTimeout;
         } else if (cacheIsEmpty && this._gcTimeout) {
-            Util.Logger.debug("IconCache: garbage collector stopped");
-            GLib.Source.remove(this._gcTimeout);
+            Util.Logger.debug('IconCache: garbage collector stopped');
+            this._gcTimeout.cancel();
             delete this._gcTimeout;
         }
     }
@@ -122,13 +125,12 @@ var IconCache = class AppIndicators_IconCache {
     _gc() {
         let time = new Date().getTime();
         this._cache.forEach((icon, id) => {
-            if (icon.inUse) {
+            if (icon.inUse)
                 Util.Logger.debug(`IconCache: ${id} is in use.`);
-            } else if (this._lifetime.get(id) < time) {
+            else if (this._lifetime.get(id) < time)
                 this._remove(id);
-            } else {
+            else
                 Util.Logger.debug(`IconCache: ${id} survived this round.`);
-            }
         });
 
         return true;

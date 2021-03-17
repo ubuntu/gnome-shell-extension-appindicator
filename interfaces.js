@@ -14,31 +14,29 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-var StatusNotifierItem = loadInterfaceXml("StatusNotifierItem.xml")
-const Properties = loadInterfaceXml("Properties.xml")
-var StatusNotifierWatcher = loadInterfaceXml("StatusNotifierWatcher.xml")
-var DBusMenu = loadInterfaceXml("DBusMenu.xml")
+/* exported StatusNotifierItem, StatusNotifierWatcher, DBusMenu */
+
+var StatusNotifierItem = loadInterfaceXml('StatusNotifierItem.xml');
+var StatusNotifierWatcher = loadInterfaceXml('StatusNotifierWatcher.xml');
+var DBusMenu = loadInterfaceXml('DBusMenu.xml');
 
 // loads a xml file into an in-memory string
 function loadInterfaceXml(filename) {
-    let extension = imports.misc.extensionUtils.getCurrentExtension()
-
-    let interfaces_dir = extension.dir.get_child("interfaces-xml")
-
-    let file = interfaces_dir.get_child(filename)
-
-    let [ result, contents ] = imports.gi.GLib.file_get_contents(file.get_path())
+    const extension = imports.misc.extensionUtils.getCurrentExtension();
+    const interfacesDir = extension.dir.get_child('interfaces-xml');
+    const file = interfacesDir.get_child(filename);
+    let [result, contents] = imports.gi.GLib.file_get_contents(file.get_path());
 
     if (result) {
-        //HACK: The "" + trick is important as hell because file_get_contents returns
-        // an object (WTF?) but Gio.makeProxyWrapper requires `typeof() == "string"`
+        // HACK: The "" + trick is important as hell because file_get_contents returns
+        // an object (WTF?) but Gio.makeProxyWrapper requires `typeof() === "string"`
         // Otherwise, it will try to check `instanceof XML` and fail miserably because there
         // is no `XML` on very recent SpiderMonkey releases (or, if SpiderMonkey is old enough,
         // will spit out a TypeError soon).
         if (contents instanceof Uint8Array)
-           contents = imports.byteArray.toString(contents);
-        return "<node>" + contents + "</node>"
+            contents = imports.byteArray.toString(contents);
+        return `<node>${contents}</node>`;
     } else {
-        throw new Error("AppIndicatorSupport: Could not load file: "+filename)
+        throw new Error(`AppIndicatorSupport: Could not load file: ${filename}`);
     }
 }
