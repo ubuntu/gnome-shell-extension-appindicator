@@ -8,4 +8,4 @@ jobs:
     - name: Install modules
       run: sudo npm install eslint -g
     - name: Run ESLint
-      run: eslint . --ext .js,.jsx,.ts,.tsx
+      run: eslint . -f tap --ext .js,.jsx,.ts,.tsx
