@@ -3,3 +3,4 @@ appIndicator-Remove-unneeded-padding.patch
 appIndicator-Fix-reduce-padding-for-some-icons.patch
 Register-the-StatusNotifierWatcher-as-soon-as-possible.patch
 util-Properly-call-logger-static-method.patch
+indicatorStatusIcon-Handle-scroll-events-on-label-too-not.patch

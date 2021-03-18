@@ -1,0 +1,78 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Thu, 11 Mar 2021 22:16:34 +0100
+Subject: indicatorStatusIcon: Handle scroll events on label too,
+ not only on icon
+
+Bug-Ubuntu: https://pad.lv/1919924
+---
+ appIndicator.js        | 24 ------------------------
+ indicatorStatusIcon.js | 16 ++++++++++++++++
+ 2 files changed, 16 insertions(+), 24 deletions(-)
+
+diff --git a/appIndicator.js b/appIndicator.js
+index 8e0f040..4ef6c51 100644
+--- a/appIndicator.js
++++ b/appIndicator.js
+@@ -353,7 +353,6 @@ class AppIndicators_IconActor extends St.Icon {
+         Util.connectSmart(this._indicator, 'icon',         this, '_updateIcon')
+         Util.connectSmart(this._indicator, 'overlay-icon', this, '_updateOverlayIcon')
+         Util.connectSmart(this._indicator, 'reset',        this, '_invalidateIcon')
+-        Util.connectSmart(this, 'scroll-event',            this, '_handleScrollEvent')
+ 
+         Util.connectSmart(themeContext, 'notify::scale-factor', this, (tc) => {
+             this.height = icon_size * tc.scale_factor;
+@@ -685,29 +684,6 @@ class AppIndicators_IconActor extends St.Icon {
+         this._updateIconByType(SNIconType.OVERLAY, iconSize);
+     }
+ 
+-    _handleScrollEvent(actor, event) {
+-        if (actor != this)
+-            return Clutter.EVENT_PROPAGATE
+-
+-        if (event.get_source() != this)
+-            return Clutter.EVENT_PROPAGATE
+-
+-        if (event.type() != Clutter.EventType.SCROLL)
+-            return Clutter.EVENT_PROPAGATE
+-
+-        // Since Clutter 1.10, clutter will always send a smooth scrolling event
+-        // with explicit deltas, no matter what input device is used
+-        // In fact, for every scroll there will be a smooth and non-smooth scroll
+-        // event, and we can choose which one we interpret.
+-        if (event.get_scroll_direction() == Clutter.ScrollDirection.SMOOTH) {
+-            let [ dx, dy ] = event.get_scroll_delta()
+-
+-            this._indicator.scroll(dx, dy)
+-        }
+-
+-        return Clutter.EVENT_STOP
+-    }
+-
+     // called when the icon theme changes
+     _invalidateIcon() {
+         this._iconCache.clear()
+diff --git a/indicatorStatusIcon.js b/indicatorStatusIcon.js
+index 082eb33..1b23de3 100644
+--- a/indicatorStatusIcon.js
++++ b/indicatorStatusIcon.js
+@@ -138,4 +138,20 @@ class AppIndicators_IndicatorStatusIcon extends PanelMenu.Button {
+             this._lastClicked = now;
+         }
+     }
++
++    vfunc_scroll_event(scrollEvent) {
++        // Since Clutter 1.10, clutter will always send a smooth scrolling event
++        // with explicit deltas, no matter what input device is used
++        // In fact, for every scroll there will be a smooth and non-smooth scroll
++        // event, and we can choose which one we interpret.
++        if (scrollEvent.direction === Clutter.ScrollDirection.SMOOTH) {
++            const event = Clutter.get_current_event();
++            let [dx, dy] = event.get_scroll_delta()
++
++            this._indicator.scroll(dx, dy)
++            return Clutter.EVENT_STOP;
++        }
++
++        return Clutter.EVENT_PROPAGATE;
++    }
+ });
