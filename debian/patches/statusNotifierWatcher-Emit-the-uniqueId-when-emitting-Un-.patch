@@ -1,0 +1,73 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Thu, 11 Mar 2021 21:32:16 +0100
+Subject: statusNotifierWatcher: Emit the uniqueId when emitting
+ (Un)Registered events
+
+When an item is (un)registered we should expose its service name, that
+can be provided by the app itself or use the one we've computed.
+
+Also properly create the string variants, as we were just emitting the
+first character.
+
+Bug-Ubuntu: https://pad.lv/1919927
+---
+ statusNotifierWatcher.js | 16 +++++++++++-----
+ 1 file changed, 11 insertions(+), 5 deletions(-)
+
+diff --git a/statusNotifierWatcher.js b/statusNotifierWatcher.js
+index 09966b8..1032976 100644
+--- a/statusNotifierWatcher.js
++++ b/statusNotifierWatcher.js
+@@ -98,16 +98,18 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
+             }
+         });
+ 
+-        this._dbusImpl.emit_signal('StatusNotifierItemRegistered', GLib.Variant.new('(s)', service));
+         this._nameWatcher[id] = Gio.DBus.session.watch_name(bus_name, Gio.BusNameWatcherFlags.NONE, null,
+             () => this._itemVanished(id));
+ 
+         if (service != bus_name && service.match(BUS_ADDRESS_REGEX)) {
++            indicator._uniqueId = service;
+             this._serviceWatcher[id] = Gio.DBus.session.watch_name(service,
+                 Gio.BusNameWatcherFlags.NONE, null,
+                 () => this._itemVanished(id));
+         }
+ 
++        this._dbusImpl.emit_signal('StatusNotifierItemRegistered', GLib.Variant.new('(s)',
++            [indicator._uniqueId]));
+         this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems', GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
+     }
+ 
+@@ -180,7 +182,9 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
+     }
+ 
+     _remove(id) {
+-        this._items[id].destroy();
++        const indicator = this._items[id];
++        const uniqueId = indicator._uniqueId;
++        indicator.destroy();
+         delete this._items[id];
+         Gio.DBus.session.unwatch_name(this._nameWatcher[id]);
+         delete this._nameWatcher[id];
+@@ -189,8 +193,10 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
+             Gio.DBus.session.unwatch_name(this._serviceWatcher[id]);
+             delete this._serviceWatcher[id];
+         }
+-        this._dbusImpl.emit_signal('StatusNotifierItemUnregistered', GLib.Variant.new('(s)', id));
+-        this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems', GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
++        this._dbusImpl.emit_signal('StatusNotifierItemUnregistered',
++            GLib.Variant.new('(s)', [uniqueId]));
++        this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems',
++            GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
+     }
+ 
+     RegisterStatusNotifierHostAsync(_service, invocation) {
+@@ -205,7 +211,7 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
+     }
+ 
+     get RegisteredStatusNotifierItems() {
+-        return Object.keys(this._items);
++        return Object.values(this._items).map(i => i.uniqueId);
+     }
+ 
+     get IsStatusNotifierHostRegistered() {

@@ -1,0 +1,43 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Thu, 11 Mar 2021 21:29:45 +0100
+Subject: statusNotifierItem: Emit signals about removed items on destruction
+
+When the items have been removed we should ensure that we're emitting
+the changes to our clients.
+
+Bug-Ubuntu: https://pad.lv/1919927
+---
+ statusNotifierWatcher.js | 15 +++------------
+ 1 file changed, 3 insertions(+), 12 deletions(-)
+
+diff --git a/statusNotifierWatcher.js b/statusNotifierWatcher.js
+index e11cc9b..09966b8 100644
+--- a/statusNotifierWatcher.js
++++ b/statusNotifierWatcher.js
+@@ -218,23 +218,14 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
+ 
+     destroy() {
+         if (!this._isDestroyed) {
++            for (const id in this._items)
++                this._remove(id);
++            delete this._items;
+             // this doesn't do any sync operation and doesn't allow us to hook up the event of being finished
+             // which results in our unholy debounce hack (see extension.js)
+             Gio.DBus.session.unown_name(this._ownName);
+             this._cancellable.cancel();
+             this._dbusImpl.unexport();
+-            for (var i in this._nameWatcher) {
+-                Gio.DBus.session.unwatch_name(this._nameWatcher[i]);
+-            }
+-            delete this._nameWatcher;
+-            for (var i in this._serviceWatcher) {
+-                Gio.DBus.session.unwatch_name(this._serviceWatcher[i]);
+-            }
+-            delete this._serviceWatcher;
+-            for (var i in this._items) {
+-                this._items[i].destroy();
+-            }
+-            delete this._items;
+             this._isDestroyed = true;
+         }
+     }
