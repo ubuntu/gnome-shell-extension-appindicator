@@ -1,0 +1,38 @@
+From: Fini Jastrow <ulf.fini.jastrow@desy.de>
+Date: Thu, 26 Mar 2020 17:42:20 +0100
+Subject: appIndicator: Fix 'reduce padding' for some icons
+
+[why]
+We remove all style settings from the gnome-shell.css that usually
+affect the menu buttons. This includes the default icon size.
+
+When the icon has some 'other' size, this will leave us with garbage.
+
+[how]
+Just overwrite the padding of the system gnome theme. Keep all other
+style settings intact (including icon size).
+
+[note]
+We do not query the current style to build the new style, because (at
+least at the moment) no other style setting is done anywhere. When in
+some point in the future a style is set before this new line (which in
+unlikely, because it is at the top of the constructor), we would have to
+assemble the new setting more carefully.
+
+Signed-off-by: Fini Jastrow <ulf.fini.jastrow@desy.de>
+---
+ appIndicator.js | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/appIndicator.js b/appIndicator.js
+index f1ff02d..8e0f040 100644
+--- a/appIndicator.js
++++ b/appIndicator.js
+@@ -333,6 +333,7 @@ class AppIndicators_IconActor extends St.Icon {
+     _init(indicator, icon_size) {
+         super._init({
+             reactive: true,
++            style_class: 'system-status-icon',
+             fallback_icon_name: 'image-loading-symbolic',
+         });
+ 

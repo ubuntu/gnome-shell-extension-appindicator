@@ -1,0 +1,211 @@
+From: =?utf-8?q?Dennis_F=C3=B6lster?= <3sr3vn1@gmail.com>
+Date: Mon, 23 Nov 2020 13:48:08 +0100
+Subject: Register the StatusNotifierWatcher as soon as possible.
+
+Moves the startup completion delay into the watcher, and
+only defers the tray icon creation.
+
+Bug-Ubuntu: https://pad.lv/1905370
+---
+ extension.js             | 41 ++----------------------------------
+ statusNotifierWatcher.js | 19 +++++++++--------
+ util.js                  | 55 ++++++++++++++++++++++++++++++++++++++++++++++--
+ 3 files changed, 65 insertions(+), 50 deletions(-)
+
+diff --git a/extension.js b/extension.js
+index 0cc72fa..29c51f0 100644
+--- a/extension.js
++++ b/extension.js
+@@ -14,12 +14,6 @@
+ // along with this program; if not, write to the Free Software
+ // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ const Gio = imports.gi.Gio;
+-const GLib = imports.gi.GLib;
+-const Gtk = imports.gi.Gtk;
+-const Gdk = imports.gi.Gdk;
+-const Main = imports.ui.main;
+-const Mainloop = imports.mainloop;
+-
+ const Extension = imports.misc.extensionUtils.getCurrentExtension()
+ 
+ const StatusNotifierWatcher = Extension.imports.statusNotifierWatcher
+@@ -28,10 +22,6 @@ const Util = Extension.imports.util
+ let statusNotifierWatcher = null;
+ let isEnabled = false;
+ let watchDog = null;
+-let startupPreparedId = 0;
+-let waitForThemeId = 0;
+-let startupComplete = false;
+-let displayAvailable = false;
+ 
+ function init() {
+     watchDog = new NameWatchdog();
+@@ -59,36 +49,9 @@ function maybe_enable_after_name_available() {
+         statusNotifierWatcher = new StatusNotifierWatcher.StatusNotifierWatcher(watchDog);
+ }
+ 
+-function inner_enable() {
+-    if (startupComplete && displayAvailable) {
+-        isEnabled = true;
+-        maybe_enable_after_name_available();
+-    }
+-}
+-
+ function enable() {
+-    // If the desktop is still starting up, we must wait until it is ready
+-    if (Main.layoutManager._startingUp) {
+-        startupPreparedId = Main.layoutManager.connect('startup-complete', () => {
+-            Main.layoutManager.disconnect(startupPreparedId);
+-            startupComplete = true;
+-            inner_enable();
+-        });
+-    } else {
+-        startupComplete = true;
+-    }
+-
+-    // Ensure that the default Gdk Screen is available
+-    if (Gtk.IconTheme.get_default() == null) {
+-        waitForThemeId = Gdk.DisplayManager.get().connect('display-opened', () => {
+-            Gdk.DisplayManager.get().disconnect(waitForThemeId);
+-            displayAvailable = true;
+-            inner_enable();
+-        });
+-    } else {
+-        displayAvailable = true;
+-    }
+-    inner_enable();
++    isEnabled = true;
++    maybe_enable_after_name_available();
+ }
+ 
+ function disable() {
+diff --git a/statusNotifierWatcher.js b/statusNotifierWatcher.js
+index 69d7148..e11cc9b 100644
+--- a/statusNotifierWatcher.js
++++ b/statusNotifierWatcher.js
+@@ -16,11 +16,6 @@
+ 
+ const Gio = imports.gi.Gio
+ const GLib = imports.gi.GLib
+-const Gtk = imports.gi.Gtk
+-
+-const Mainloop = imports.mainloop
+-const ShellConfig = imports.misc.config
+-const Signals = imports.signals
+ 
+ const Extension = imports.misc.extensionUtils.getCurrentExtension()
+ 
+@@ -34,7 +29,6 @@ const Util = Extension.imports.util
+ const KDE_PREFIX = 'org.kde';
+ 
+ const WATCHER_BUS_NAME = KDE_PREFIX + '.StatusNotifierWatcher';
+-const WATCHER_INTERFACE = WATCHER_BUS_NAME;
+ const WATCHER_OBJECT = '/StatusNotifierWatcher';
+ 
+ const DEFAULT_ITEM_OBJECT_PATH = '/StatusNotifierItem';
+@@ -59,6 +53,7 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
+         this._items = { };
+         this._nameWatcher = { };
+         this._serviceWatcher = { };
++        this._startUpCompletionHelper = new Util.StartUpCompletionHelper();
+ 
+         this._seekStatusNotifierItems();
+     }
+@@ -92,11 +87,17 @@ var StatusNotifierWatcher = class AppIndicators_StatusNotifierWatcher {
+         Util.Logger.debug("Registering StatusNotifierItem "+id);
+ 
+         let indicator = new AppIndicator.AppIndicator(bus_name, obj_path);
+-        let visual = new IndicatorStatusIcon.IndicatorStatusIcon(indicator);
+-        indicator.connect('destroy', () => visual.destroy());
+-
+         this._items[id] = indicator;
+ 
++        // if the desktop is not ready delay the icon creation
++        this._startUpCompletionHelper.whenStartUpComplete(() => {
++            // check that the indicator has not been removed while we were waiting for the startup completion
++            if (id in this._items) {
++                let visual = new IndicatorStatusIcon.IndicatorStatusIcon(indicator);
++                indicator.connect('destroy', () => visual.destroy());
++            }
++        });
++
+         this._dbusImpl.emit_signal('StatusNotifierItemRegistered', GLib.Variant.new('(s)', service));
+         this._nameWatcher[id] = Gio.DBus.session.watch_name(bus_name, Gio.BusNameWatcherFlags.NONE, null,
+             () => this._itemVanished(id));
+diff --git a/util.js b/util.js
+index d801141..5194e2d 100644
+--- a/util.js
++++ b/util.js
+@@ -15,12 +15,13 @@
+ // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ const Gio = imports.gi.Gio
+ const GLib = imports.gi.GLib
++const Gtk = imports.gi.Gtk;
++const Gdk = imports.gi.Gdk;
++const Main = imports.ui.main;
+ const GObject = imports.gi.GObject
+ const Extension = imports.misc.extensionUtils.getCurrentExtension();
+ const Params = imports.misc.params;
+ 
+-const Signals = imports.signals
+-
+ var refreshPropertyOnProxy = function(proxy, propertyName, params) {
+     if (!proxy._proxyCancellables)
+         proxy._proxyCancellables = new Map();
+@@ -254,6 +255,56 @@ var connectSmart = function() {
+         return connectSmart3A.apply(null, arguments)
+ }
+ 
++/**
++ * Helper class to wait for the system startup to be completed.
++ * Adding widgets before the desktop is ready to accept them can result in errors.
++ */
++var StartUpCompletionHelper = class AppIndicators_StartUpCompletionHelper {
++
++    constructor() {
++        this._startupComplete = false;
++        this._displayAvailable = false;
++        this._listeners = new Set();
++
++        // If the desktop is still starting up, we must wait until it is ready
++        if (Main.layoutManager._startingUp) {
++            let startupPreparedId = Main.layoutManager.connect('startup-complete', () => {
++                Main.layoutManager.disconnect(startupPreparedId);
++                this._startupComplete = true;
++                this._checkStartUpComplete();
++            });
++        } else {
++            this._startupComplete = true;
++        }
++
++        // Ensure that the default Gdk Screen is available
++        if (Gtk.IconTheme.get_default() === null) {
++            let waitForThemeId = Gdk.DisplayManager.get().connect('display-opened', () => {
++                Gdk.DisplayManager.get().disconnect(waitForThemeId);
++                this._displayAvailable = true;
++                this._checkStartUpComplete();
++            });
++        } else {
++            this._displayAvailable = true;
++        }
++    }
++
++    _checkStartUpComplete() {
++        if (this._startupComplete && this._displayAvailable) {
++            this._listeners.forEach(callback => callback());
++            this._listeners.clear();
++        }
++    }
++
++    whenStartUpComplete(callback) {
++        if (this._startupComplete && this._displayAvailable) {
++            callback();
++        } else {
++            this._listeners.add(callback);
++        }
++    }
++};
++
+ /**
+  * Helper class for logging stuff
+  */

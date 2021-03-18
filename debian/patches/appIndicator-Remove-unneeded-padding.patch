@@ -1,0 +1,37 @@
+From: Fini Jastrow <ulf.fini.jastrow@desy.de>
+Date: Thu, 26 Mar 2020 09:30:57 +0100
+Subject: appIndicator: Remove unneeded padding
+
+[why]
+The spacing between icons shown by us seems a bit too wide.
+A lot of people would rather have a smaller distance between the icons.
+
+[how]
+Top bar buttons have a given padding. Additionally to that we pad the
+icons a bit more. That padding can be removed, without violating the design
+goals imposed by the top bar (i.e. menu button padding).
+
+This makes the visual appearance a bit more pleasing. And still
+conforming.
+
+I'm sure people will want to further decrease the distance, but that
+will violate the required button padding. A composite button would have
+to be used then instead (like the aggregate menu does).
+
+Signed-off-by: Fini Jastrow <ulf.fini.jastrow@desy.de>
+---
+ appIndicator.js | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/appIndicator.js b/appIndicator.js
+index 8e0f040..f1ff02d 100644
+--- a/appIndicator.js
++++ b/appIndicator.js
+@@ -333,7 +333,6 @@ class AppIndicators_IconActor extends St.Icon {
+     _init(indicator, icon_size) {
+         super._init({
+             reactive: true,
+-            style_class: 'system-status-icon',
+             fallback_icon_name: 'image-loading-symbolic',
+         });
+ 
