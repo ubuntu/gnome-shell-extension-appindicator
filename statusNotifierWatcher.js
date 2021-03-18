@@ -53,6 +53,7 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
             this._lostName.bind(this));
         this._items = new Map();
 
+        this._dbusImpl.emit_signal('StatusNotifierHostRegistered', null);
         this._seekStatusNotifierItems();
     }
 
@@ -234,6 +235,7 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
             // this doesn't do any sync operation and doesn't allow us to hook up the event of being finished
             // which results in our unholy debounce hack (see extension.js)
             Array.from(this._items.keys()).forEach(i => this._remove(i));
+            this._dbusImpl.emit_signal('StatusNotifierHostUnregistered', null);
             Gio.DBus.session.unown_name(this._ownName);
             this._cancellable.cancel();
             this._dbusImpl.unexport();
