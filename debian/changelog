@@ -1,3 +1,15 @@
+gnome-shell-extension-appindicator (33.1-0ubuntu0.20.04.2) UNRELEASED; urgency=medium
+
+  * debian/patches:
+    - Register the StatusNotifierWatcher as soon as possible (LP: #1905370)
+    - Handle scroll events on indicator label (LP: #1919924)
+    - Emit expected signals / arguments when (un)registering indicators
+      (LP: #1919927)
+    - Ensure we call proper method during logging
+    - Apply padding correctly (no visual change)
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 18 Mar 2021 03:30:52 +0100
+
 gnome-shell-extension-appindicator (33.1-0ubuntu0.20.04.1) focal; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
