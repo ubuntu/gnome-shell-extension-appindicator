@@ -1,0 +1,21 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Thu, 11 Mar 2021 16:33:12 +0100
+Subject: util: Properly call logger static method
+
+---
+ util.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/util.js b/util.js
+index 5194e2d..77bbac0 100644
+--- a/util.js
++++ b/util.js
+@@ -311,7 +311,7 @@ var StartUpCompletionHelper = class AppIndicators_StartUpCompletionHelper {
+ var Logger = class AppIndicators_Logger {
+     static _logStructured(logLevel, message, extraFields = {}) {
+         if (!Object.values(GLib.LogLevelFlags).includes(logLevel)) {
+-            _logStructured(GLib.LogLevelFlags.LEVEL_WARNING,
++            Logger._logStructured(GLib.LogLevelFlags.LEVEL_WARNING,
+                 'logLevel is not a valid GLib.LogLevelFlags');
+             return;
+         }
