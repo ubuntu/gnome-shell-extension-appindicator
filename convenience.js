@@ -25,6 +25,8 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+/* exported getSettings, initTranslations */
+
 const Gettext = imports.gettext;
 const Gio = imports.gi.Gio;
 
@@ -33,10 +35,10 @@ const ExtensionUtils = imports.misc.extensionUtils;
 
 /**
  * initTranslations:
- * @domain: (optional): the gettext domain to use
+ * @param {string} domain - The gettext domain to use (optional)
  *
  * Initialize Gettext to load translations from extensionsdir/locale.
- * If @domain is not provided, it will be taken from metadata['gettext-domain']
+ * If domain is not provided, it will be taken from metadata['gettext-domain']
  */
 function initTranslations(domain) {
     let extension = ExtensionUtils.getCurrentExtension();
@@ -56,7 +58,8 @@ function initTranslations(domain) {
 
 /**
  * getSettings:
- * @schema: (optional): the GSettings schema id
+ * @param {string} schema - The GSettings schema id (optional)
+ * @return {GSettings} schema
  *
  * Builds and return a GSettings schema for @schema, using schema files
  * in extensionsdir/schemas. If @schema is not provided, it is taken from
@@ -76,17 +79,16 @@ function getSettings(schema) {
     // in the standard folders)
     let schemaDir = extension.dir.get_child('schemas');
     let schemaSource;
-    if (schemaDir.query_exists(null))
+    if (schemaDir.query_exists(null)) {
         schemaSource = GioSSS.new_from_directory(schemaDir.get_path(),
-                                                 GioSSS.get_default(),
-                                                 false);
-    else
+            GioSSS.get_default(), false);
+    } else {
         schemaSource = GioSSS.get_default();
+    }
 
     let schemaObj = schemaSource.lookup(schema, true);
     if (!schemaObj)
-        throw new Error('Schema ' + schema + ' could not be found for extension '
-                        + extension.metadata.uuid + '. Please check your installation.');
+        throw new Error(`Schema ${schema} could not be found for extension ${extension.metadata.uuid}. Please check your installation.`);
 
     return new Gio.Settings({ settings_schema: schemaObj });
 }

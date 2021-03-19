@@ -384,7 +384,7 @@ class AppIndicatorsIconActor extends St.Icon {
 
         this._indicator     = indicator;
         this._iconSize      = iconSize;
-        this._iconSize0     = icon_size;
+        this._iconSize0     = iconSize;
         this._iconCache     = new IconCache.IconCache();
         this._cancellable   = new Gio.Cancellable();
         this._loadingIcons  = new Set();
@@ -394,11 +394,11 @@ class AppIndicatorsIconActor extends St.Icon {
         Util.connectSmart(this._indicator, 'overlay-icon', this, this._updateOverlayIcon);
         Util.connectSmart(this._indicator, 'reset', this, this._invalidateIcon);
 
-        Util.connectSmart(this._settings, 'changed::icon-opacity', this, '_invalidateIcon');
-        Util.connectSmart(this._settings, 'changed::icon-saturation', this, '_invalidateIcon');
-        Util.connectSmart(this._settings, 'changed::icon-brightness', this, '_invalidateIcon');
-        Util.connectSmart(this._settings, 'changed::icon-contrast', this, '_invalidateIcon');
-        Util.connectSmart(this._settings, 'changed::icon-size', this, '_invalidateIcon');
+        Util.connectSmart(this._settings, 'changed::icon-opacity', this, this._invalidateIcon);
+        Util.connectSmart(this._settings, 'changed::icon-saturation', this, this._invalidateIcon);
+        Util.connectSmart(this._settings, 'changed::icon-brightness', this, this._invalidateIcon);
+        Util.connectSmart(this._settings, 'changed::icon-contrast', this, this._invalidateIcon);
+        Util.connectSmart(this._settings, 'changed::icon-size', this, this._invalidateIcon);
 
         Util.connectSmart(themeContext, 'notify::scale-factor', this, tc => {
             this.height = iconSize * tc.scale_factor;
@@ -415,7 +415,7 @@ class AppIndicatorsIconActor extends St.Icon {
         Util.connectSmart(this, 'enter-event', this, () => {
             this.set_opacity(255);
         });
-        Util.connectSmart(this, 'leave-event', this, '_setOpacity');
+        Util.connectSmart(this, 'leave-event', this, this._setOpacity);
 
         if (indicator.isReady)
             this._invalidateIcon();
@@ -473,7 +473,7 @@ class AppIndicatorsIconActor extends St.Icon {
             const inputStream = await file.read_async(GLib.PRIORITY_DEFAULT, this._cancellable);
             const pixbuf = GdkPixbuf.Pixbuf.new_from_stream_at_scale_async(inputStream,
                 height, width, true, this._cancellable);
-            this.icon_size = width > 0 ? width : this._iconSize;
+            this.iconSize = width > 0 ? width : this._iconSize;
             return pixbuf;
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
@@ -519,7 +519,7 @@ class AppIndicatorsIconActor extends St.Icon {
                 /* Hello indicator-multiload! */
                 return this._createIconByPath(path, width, -1);
             } else {
-                this.icon_size = this._iconSize;
+                this.iconSize = this._iconSize;
                 return new Gio.FileIcon({
                     file: Gio.File.new_for_path(path),
                 });
@@ -721,7 +721,7 @@ class AppIndicatorsIconActor extends St.Icon {
             }
 
             this._setGicon(iconType, gicon);
-            this.set_icon_size(iconSize);
+            this.set_iconSize(iconSize);
         } catch (e) {
             /* We handle the error messages already */
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED) &&
@@ -786,33 +786,35 @@ class AppIndicatorsIconActor extends St.Icon {
     _setSaturation() {
         let desaturationValue = this._settings.get_double('icon-saturation');
 
-        let sat_effect = this.get_effect('desaturate');
+        let satEffect = this.get_effect('desaturate');
 
         if (desaturationValue > 0) {
-            if (!sat_effect) {
-                sat_effect = new Clutter.DesaturateEffect({});
-                this.add_effect_with_name('desaturate', sat_effect);
+            if (!satEffect) {
+                satEffect = new Clutter.DesaturateEffect({});
+                this.add_effect_with_name('desaturate', satEffect);
             }
-            sat_effect.set_factor(desaturationValue);
-        } else if (sat_effect)
-            this.remove_effect(sat_effect);
+            satEffect.set_factor(desaturationValue);
+        } else if (satEffect) {
+            this.remove_effect(satEffect);
+        }
     }
 
     _setBrightnessContrast() {
         let brightnessValue = this._settings.get_double('icon-brightness');
         let contrastValue = this._settings.get_double('icon-contrast');
 
-        let bright_effect = this.get_effect('brightness-contrast');
+        let brightEffect = this.get_effect('brightness-contrast');
 
-        if (brightnessValue != 0 | contrastValue != 0) {
-            if (!bright_effect) {
-                bright_effect = new Clutter.BrightnessContrastEffect({});
-                this.add_effect_with_name('brightness-contrast', bright_effect);
+        if (brightnessValue !== 0 | contrastValue !== 0) {
+            if (!brightEffect) {
+                brightEffect = new Clutter.BrightnessContrastEffect({});
+                this.add_effect_with_name('brightness-contrast', brightEffect);
             }
-            bright_effect.set_brightness(brightnessValue);
-            bright_effect.set_contrast(contrastValue);
-        } else if (bright_effect)
-            this.remove_effect(bright_effect);
+            brightEffect.set_brightness(brightnessValue);
+            brightEffect.set_contrast(contrastValue);
+        } else if (brightEffect) {
+            this.remove_effect(brightEffect);
+        }
     }
 
     _setIconSize() {

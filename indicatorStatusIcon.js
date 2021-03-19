@@ -48,6 +48,8 @@ class AppIndicatorsIndicatorStatusIcon extends PanelMenu.Button {
 
         this._box.add_child(this._iconBox);
 
+        this._settings = Convenience.getSettings();
+
         Util.connectSmart(this._indicator, 'ready', this, this._display);
         Util.connectSmart(this._indicator, 'menu', this, this._updateMenu);
         Util.connectSmart(this._indicator, 'label', this, this._updateLabel);
@@ -56,6 +58,7 @@ class AppIndicatorsIndicatorStatusIcon extends PanelMenu.Button {
             this._updateStatus();
             this._updateLabel();
         });
+        Util.connectSmart(this._settings, 'changed::tray-pos', this, this._display);
 
         this.connect('destroy', () => {
             if (this._menuClient) {
@@ -67,8 +70,6 @@ class AppIndicatorsIndicatorStatusIcon extends PanelMenu.Button {
         if (this._indicator.isReady)
             this._display();
 
-        this._settings = Convenience.getSettings();
-        Util.connectSmart(this._settings, 'changed::tray-pos', this, '_display');
     }
 
     _updateLabel() {
@@ -118,7 +119,9 @@ class AppIndicatorsIndicatorStatusIcon extends PanelMenu.Button {
         this._updateStatus();
         this._updateMenu();
 
-        Main.panel.addToStatusArea(`appindicator-${this._indicator.uniqueId}`, this, 1, this._settings.get_string('tray-pos'));
+        let ourid = `appindicator-${this._indicator.uniqueId}`;
+        Main.panel.statusArea[ourid] = null;
+        Main.panel.addToStatusArea(ourid, this, 1, this._settings.get_string('tray-pos'));
     }
 
     vfunc_button_press_event(buttonEvent) {
