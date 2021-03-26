@@ -16,7 +16,7 @@
 
 /* exported refreshPropertyOnProxy, getUniqueBusName, getBusNames,
    introspectBusObject, dbusNodeImplementsInterfaces, waitForStartupCompletion,
-   connectSmart, BUS_ADDRESS_REGEX */
+   connectSmart, versionCheck, BUS_ADDRESS_REGEX */
 
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
@@ -24,7 +24,10 @@ const Gtk = imports.gi.Gtk;
 const Gdk = imports.gi.Gdk;
 const Main = imports.ui.main;
 const GObject = imports.gi.GObject;
-const Extension = imports.misc.extensionUtils.getCurrentExtension();
+
+const Config = imports.misc.config;
+const ExtensionUtils = imports.misc.extensionUtils;
+const Extension = ExtensionUtils.getCurrentExtension();
 const Params = imports.misc.params;
 const PromiseUtils = Extension.imports.promiseUtils;
 const Signals = imports.signals;
@@ -344,3 +347,21 @@ var Logger = class AppIndicatorsLogger {
         Logger._logStructured(GLib.LogLevelFlags.LEVEL_CRITICAL, message);
     }
 };
+
+function versionCheck(required) {
+    if (ExtensionUtils.versionCheck instanceof Function)
+        return ExtensionUtils.versionCheck(required, Config.PACKAGE_VERSION);
+
+    const current = Config.PACKAGE_VERSION;
+    let currentArray = current.split('.');
+    let major = currentArray[0];
+    let minor = currentArray[1];
+    for (let i = 0; i < required.length; i++) {
+        let requiredArray = required[i].split('.');
+        if (requiredArray[0] === major &&
+            (requiredArray[1] === undefined && isFinite(minor) ||
+                requiredArray[1] === minor))
+            return true;
+    }
+    return false;
+}
