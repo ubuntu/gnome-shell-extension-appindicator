@@ -26,8 +26,8 @@ ln -s $PWD ~/.local/share/gnome-shell/extensions/appindicatorsupport@rgcjonas.gm
 gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com
 ```
 
-You may need to restart GNOME Shell (<kbd>Alt</kbd>+<kbd>F2</kbd>, <kbd>r</kbd>, <kbd>⏎</kbd>)
-after that.
+Under X11, you may need to restart GNOME Shell (<kbd>Alt</kbd>+<kbd>F2</kbd>, <kbd>r</kbd>, <kbd>⏎</kbd>)
+after that. Under Wayland you need to logout and login again.
 
 ## Guidelines for bug reports
 Unfortunately, this extension is not completely bug free and will probably never be.
