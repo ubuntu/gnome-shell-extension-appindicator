@@ -19,6 +19,7 @@
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 
 const StatusNotifierWatcher = Extension.imports.statusNotifierWatcher;
+const TopIcons = Extension.imports.topicons;
 const Util = Extension.imports.util;
 
 let statusNotifierWatcher = null;
@@ -56,10 +57,12 @@ function maybeEnableAfterNameAvailable() {
 function enable() {
     isEnabled = true;
     maybeEnableAfterNameAvailable();
+    TopIcons.initTopIcons();
 }
 
 function disable() {
     isEnabled = false;
+    TopIcons.finTopIcons();
     if (statusNotifierWatcher !== null) {
         statusNotifierWatcher.destroy();
         statusNotifierWatcher = null;

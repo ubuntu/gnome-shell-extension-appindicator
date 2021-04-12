@@ -14,7 +14,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-/* exported IndicatorStatusIcon */
+/* exported IndicatorStatusIcon, IndicatorStatusTopIcon */
 
 const Clutter = imports.gi.Clutter;
 const GObject = imports.gi.GObject;
@@ -30,6 +30,8 @@ const Extension = ExtensionUtils.getCurrentExtension();
 const AppIndicator = Extension.imports.appIndicator;
 const DBusMenu = Extension.imports.dbusMenu;
 const Util = Extension.imports.util;
+
+let legacyTrayNumber = 0;
 
 /*
  * IndicatorStatusIcon implements an icon in the system status area
@@ -149,3 +151,24 @@ class AppIndicatorsIndicatorStatusIcon extends PanelMenu.Button {
         return Clutter.EVENT_PROPAGATE;
     }
 });
+
+var IndicatorStatusTopIcon = GObject.registerClass(
+    class AppIndicatorsIndicatorStatusTopIcon extends PanelMenu.Button {
+        _init(icon) {
+            this._uniqueId = `legacyUniqueId${String(legacyTrayNumber++)}`;
+
+            super._init(0.5, this._uniqueId);
+            this._iconBox = icon;
+            this._box = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
+            this._box.add_style_class_name('appindicator-box');
+            this.add_child(this._box);
+
+            this._box.add_child(this._iconBox);
+
+            Main.panel.addToStatusArea(`appindicator-${this._uniqueId}`, this, 1, 'right');
+        }
+
+        getIcon() {
+            return this._iconBox;
+        }
+    });
