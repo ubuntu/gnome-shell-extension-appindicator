@@ -168,6 +168,9 @@ var GSourcePromise = class extends CancellablePromise {
         }, cancellable);
 
         this._gsource = gsource;
+
+        if (this.cancelled())
+            this.remove();
     }
 
     remove() {
