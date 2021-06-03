@@ -14,25 +14,29 @@ var CancellablePromise = class extends Promise {
         if (cancellable && !(cancellable instanceof Gio.Cancellable))
             throw TypeError('cancellable parameter is not a Gio.Cancellable');
 
+        const cancelled = cancellable && cancellable.is_cancelled();
+        let cancellationId;
         let rejector;
-        let cancelled;
+
+        if (cancellable && !cancelled)
+            cancellationId = cancellable.connect(() => this.cancel());
+
         super((resolve, reject) => {
             rejector = reject;
-            if (cancellable && cancellable.is_cancelled()) {
-                cancelled = true;
+            if (cancelled) {
                 reject(new GLib.Error(Gio.IOErrorEnum,
                     Gio.IOErrorEnum.CANCELLED, 'Promise cancelled'));
             } else {
                 executor(resolve, reject);
+
+                if (cancellationId)
+                    cancellable.disconnect(cancellationId);
             }
         });
 
         this._cancelled = cancelled;
         this._rejector = rejector;
-
         this._cancellable = cancellable || null;
-        if (this._cancellable)
-            this._cancellable.connect(() => this.cancel());
     }
 
     get cancellable() {
