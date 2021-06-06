@@ -26,11 +26,19 @@ var CancellablePromise = class extends Promise {
             if (cancelled) {
                 reject(new GLib.Error(Gio.IOErrorEnum,
                     Gio.IOErrorEnum.CANCELLED, 'Promise cancelled'));
+            } else if (cancellationId) {
+                rejector = (...args) => {
+                    reject(...args);
+                    // This must happen in an idle not to deadlock on ::cancelled
+                    GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () =>
+                        cancellable.disconnect(cancellationId));
+                };
+                executor((...args) => {
+                    resolve(...args);
+                    cancellable.disconnect(cancellationId);
+                }, rejector);
             } else {
                 executor(resolve, reject);
-
-                if (cancellationId)
-                    cancellable.disconnect(cancellationId);
             }
         });
 
