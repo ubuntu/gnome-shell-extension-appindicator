@@ -412,15 +412,14 @@ class AppIndicatorsIconActor extends St.Icon {
 
         Util.connectSmart(Gtk.IconTheme.get_default(), 'changed', this, this._invalidateIcon);
 
-        this.connect('enter-event', () => {
-            this.opacity = 255;
-            this.remove_effect_by_name('desaturate');
-            return Clutter.EVENT_PROPAGATE;
-        });
-        this.connect('leave-event', () => {
-            this._setOpacity();
-            this._setSaturation();
-            return Clutter.EVENT_PROPAGATE;
+        this.connect('notify::hover', () => {
+            if (this.hover) {
+                this.opacity = 255;
+                this.remove_effect_by_name('desaturate');
+            } else {
+                this._setOpacity();
+                this._setSaturation();
+            }
         });
 
         if (indicator.isReady)
