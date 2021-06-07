@@ -20,7 +20,6 @@ const Extension = imports.misc.extensionUtils.getCurrentExtension();
 
 const StatusNotifierWatcher = Extension.imports.statusNotifierWatcher;
 const Util = Extension.imports.util;
-const Convenience = Extension.imports.convenience;
 
 let statusNotifierWatcher = null;
 let isEnabled = false;
@@ -42,8 +41,6 @@ function init() {
         watchDog.destroy();
     };
     /* eslint-enable no-undef */
-
-    Convenience.initTranslations();
 }
 
 // FIXME: when entering/leaving the lock screen, the extension might be enabled/disabled rapidly.
