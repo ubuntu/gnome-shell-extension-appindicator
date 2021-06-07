@@ -66,6 +66,9 @@ class AppIndicatorsIndicatorStatusIcon extends PanelMenu.Button {
             }
         });
 
+        this.bind_property('hover', this._iconBox, 'hover',
+            GObject.BindingFlags.SYNC_CREATE | GObject.BindingFlags.BIDIRECTIONAL);
+
         if (this._indicator.isReady)
             this._display();
     }
