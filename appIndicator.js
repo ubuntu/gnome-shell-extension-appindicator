@@ -293,8 +293,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
             // a few need to be passed down to the displaying code
 
             // all these can mean that the icon has to be changed
-            if (property === 'Status' ||
-                property.startsWith('Icon') ||
+            if (property.startsWith('Icon') ||
                 property.startsWith('AttentionIcon'))
                 signalsToEmit.add('icon');
 
@@ -319,8 +318,10 @@ var AppIndicator = class AppIndicatorsAppIndicator {
             }
 
             // status updates may cause the indicator to be hidden
-            if (property === 'Status')
+            if (property === 'Status') {
+                signalsToEmit.add('icon');
                 signalsToEmit.add('status');
+            }
         });
 
         signalsToEmit.forEach(s => this.emit(s));
