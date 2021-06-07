@@ -414,10 +414,12 @@ class AppIndicatorsIconActor extends St.Icon {
 
         this.connect('enter-event', () => {
             this.opacity = 255;
+            this.remove_effect_by_name('desaturate');
             return Clutter.EVENT_PROPAGATE;
         });
         this.connect('leave-event', () => {
             this._setOpacity();
+            this._setSaturation();
             return Clutter.EVENT_PROPAGATE;
         });
 
