@@ -16,7 +16,6 @@
 
 /* exported AppIndicator, IconActor */
 
-const Clutter = imports.gi.Clutter;
 const GdkPixbuf = imports.gi.GdkPixbuf;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
@@ -410,11 +409,7 @@ class AppIndicatorsIconActor extends St.Icon {
         Util.connectSmart(this._indicator, 'reset', this, this._invalidateIcon);
 
         const settings = SettingsManager.getDefaultGSettings();
-        Util.connectSmart(settings, 'changed::icon-saturation', this, this._updateSaturation);
-        Util.connectSmart(settings, 'changed::icon-brightness', this, this._updateBrightnessContrast);
-        Util.connectSmart(settings, 'changed::icon-contrast', this, this._updateBrightnessContrast);
         Util.connectSmart(settings, 'changed::icon-size', this, this._invalidateIcon);
-        this._updateEffects();
 
         Util.connectSmart(themeContext, 'notify::scale-factor', this, tc => {
             this.height = iconSize * tc.scale_factor;
@@ -427,13 +422,6 @@ class AppIndicatorsIconActor extends St.Icon {
         });
 
         Util.connectSmart(Gtk.IconTheme.get_default(), 'changed', this, this._invalidateIcon);
-
-        this.connect('notify::hover', () => {
-            if (this.hover)
-                this.remove_effect_by_name('desaturate');
-            else
-                this._updateSaturation();
-        });
 
         if (indicator.isReady)
             this._invalidateIcon();
@@ -789,57 +777,6 @@ class AppIndicatorsIconActor extends St.Icon {
 
         this._updateIcon();
         this._updateOverlayIcon();
-    }
-
-    _updateEffects() {
-        this._updateOpacity();
-        this._updateSaturation();
-        this._updateBrightnessContrast();
-    }
-
-    _updateOpacity() {
-        const settings = SettingsManager.getDefaultGSettings();
-        const userValue = settings.get_user_value('icon-opacity');
-        if (userValue)
-            this.opacity = userValue.unpack();
-        else if (Util.versionCheck(['40']))
-            this.opacity = 255;
-        else
-            this.opacity = settings.get_int('icon-opacity');
-    }
-
-    _updateSaturation() {
-        const settings = SettingsManager.getDefaultGSettings();
-        const desaturationValue = settings.get_double('icon-saturation');
-        let desaturateEffect = this.get_effect('desaturate');
-
-        if (desaturationValue > 0) {
-            if (!desaturateEffect) {
-                desaturateEffect = new Clutter.DesaturateEffect();
-                this.add_effect_with_name('desaturate', desaturateEffect);
-            }
-            desaturateEffect.set_factor(desaturationValue);
-        } else if (desaturateEffect) {
-            this.remove_effect(desaturateEffect);
-        }
-    }
-
-    _updateBrightnessContrast() {
-        const settings = SettingsManager.getDefaultGSettings();
-        const brightnessValue = settings.get_double('icon-brightness');
-        const contrastValue = settings.get_double('icon-contrast');
-        let brightnessContrastEffect = this.get_effect('brightness-contrast');
-
-        if (brightnessValue !== 0 | contrastValue !== 0) {
-            if (!brightnessContrastEffect) {
-                brightnessContrastEffect = new Clutter.BrightnessContrastEffect();
-                this.add_effect_with_name('brightness-contrast', brightnessContrastEffect);
-            }
-            brightnessContrastEffect.set_brightness(brightnessValue);
-            brightnessContrastEffect.set_contrast(contrastValue);
-        } else if (brightnessContrastEffect) {
-            this.remove_effect(brightnessContrastEffect);
-        }
     }
 
     _updateIconSize() {

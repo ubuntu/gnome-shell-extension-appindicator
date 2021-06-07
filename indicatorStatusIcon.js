@@ -34,22 +34,44 @@ const SettingsManager = Extension.imports.settingsManager;
 
 const BaseStatusIcon = GObject.registerClass(
 class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
-    _init(menuAlignment, nameText) {
+    _init(menuAlignment, nameText, iconActor) {
         super._init(menuAlignment, nameText);
 
         const settings = SettingsManager.getDefaultGSettings();
         Util.connectSmart(settings, 'changed::icon-opacity', this, this._updateOpacity);
-        this.connect('notify::hover', () => this._updateOpacity());
+        this.connect('notify::hover', () => this._onHoverChanged());
 
-        this._updateOpacity();
+        this._setIconActor(iconActor);
+    }
+
+    _setIconActor(icon) {
+        if (!(icon instanceof Clutter.Actor))
+            throw new Error(`${icon} is not a valid actor`);
+
+        if (!this._icon) {
+            const settings = SettingsManager.getDefaultGSettings();
+            Util.connectSmart(settings, 'changed::icon-saturation', this, this._updateSaturation);
+            Util.connectSmart(settings, 'changed::icon-brightness', this, this._updateBrightnessContrast);
+            Util.connectSmart(settings, 'changed::icon-contrast', this, this._updateBrightnessContrast);
+        } else if (this._icon !== icon) {
+            this._icon.destroy();
+        }
+
+        this._icon = icon;
+        this._updateEffects();
+    }
+
+    _onHoverChanged() {
+        if (this.hover) {
+            this.opacity = 255;
+            if (this._icon)
+                this._icon.remove_effect_by_name('desaturate');
+        } else {
+            this._updateEffects();
+        }
     }
 
     _updateOpacity() {
-        if (this.hover) {
-            this.opacity = 255;
-            return;
-        }
-
         const settings = SettingsManager.getDefaultGSettings();
         const userValue = settings.get_user_value('icon-opacity');
         if (userValue)
@@ -59,6 +81,49 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
         else
             this.opacity = settings.get_int('icon-opacity');
     }
+
+    _updateEffects() {
+        this._updateOpacity();
+
+        if (this._icon) {
+            this._updateSaturation();
+            this._updateBrightnessContrast();
+        }
+    }
+
+    _updateSaturation() {
+        const settings = SettingsManager.getDefaultGSettings();
+        const desaturationValue = settings.get_double('icon-saturation');
+        let desaturateEffect = this._icon.get_effect('desaturate');
+
+        if (desaturationValue > 0) {
+            if (!desaturateEffect) {
+                desaturateEffect = new Clutter.DesaturateEffect();
+                this._icon.add_effect_with_name('desaturate', desaturateEffect);
+            }
+            desaturateEffect.set_factor(desaturationValue);
+        } else if (desaturateEffect) {
+            this._icon.remove_effect(desaturateEffect);
+        }
+    }
+
+    _updateBrightnessContrast() {
+        const settings = SettingsManager.getDefaultGSettings();
+        const brightnessValue = settings.get_double('icon-brightness');
+        const contrastValue = settings.get_double('icon-contrast');
+        let brightnessContrastEffect = this._icon.get_effect('brightness-contrast');
+
+        if (brightnessValue !== 0 | contrastValue !== 0) {
+            if (!brightnessContrastEffect) {
+                brightnessContrastEffect = new Clutter.BrightnessContrastEffect();
+                this._icon.add_effect_with_name('brightness-contrast', brightnessContrastEffect);
+            }
+            brightnessContrastEffect.set_brightness(brightnessValue);
+            brightnessContrastEffect.set_contrast(contrastValue);
+        } else if (brightnessContrastEffect) {
+            this._icon.remove_effect(brightnessContrastEffect);
+        }
+    }
 });
 
 /*
@@ -67,10 +132,10 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
 var IndicatorStatusIcon = GObject.registerClass(
 class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
     _init(indicator) {
-        super._init(0.5, indicator.accessibleName);
+        super._init(0.5, indicator.accessibleName,
+            new AppIndicator.IconActor(indicator, Panel.PANEL_ICON_SIZE));
         this._indicator = indicator;
 
-        this._icon = new AppIndicator.IconActor(indicator, Panel.PANEL_ICON_SIZE);
         this._box = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
         this._box.add_style_class_name('appindicator-box');
         this.add_child(this._box);
@@ -96,9 +161,6 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
                 this._menuClient = null;
             }
         });
-
-        this.bind_property('hover', this._icon, 'hover',
-            GObject.BindingFlags.SYNC_CREATE | GObject.BindingFlags.BIDIRECTIONAL);
 
         if (this._indicator.isReady)
             this._display();
@@ -195,8 +257,7 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
     _init(icon) {
         const uniqueId = `legacyUniqueId:${icon.wm_class}:${icon.pid}`;
         Util.Logger.debug(`Adding legacy tray icon ${uniqueId}`);
-        super._init(0.5, icon.wm_class);
-        this._icon = icon;
+        super._init(0.5, icon.wm_class, icon);
         this._box = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
         this._box.add_style_class_name('appindicator-box');
         this.add_child(this._box);
@@ -214,12 +275,37 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
             this.destroy();
         });
 
-        Main.panel.addToStatusArea(`appindicator-${uniqueId}`, this, 1, 'right');
+        const settings = SettingsManager.getDefaultGSettings();
+        Util.connectSmart(settings, 'changed::icon-size', this, this._updateIconSize);
+
+        Main.panel.addToStatusArea(`appindicator-${uniqueId}`, this, 1,
+            settings.get_string('tray-pos'));
+
+        // eslint-disable-next-line no-undef
+        const themeContext = St.ThemeContext.get_for_stage(global.stage);
+        Util.connectSmart(themeContext, 'notify::scale-factor', this, () =>
+            this._updateIconSize());
+
+        this._updateIconSize();
 
         this.connect('destroy', () => {
             this._icon.destroy();
             this._icon = null;
             Util.Logger.debug(`Destroying legacy tray icon ${uniqueId}`);
         });
+    }
+
+    _updateIconSize() {
+        const settings = SettingsManager.getDefaultGSettings();
+        // eslint-disable-next-line no-undef
+        const { scale_factor: scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+        let iconSize = settings.get_int('icon-size');
+
+        if (iconSize <= 0)
+            iconSize = Panel.PANEL_ICON_SIZE;
+
+        this.height = -1;
+        this._icon.set_height(iconSize * scaleFactor);
+        this._icon.set_y_align(Clutter.ActorAlign.CENTER);
     }
 });
