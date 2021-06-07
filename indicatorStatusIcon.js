@@ -38,7 +38,7 @@ const SettingsManager = Extension.imports.settingsManager;
 var IndicatorStatusIcon = GObject.registerClass(
 class AppIndicatorsIndicatorStatusIcon extends PanelMenu.Button {
     _init(indicator) {
-        super._init(0.5, indicator.uniqueId);
+        super._init(0.5, indicator.accessibleName);
         this._indicator = indicator;
 
         this._iconBox = new AppIndicator.IconActor(indicator, Panel.PANEL_ICON_SIZE);
@@ -56,6 +56,8 @@ class AppIndicatorsIndicatorStatusIcon extends PanelMenu.Button {
             this._updateStatus();
             this._updateLabel();
         });
+        Util.connectSmart(this._indicator, 'accessible-name', this, () =>
+            this.set_accessible_name(this._indicator.accessibleName));
         Util.connectSmart(SettingsManager.getDefaultGSettings(), 'changed::tray-pos',
             this, this._display);
 
@@ -164,7 +166,7 @@ class AppIndicatorsIndicatorTrayIcon extends PanelMenu.Button {
     _init(icon) {
         const uniqueId = `legacyUniqueId:${icon.wm_class}:${icon.pid}`;
         Util.Logger.debug(`Adding legacy tray icon ${uniqueId}`);
-        super._init(0.5, uniqueId);
+        super._init(0.5, icon.wm_class);
         this._icon = icon;
         this._box = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
         this._box.add_style_class_name('appindicator-box');
