@@ -417,8 +417,8 @@ class AppIndicatorsIconActor extends St.Icon {
                 this.opacity = 255;
                 this.remove_effect_by_name('desaturate');
             } else {
-                this._setOpacity();
-                this._setSaturation();
+                this._updateOpacity();
+                this._updateSaturation();
             }
         });
 
@@ -749,10 +749,10 @@ class AppIndicatorsIconActor extends St.Icon {
         let iconType = this._indicator.status === SNIStatus.NEEDS_ATTENTION
             ? SNIconType.ATTENTION : SNIconType.NORMAL;
 
-        this._setOpacity();
-        this._setSaturation();
-        this._setBrightnessContrast();
-        this._setIconSize();
+        this._updateOpacity();
+        this._updateSaturation();
+        this._updateBrightnessContrast();
+        this._updateIconSize();
 
         this._updateIconByType(iconType, this._iconSize);
     }
@@ -782,7 +782,7 @@ class AppIndicatorsIconActor extends St.Icon {
         this._updateOverlayIcon();
     }
 
-    _setOpacity() {
+    _updateOpacity() {
         const settings = SettingsManager.getDefaultGSettings();
         const userValue = settings.get_user_value('icon-opacity');
         if (userValue)
@@ -793,7 +793,7 @@ class AppIndicatorsIconActor extends St.Icon {
             this.opacity = settings.get_int('icon-opacity');
     }
 
-    _setSaturation() {
+    _updateSaturation() {
         const settings = SettingsManager.getDefaultGSettings();
         const desaturationValue = settings.get_double('icon-saturation');
         let desaturateEffect = this.get_effect('desaturate');
@@ -809,7 +809,7 @@ class AppIndicatorsIconActor extends St.Icon {
         }
     }
 
-    _setBrightnessContrast() {
+    _updateBrightnessContrast() {
         const settings = SettingsManager.getDefaultGSettings();
         const brightnessValue = settings.get_double('icon-brightness');
         const contrastValue = settings.get_double('icon-contrast');
@@ -827,7 +827,7 @@ class AppIndicatorsIconActor extends St.Icon {
         }
     }
 
-    _setIconSize() {
+    _updateIconSize() {
         const settings = SettingsManager.getDefaultGSettings();
         const sizeValue = settings.get_int('icon-size');
         if (sizeValue > 0) {
