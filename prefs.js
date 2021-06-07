@@ -13,7 +13,10 @@ const Gettext = imports.gettext.domain(Me.metadata['gettext-domain']);
 const _ = Gettext.gettext;
 
 function init() {
-    Convenience.initTranslations();
+    if (ExtensionUtils.initTranslations)
+        ExtensionUtils.initTranslations();
+    else
+        Convenience.initTranslations();
 }
 
 const AppIndicatorPreferences = GObject.registerClass(
