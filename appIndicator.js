@@ -782,7 +782,13 @@ class AppIndicatorsIconActor extends St.Icon {
     }
 
     _setOpacity() {
-        this.opacity = this._settings.get_int('icon-opacity');
+        const userValue = this._settings.get_user_value('icon-opacity');
+        if (userValue)
+            this.opacity = userValue.unpack();
+        else if (Util.versionCheck(['40']))
+            this.opacity = 255;
+        else
+            this.opacity = this._settings.get_int('icon-opacity');
     }
 
     _setSaturation() {
