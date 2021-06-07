@@ -410,11 +410,12 @@ class AppIndicatorsIconActor extends St.Icon {
         Util.connectSmart(this._indicator, 'reset', this, this._invalidateIcon);
 
         const settings = SettingsManager.getDefaultGSettings();
-        Util.connectSmart(settings, 'changed::icon-opacity', this, this._invalidateIcon);
-        Util.connectSmart(settings, 'changed::icon-saturation', this, this._invalidateIcon);
-        Util.connectSmart(settings, 'changed::icon-brightness', this, this._invalidateIcon);
-        Util.connectSmart(settings, 'changed::icon-contrast', this, this._invalidateIcon);
+        Util.connectSmart(settings, 'changed::icon-opacity', this, this._updateOpacity);
+        Util.connectSmart(settings, 'changed::icon-saturation', this, this._updateSaturation);
+        Util.connectSmart(settings, 'changed::icon-brightness', this, this._updateBrightnessContrast);
+        Util.connectSmart(settings, 'changed::icon-contrast', this, this._updateBrightnessContrast);
         Util.connectSmart(settings, 'changed::icon-size', this, this._invalidateIcon);
+        this._updateEffects();
 
         Util.connectSmart(themeContext, 'notify::scale-factor', this, tc => {
             this.height = iconSize * tc.scale_factor;
@@ -765,11 +766,7 @@ class AppIndicatorsIconActor extends St.Icon {
         let iconType = this._indicator.status === SNIStatus.NEEDS_ATTENTION
             ? SNIconType.ATTENTION : SNIconType.NORMAL;
 
-        this._updateOpacity();
-        this._updateSaturation();
-        this._updateBrightnessContrast();
         this._updateIconSize();
-
         this._updateIconByType(iconType, this._iconSize);
     }
 
@@ -796,6 +793,12 @@ class AppIndicatorsIconActor extends St.Icon {
 
         this._updateIcon();
         this._updateOverlayIcon();
+    }
+
+    _updateEffects() {
+        this._updateOpacity();
+        this._updateSaturation();
+        this._updateBrightnessContrast();
     }
 
     _updateOpacity() {
