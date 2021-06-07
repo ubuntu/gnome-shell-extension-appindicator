@@ -41,12 +41,12 @@ class AppIndicatorsIndicatorStatusIcon extends PanelMenu.Button {
         super._init(0.5, indicator.accessibleName);
         this._indicator = indicator;
 
-        this._iconBox = new AppIndicator.IconActor(indicator, Panel.PANEL_ICON_SIZE);
+        this._icon = new AppIndicator.IconActor(indicator, Panel.PANEL_ICON_SIZE);
         this._box = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
         this._box.add_style_class_name('appindicator-box');
         this.add_child(this._box);
 
-        this._box.add_child(this._iconBox);
+        this._box.add_child(this._icon);
 
         Util.connectSmart(this._indicator, 'ready', this, this._display);
         Util.connectSmart(this._indicator, 'menu', this, this._updateMenu);
@@ -68,7 +68,7 @@ class AppIndicatorsIndicatorStatusIcon extends PanelMenu.Button {
             }
         });
 
-        this.bind_property('hover', this._iconBox, 'hover',
+        this.bind_property('hover', this._icon, 'hover',
             GObject.BindingFlags.SYNC_CREATE | GObject.BindingFlags.BIDIRECTIONAL);
 
         if (this._indicator.isReady)
