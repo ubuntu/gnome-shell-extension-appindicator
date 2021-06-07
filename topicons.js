@@ -22,27 +22,18 @@ const System = imports.system;
 
 const ExtensionUtils = imports.misc.extensionUtils;
 
-const Me = ExtensionUtils.getCurrentExtension();
-const IndicatorStatusIcon = Me.imports.indicatorStatusIcon;
+const Extension = ExtensionUtils.getCurrentExtension();
+const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon;
 
 var tray = null;
-let trayAddedId = 0;
-let trayRemovedId = 0;
 let icons = [];
 
 function initTopIcons() {
-    tray = Main.legacyTray;
-    if (tray)
-        moveToTop();
-    else
-        createTray();
+    createTray();
 }
 
 function finTopIcons() {
-    if (Main.legacyTray)
-        moveToTray();
-    else
-        destroyTray();
+    destroyTray();
 }
 
 function createTray() {
@@ -87,57 +78,4 @@ function destroyTray() {
 
     tray = null;
     System.gc(); // force finalizing tray to unmanage screen
-}
-
-function moveToTop() {
-
-    // Replace signal handlers
-    if (tray._trayIconAddedId)
-        tray._trayManager.disconnect(tray._trayIconAddedId);
-    if (tray._trayIconRemovedId)
-        tray._trayManager.disconnect(tray._trayIconRemovedId);
-
-    trayAddedId = tray._trayManager.connect('tray-icon-added', onTrayIconAdded);
-    trayRemovedId = tray._trayManager.connect('tray-icon-removed', onTrayIconRemoved);
-
-    // Move each tray icon to the top
-    let length = tray._iconBox.get_n_children();
-    for (let i = 0; i < length; i++) {
-        let button = tray._iconBox.get_child_at_index(0);
-        let icon = button.child;
-        button.remove_actor(icon);
-        button.destroy();
-        // Icon already loaded, no need to delay insertion
-        onTrayIconAdded(this, icon, '', 0);
-    }
-
-}
-
-function moveToTray() {
-
-    // Replace signal handlers
-    if (trayAddedId) {
-        tray._trayManager.disconnect(trayAddedId);
-        trayAddedId = 0;
-    }
-
-    if (trayRemovedId) {
-        tray._trayManager.disconnect(trayRemovedId);
-        trayRemovedId = 0;
-    }
-
-    tray._trayIconAddedId = tray._trayManager.connect(
-        'tray-icon-added', tray._onTrayIconAdded);
-    tray._trayIconRemovedId = tray._trayManager.connect(
-        'tray-icon-removed', tray._onTrayIconRemoved);
-
-    // Clean and move each icon back to the Legacy Tray;
-    for (let topIcon of icons) {
-        let icon = topIcon.getIcon();
-        tray._onTrayIconAdded(tray, icon);
-        topIcon.destroy();
-    }
-
-    // Clean containers
-    icons = [];
 }
