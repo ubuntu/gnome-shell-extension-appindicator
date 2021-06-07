@@ -19,7 +19,7 @@
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 
 const StatusNotifierWatcher = Extension.imports.statusNotifierWatcher;
-const TopIcons = Extension.imports.topicons;
+const TrayIconsManager = Extension.imports.trayIconsManager;
 const Util = Extension.imports.util;
 
 let statusNotifierWatcher = null;
@@ -57,12 +57,12 @@ function maybeEnableAfterNameAvailable() {
 function enable() {
     isEnabled = true;
     maybeEnableAfterNameAvailable();
-    TopIcons.initTopIcons();
+    TrayIconsManager.TrayIconsManager.initialize();
 }
 
 function disable() {
     isEnabled = false;
-    TopIcons.finTopIcons();
+    TrayIconsManager.TrayIconsManager.destroy();
     if (statusNotifierWatcher !== null) {
         statusNotifierWatcher.destroy();
         statusNotifierWatcher = null;

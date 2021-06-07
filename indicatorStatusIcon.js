@@ -14,7 +14,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-/* exported IndicatorStatusIcon, IndicatorStatusTopIcon */
+/* exported IndicatorStatusIcon, IndicatorStatusTrayIcon */
 
 const Clutter = imports.gi.Clutter;
 const GObject = imports.gi.GObject;
@@ -31,8 +31,6 @@ const AppIndicator = Extension.imports.appIndicator;
 const DBusMenu = Extension.imports.dbusMenu;
 const Util = Extension.imports.util;
 const SettingsManager = Extension.imports.settingsManager;
-
-let legacyTrayNumber = 0;
 
 /*
  * IndicatorStatusIcon implements an icon in the system status area
@@ -161,22 +159,36 @@ class AppIndicatorsIndicatorStatusIcon extends PanelMenu.Button {
     }
 });
 
-var IndicatorStatusTopIcon = GObject.registerClass(
-class AppIndicatorsIndicatorStatusTopIcon extends PanelMenu.Button {
+var IndicatorStatusTrayIcon = GObject.registerClass(
+class AppIndicatorsIndicatorTrayIcon extends PanelMenu.Button {
     _init(icon) {
-        const uniqueId = `legacyUniqueId${String(legacyTrayNumber++)}`;
+        const uniqueId = `legacyUniqueId:${icon.wm_class}:${icon.pid}`;
+        Util.Logger.debug(`Adding legacy tray icon ${uniqueId}`);
         super._init(0.5, uniqueId);
-        this._iconBox = icon;
+        this._icon = icon;
         this._box = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
         this._box.add_style_class_name('appindicator-box');
         this.add_child(this._box);
 
-        this._box.add_child(this._iconBox);
+        this._box.add_child(this._icon);
+
+        this._icon.reactive = true;
+        Util.connectSmart(this._icon, 'button-release-event', this, (_actor, event) => {
+            this._icon.click(event);
+            return Clutter.EVENT_PROPAGATE;
+        });
+
+        Util.connectSmart(this._icon, 'destroy', this, () => {
+            icon.clear_effects();
+            this.destroy();
+        });
 
         Main.panel.addToStatusArea(`appindicator-${uniqueId}`, this, 1, 'right');
-    }
 
-    getIcon() {
-        return this._iconBox;
+        this.connect('destroy', () => {
+            this._icon.destroy();
+            this._icon = null;
+            Util.Logger.debug(`Destroying legacy tray icon ${uniqueId}`);
+        });
     }
 });
