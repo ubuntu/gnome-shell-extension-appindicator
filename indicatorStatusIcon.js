@@ -30,7 +30,7 @@ const Extension = ExtensionUtils.getCurrentExtension();
 const AppIndicator = Extension.imports.appIndicator;
 const DBusMenu = Extension.imports.dbusMenu;
 const Util = Extension.imports.util;
-const Convenience = Extension.imports.convenience;
+const SettingsManager = Extension.imports.settingsManager;
 
 /*
  * IndicatorStatusIcon implements an icon in the system status area
@@ -48,8 +48,6 @@ class AppIndicatorsIndicatorStatusIcon extends PanelMenu.Button {
 
         this._box.add_child(this._iconBox);
 
-        this._settings = Convenience.getSettings();
-
         Util.connectSmart(this._indicator, 'ready', this, this._display);
         Util.connectSmart(this._indicator, 'menu', this, this._updateMenu);
         Util.connectSmart(this._indicator, 'label', this, this._updateLabel);
@@ -58,7 +56,8 @@ class AppIndicatorsIndicatorStatusIcon extends PanelMenu.Button {
             this._updateStatus();
             this._updateLabel();
         });
-        Util.connectSmart(this._settings, 'changed::tray-pos', this, this._display);
+        Util.connectSmart(SettingsManager.getDefaultGSettings(), 'changed::tray-pos',
+            this, this._display);
 
         this.connect('destroy', () => {
             if (this._menuClient) {
@@ -120,7 +119,8 @@ class AppIndicatorsIndicatorStatusIcon extends PanelMenu.Button {
 
         const indicatorId = `appindicator-${this._indicator.uniqueId}`;
         Main.panel.statusArea[indicatorId] = null;
-        Main.panel.addToStatusArea(indicatorId, this, 1, this._settings.get_string('tray-pos'));
+        Main.panel.addToStatusArea(indicatorId, this, 1,
+            SettingsManager.getDefaultGSettings().get_string('tray-pos'));
     }
 
     vfunc_button_press_event(buttonEvent) {

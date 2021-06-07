@@ -30,8 +30,8 @@ const Signals = imports.signals;
 const IconCache = Extension.imports.iconCache;
 const Util = Extension.imports.util;
 const Interfaces = Extension.imports.interfaces;
-const Convenience = Extension.imports.convenience;
 const PromiseUtils = Extension.imports.promiseUtils;
+const SettingsManager = Extension.imports.settingsManager;
 
 PromiseUtils._promisify(Gio.File.prototype, 'read_async', 'read_finish');
 PromiseUtils._promisify(Gio._LocalFilePrototype, 'read_async', 'read_finish');
@@ -388,17 +388,17 @@ class AppIndicatorsIconActor extends St.Icon {
         this._iconCache     = new IconCache.IconCache();
         this._cancellable   = new Gio.Cancellable();
         this._loadingIcons  = new Set();
-        this._settings      = Convenience.getSettings();
 
         Util.connectSmart(this._indicator, 'icon', this, this._updateIcon);
         Util.connectSmart(this._indicator, 'overlay-icon', this, this._updateOverlayIcon);
         Util.connectSmart(this._indicator, 'reset', this, this._invalidateIcon);
 
-        Util.connectSmart(this._settings, 'changed::icon-opacity', this, this._invalidateIcon);
-        Util.connectSmart(this._settings, 'changed::icon-saturation', this, this._invalidateIcon);
-        Util.connectSmart(this._settings, 'changed::icon-brightness', this, this._invalidateIcon);
-        Util.connectSmart(this._settings, 'changed::icon-contrast', this, this._invalidateIcon);
-        Util.connectSmart(this._settings, 'changed::icon-size', this, this._invalidateIcon);
+        const settings = SettingsManager.getDefaultGSettings();
+        Util.connectSmart(settings, 'changed::icon-opacity', this, this._invalidateIcon);
+        Util.connectSmart(settings, 'changed::icon-saturation', this, this._invalidateIcon);
+        Util.connectSmart(settings, 'changed::icon-brightness', this, this._invalidateIcon);
+        Util.connectSmart(settings, 'changed::icon-contrast', this, this._invalidateIcon);
+        Util.connectSmart(settings, 'changed::icon-size', this, this._invalidateIcon);
 
         Util.connectSmart(themeContext, 'notify::scale-factor', this, tc => {
             this.height = iconSize * tc.scale_factor;
@@ -784,17 +784,19 @@ class AppIndicatorsIconActor extends St.Icon {
     }
 
     _setOpacity() {
-        const userValue = this._settings.get_user_value('icon-opacity');
+        const settings = SettingsManager.getDefaultGSettings();
+        const userValue = settings.get_user_value('icon-opacity');
         if (userValue)
             this.opacity = userValue.unpack();
         else if (Util.versionCheck(['40']))
             this.opacity = 255;
         else
-            this.opacity = this._settings.get_int('icon-opacity');
+            this.opacity = settings.get_int('icon-opacity');
     }
 
     _setSaturation() {
-        const desaturationValue = this._settings.get_double('icon-saturation');
+        const settings = SettingsManager.getDefaultGSettings();
+        const desaturationValue = settings.get_double('icon-saturation');
         let desaturateEffect = this.get_effect('desaturate');
 
         if (desaturationValue > 0) {
@@ -809,8 +811,9 @@ class AppIndicatorsIconActor extends St.Icon {
     }
 
     _setBrightnessContrast() {
-        const brightnessValue = this._settings.get_double('icon-brightness');
-        const contrastValue = this._settings.get_double('icon-contrast');
+        const settings = SettingsManager.getDefaultGSettings();
+        const brightnessValue = settings.get_double('icon-brightness');
+        const contrastValue = settings.get_double('icon-contrast');
         let brightnessContrastEffect = this.get_effect('brightness-contrast');
 
         if (brightnessValue !== 0 | contrastValue !== 0) {
@@ -826,7 +829,8 @@ class AppIndicatorsIconActor extends St.Icon {
     }
 
     _setIconSize() {
-        const sizeValue = this._settings.get_int('icon-size');
+        const settings = SettingsManager.getDefaultGSettings();
+        const sizeValue = settings.get_int('icon-size');
         if (sizeValue > 0) {
             if (!this._defaultIconSize)
                 this._defaultIconSize = this._iconSize;
