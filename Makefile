@@ -5,7 +5,7 @@ SHELL := /usr/bin/env bash
 
 # files that go into the zip
 ZIP= $(wildcard *.js) metadata.json $(wildcard interfaces-xml/*) \
-     $(wildcard locale/*/*/*.mo) $(wildcard schemas/*)
+     $(wildcard locale/*/*/*.mo) $(wildcard schemas/*.xml)
 
 PO_FILES = $(wildcard locale/*.po)
 GETTEXT_DOMAIN = 'AppIndicatorExtension'
