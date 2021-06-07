@@ -183,6 +183,8 @@ var AppIndicator = class AppIndicatorsAppIndicator {
             this._addExtraProperty('XAyatanaLabel');
             this._addExtraProperty('XAyatanaLabelGuide');
             this._addExtraProperty('XAyatanaOrderingIndex');
+            this._addExtraProperty('IconAccessibleDesc');
+            this._addExtraProperty('AttentionAccessibleDesc');
         }
     }
 
@@ -198,7 +200,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         if (!prop)
             return;
 
-        [prop, `${prop}Name`, `${prop}Pixmap`].filter(p =>
+        [prop, `${prop}Name`, `${prop}Pixmap`, `${prop}AccessibleDesc`].filter(p =>
             this._proxyPropertyList.includes(p)).forEach(p =>
             Util.refreshPropertyOnProxy(this._proxy, p, {
                 skipEqualityCheck: p.endsWith('Pixmap'),
@@ -242,6 +244,13 @@ var AppIndicator = class AppIndicatorsAppIndicator {
 
     get label() {
         return this._proxy.XAyatanaLabel;
+    }
+
+    get accessibleName() {
+        const accessibleDesc = this.status === SNIStatus.NEEDS_ATTENTION
+            ? this._proxy.AccessibleDesc : this._proxy.IconAccessibleDesc;
+
+        return accessibleDesc || this.title;
     }
 
     get menuPath() {
@@ -317,10 +326,16 @@ var AppIndicator = class AppIndicatorsAppIndicator {
                     signalsToEmit.add('menu');
             }
 
+            if (property === 'IconAccessibleDesc' ||
+                property === 'AttentionAccessibleDesc' ||
+                property === 'Title')
+                signalsToEmit.add('accessible-name');
+
             // status updates may cause the indicator to be hidden
             if (property === 'Status') {
                 signalsToEmit.add('icon');
                 signalsToEmit.add('status');
+                signalsToEmit.add('accessible-name');
             }
         });
 
