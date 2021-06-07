@@ -32,11 +32,40 @@ const DBusMenu = Extension.imports.dbusMenu;
 const Util = Extension.imports.util;
 const SettingsManager = Extension.imports.settingsManager;
 
+const BaseStatusIcon = GObject.registerClass(
+class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
+    _init(menuAlignment, nameText) {
+        super._init(menuAlignment, nameText);
+
+        const settings = SettingsManager.getDefaultGSettings();
+        Util.connectSmart(settings, 'changed::icon-opacity', this, this._updateOpacity);
+        this.connect('notify::hover', () => this._updateOpacity());
+
+        this._updateOpacity();
+    }
+
+    _updateOpacity() {
+        if (this.hover) {
+            this.opacity = 255;
+            return;
+        }
+
+        const settings = SettingsManager.getDefaultGSettings();
+        const userValue = settings.get_user_value('icon-opacity');
+        if (userValue)
+            this.opacity = userValue.unpack();
+        else if (Util.versionCheck(['40']))
+            this.opacity = 255;
+        else
+            this.opacity = settings.get_int('icon-opacity');
+    }
+});
+
 /*
  * IndicatorStatusIcon implements an icon in the system status area
  */
 var IndicatorStatusIcon = GObject.registerClass(
-class AppIndicatorsIndicatorStatusIcon extends PanelMenu.Button {
+class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
     _init(indicator) {
         super._init(0.5, indicator.accessibleName);
         this._indicator = indicator;
@@ -162,7 +191,7 @@ class AppIndicatorsIndicatorStatusIcon extends PanelMenu.Button {
 });
 
 var IndicatorStatusTrayIcon = GObject.registerClass(
-class AppIndicatorsIndicatorTrayIcon extends PanelMenu.Button {
+class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
     _init(icon) {
         const uniqueId = `legacyUniqueId:${icon.wm_class}:${icon.pid}`;
         Util.Logger.debug(`Adding legacy tray icon ${uniqueId}`);

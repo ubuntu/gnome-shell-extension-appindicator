@@ -410,7 +410,6 @@ class AppIndicatorsIconActor extends St.Icon {
         Util.connectSmart(this._indicator, 'reset', this, this._invalidateIcon);
 
         const settings = SettingsManager.getDefaultGSettings();
-        Util.connectSmart(settings, 'changed::icon-opacity', this, this._updateOpacity);
         Util.connectSmart(settings, 'changed::icon-saturation', this, this._updateSaturation);
         Util.connectSmart(settings, 'changed::icon-brightness', this, this._updateBrightnessContrast);
         Util.connectSmart(settings, 'changed::icon-contrast', this, this._updateBrightnessContrast);
@@ -430,13 +429,10 @@ class AppIndicatorsIconActor extends St.Icon {
         Util.connectSmart(Gtk.IconTheme.get_default(), 'changed', this, this._invalidateIcon);
 
         this.connect('notify::hover', () => {
-            if (this.hover) {
-                this.opacity = 255;
+            if (this.hover)
                 this.remove_effect_by_name('desaturate');
-            } else {
-                this._updateOpacity();
+            else
                 this._updateSaturation();
-            }
         });
 
         if (indicator.isReady)
