@@ -1,6 +1,7 @@
 # simple helper makefile, handles schema compilation, translations and zip file creation
 
 .PHONY= zip-file clean
+SHELL := /usr/bin/env bash
 
 # files that go into the zip
 ZIP= $(wildcard *.js) metadata.json $(wildcard interfaces-xml/*) \
@@ -26,7 +27,7 @@ check:
 translations: $(PO_FILES)
 	@echo +++ Processing translations
 	@for pofile in $^; do \
-		msgfmt "$$pofile" -o `echo $$pofile | sed 's/po$$/mo/'`; \
+		msgfmt "$$pofile" -o "$${pofile/.po/.mo}"; \
 	done
 
 clean:
