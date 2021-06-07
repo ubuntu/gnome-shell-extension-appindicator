@@ -283,10 +283,12 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
         super._init(0.5, icon.wm_class, icon);
         Util.Logger.debug(`Adding legacy tray icon ${this.uniqueId}`);
         this._box = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
-        this._box.add_style_class_name('appindicator-box');
+        this._box.add_style_class_name('appindicator-trayicons-box');
         this.add_child(this._box);
 
         this._box.add_child(this._icon);
+        this.add_style_class_name('appindicator-icon');
+        this.add_style_class_name('tray-icon');
 
         this._icon.reactive = true;
         Util.connectSmart(this._icon, 'button-release-event', this, (_actor, event) => {

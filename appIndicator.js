@@ -392,6 +392,7 @@ class AppIndicatorsIconActor extends St.Icon {
 
         this.name = this.constructor.name;
         this.add_style_class_name('appindicator-icon');
+        this.add_style_class_name('status-notifier-icon');
         this.set_style('padding:0');
 
         // eslint-disable-next-line no-undef
