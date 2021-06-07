@@ -39,9 +39,11 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
 
         const settings = SettingsManager.getDefaultGSettings();
         Util.connectSmart(settings, 'changed::icon-opacity', this, this._updateOpacity);
+        Util.connectSmart(settings, 'changed::tray-pos', this, this._showIfReady);
         this.connect('notify::hover', () => this._onHoverChanged());
 
         this._setIconActor(iconActor);
+        this._showIfReady();
     }
 
     _setIconActor(icon) {
@@ -59,6 +61,24 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
 
         this._icon = icon;
         this._updateEffects();
+    }
+
+    isReady() {
+        throw new GObject.NotImplementedError('isReady() in %s'.format(this.constructor.name));
+    }
+
+    get uniqueId() {
+        throw new GObject.NotImplementedError('uniqueId in %s'.format(this.constructor.name));
+    }
+
+    _showIfReady() {
+        if (!this.isReady())
+            return;
+
+        const indicatorId = `appindicator-${this.uniqueId}`;
+        Main.panel.statusArea[indicatorId] = null;
+        Main.panel.addToStatusArea(indicatorId, this, 1,
+            SettingsManager.getDefaultGSettings().get_string('tray-pos'));
     }
 
     _onHoverChanged() {
@@ -142,7 +162,7 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
 
         this._box.add_child(this._icon);
 
-        Util.connectSmart(this._indicator, 'ready', this, this._display);
+        Util.connectSmart(this._indicator, 'ready', this, this._showIfReady);
         Util.connectSmart(this._indicator, 'menu', this, this._updateMenu);
         Util.connectSmart(this._indicator, 'label', this, this._updateLabel);
         Util.connectSmart(this._indicator, 'status', this, this._updateStatus);
@@ -152,8 +172,6 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
         });
         Util.connectSmart(this._indicator, 'accessible-name', this, () =>
             this.set_accessible_name(this._indicator.accessibleName));
-        Util.connectSmart(SettingsManager.getDefaultGSettings(), 'changed::tray-pos',
-            this, this._display);
 
         this.connect('destroy', () => {
             if (this._menuClient) {
@@ -162,8 +180,15 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
             }
         });
 
-        if (this._indicator.isReady)
-            this._display();
+        this._showIfReady();
+    }
+
+    get uniqueId() {
+        return this._indicator.uniqueId;
+    }
+
+    isReady() {
+        return this._indicator && this._indicator.isReady;
     }
 
     _updateLabel() {
@@ -208,15 +233,15 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
         }
     }
 
-    _display() {
+    _showIfReady() {
+        if (!this.isReady())
+            return;
+
         this._updateLabel();
         this._updateStatus();
         this._updateMenu();
 
-        const indicatorId = `appindicator-${this._indicator.uniqueId}`;
-        Main.panel.statusArea[indicatorId] = null;
-        Main.panel.addToStatusArea(indicatorId, this, 1,
-            SettingsManager.getDefaultGSettings().get_string('tray-pos'));
+        super._showIfReady();
     }
 
     vfunc_button_press_event(buttonEvent) {
@@ -255,9 +280,8 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
 var IndicatorStatusTrayIcon = GObject.registerClass(
 class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
     _init(icon) {
-        const uniqueId = `legacyUniqueId:${icon.wm_class}:${icon.pid}`;
-        Util.Logger.debug(`Adding legacy tray icon ${uniqueId}`);
         super._init(0.5, icon.wm_class, icon);
+        Util.Logger.debug(`Adding legacy tray icon ${this.uniqueId}`);
         this._box = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
         this._box.add_style_class_name('appindicator-box');
         this.add_child(this._box);
@@ -278,9 +302,6 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
         const settings = SettingsManager.getDefaultGSettings();
         Util.connectSmart(settings, 'changed::icon-size', this, this._updateIconSize);
 
-        Main.panel.addToStatusArea(`appindicator-${uniqueId}`, this, 1,
-            settings.get_string('tray-pos'));
-
         // eslint-disable-next-line no-undef
         const themeContext = St.ThemeContext.get_for_stage(global.stage);
         Util.connectSmart(themeContext, 'notify::scale-factor', this, () =>
@@ -289,10 +310,18 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
         this._updateIconSize();
 
         this.connect('destroy', () => {
+            Util.Logger.debug(`Destroying legacy tray icon ${this.uniqueId}`);
             this._icon.destroy();
             this._icon = null;
-            Util.Logger.debug(`Destroying legacy tray icon ${uniqueId}`);
         });
+    }
+
+    isReady() {
+        return !!this._icon;
+    }
+
+    get uniqueId() {
+        return `legacy:${this._icon.wm_class}:${this._icon.pid}`;
     }
 
     _updateIconSize() {
