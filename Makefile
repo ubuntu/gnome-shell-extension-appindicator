@@ -17,6 +17,7 @@ zip-file: $(ZIP) translations
 	@mkdir -p build
 	@rm -f build/appindicator-support.zip
 	@zip build/appindicator-support.zip $(ZIP) locale/*/*/*.mo
+	$(MAKE) clean-translations
 
 compile-schema: ./schemas/org.gnome.shell.extensions.appindicator.gschema.xml
 	@echo +++ Compiling schema
@@ -33,8 +34,10 @@ translations: $(PO_FILES)
 		msgfmt "$$pofile" -o "$$localedir/"$(GETTEXT_DOMAIN).mo; \
 	done
 
-clean:
+clean-translations:
+	rm -rf ls -d locale/*/
+
+clean: clean-translations
 	@echo +++ Removing all generated files
 	rm -rf build
-	rm -rf ls -d locale/*/
 	rm -f schemas/*.compiled
