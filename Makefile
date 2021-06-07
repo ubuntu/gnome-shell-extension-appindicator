@@ -5,17 +5,18 @@ SHELL := /usr/bin/env bash
 
 # files that go into the zip
 ZIP= $(wildcard *.js) metadata.json $(wildcard interfaces-xml/*) \
-     $(wildcard locale/*) $(wildcard schemas/*)
+     $(wildcard locale/*/*/*.mo) $(wildcard schemas/*)
 
-PO_FILES= $(wildcard locale/*/LC_MESSAGES/*.po)
+PO_FILES = $(wildcard locale/*.po)
+GETTEXT_DOMAIN = 'AppIndicatorExtension'
 
-all: zip-file
+all: compile-schema translations
 
-zip-file: $(ZIP) compile-schema translations
+zip-file: $(ZIP) translations
 	@echo +++ Packing archive
 	@mkdir -p build
 	@rm -f build/appindicator-support.zip
-	@zip build/appindicator-support.zip $(ZIP)
+	@zip build/appindicator-support.zip $(ZIP) locale/*/*/*.mo
 
 compile-schema: ./schemas/org.gnome.shell.extensions.appindicator.gschema.xml
 	@echo +++ Compiling schema
@@ -27,11 +28,13 @@ check:
 translations: $(PO_FILES)
 	@echo +++ Processing translations
 	@for pofile in $^; do \
-		msgfmt "$$pofile" -o "$${pofile/.po/.mo}"; \
+		localedir="$${pofile/.po}/LC_MESSAGES/"; \
+		mkdir -p $$localedir; \
+		msgfmt "$$pofile" -o "$$localedir/"$(GETTEXT_DOMAIN).mo; \
 	done
 
 clean:
 	@echo +++ Removing all generated files
 	rm -rf build
-	rm -f locale/**/LC_MESSAGES/*.mo
+	rm -rf ls -d locale/*/
 	rm -f schemas/*.compiled
