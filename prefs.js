@@ -16,16 +16,11 @@ function init() {
     Convenience.initTranslations();
 }
 
-const AppIndicator = new GObject.Class({
-    Name: 'AppIndicator',
-    Extends: Gtk.Grid,
-
-    _init(params) {
-
-        this.parent(params);
+const AppIndicatorPreferences = GObject.registerClass(
+class AppIndicatorPreferences extends Gtk.Grid {
+    _init() {
+        super._init({ row_spacing: 10 });
         this.margin = 24;
-        this.spacing = 30;
-        this.row_spacing = 10;
         this._settings = Convenience.getSettings();
 
         let label = null;
@@ -129,13 +124,23 @@ const AppIndicator = new GObject.Class({
         this._settings.bind('tray-pos', widget, 'active-id', Gio.SettingsBindFlags.DEFAULT);
         this.attach(label, 0, 7, 1, 1);
         this.attach(widget, 1, 7, 1, 1);
-    },
+    }
 
+    set margin(value) {
+        this.set({
+            margin_start: value,
+            margin_end: value,
+            margin_top: value,
+            margin_bottom: value,
+        });
+    }
 });
 
 function buildPrefsWidget() {
-    let widget = new AppIndicator();
-    widget.show_all();
+    let widget = new AppIndicatorPreferences();
+
+    if (widget.show_all)
+        widget.show_all();
 
     return widget;
 }
