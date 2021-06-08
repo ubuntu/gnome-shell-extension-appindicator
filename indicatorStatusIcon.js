@@ -34,8 +34,8 @@ const SettingsManager = Extension.imports.settingsManager;
 
 const BaseStatusIcon = GObject.registerClass(
 class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
-    _init(menuAlignment, nameText, iconActor) {
-        super._init(menuAlignment, nameText);
+    _init(menuAlignment, nameText, iconActor, dontCreateMenu) {
+        super._init(menuAlignment, nameText, dontCreateMenu);
 
         const settings = SettingsManager.getDefaultGSettings();
         Util.connectSmart(settings, 'changed::icon-opacity', this, this._updateOpacity);
@@ -280,7 +280,7 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
 var IndicatorStatusTrayIcon = GObject.registerClass(
 class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
     _init(icon) {
-        super._init(0.5, icon.wm_class, icon);
+        super._init(0.5, icon.wm_class, icon, { dontCreateMenu: true });
         Util.Logger.debug(`Adding legacy tray icon ${this.uniqueId}`);
         this._box = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
         this._box.add_style_class_name('appindicator-trayicons-box');
