@@ -17,7 +17,6 @@
 /* exported SettingsManager, getDefault, getDefaultGSettings */
 
 const ExtensionUtils = imports.misc.extensionUtils;
-const Extension = ExtensionUtils.getCurrentExtension();
 
 let settingsManager;
 
@@ -36,8 +35,7 @@ class SettingsManager {
         if (settingsManager)
             throw new Error('SettingsManager is already constructed');
 
-        const Convenience = Extension.imports.convenience;
-        this._gsettings = Convenience.getSettings();
+        this._gsettings = ExtensionUtils.getSettings();
     }
 }
 

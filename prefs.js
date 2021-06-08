@@ -8,15 +8,11 @@ const Gio = imports.gi.Gio;
 
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
-const Convenience = Me.imports.convenience;
 const Gettext = imports.gettext.domain(Me.metadata['gettext-domain']);
 const _ = Gettext.gettext;
 
 function init() {
-    if (ExtensionUtils.initTranslations)
-        ExtensionUtils.initTranslations();
-    else
-        Convenience.initTranslations();
+    ExtensionUtils.initTranslations();
 }
 
 const AppIndicatorPreferences = GObject.registerClass(
@@ -24,7 +20,7 @@ class AppIndicatorPreferences extends Gtk.Grid {
     _init() {
         super._init({ row_spacing: 10 });
         this.margin = 24;
-        this._settings = Convenience.getSettings();
+        this._settings = ExtensionUtils.getSettings();
 
         let label = null;
         let widget = null;
