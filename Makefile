@@ -5,23 +5,26 @@ SHELL := /usr/bin/env bash
 
 # files that go into the zip
 ZIP= $(wildcard *.js) metadata.json $(wildcard interfaces-xml/*) \
-     $(wildcard locale/*/*/*.mo) $(wildcard schemas/*.xml)
+     $(wildcard locale/*/*/*.mo) $(wildcard schemas/*.xml) \
+     schemas/gschemas.compiled
 
 PO_FILES = $(wildcard locale/*.po)
 GETTEXT_DOMAIN = 'AppIndicatorExtension'
 
 all: compile-schema translations
 
-zip-file: $(ZIP) translations
+zip-file: $(ZIP) compile-schema translations
 	@echo +++ Packing archive
 	@mkdir -p build
 	@rm -f build/appindicator-support.zip
 	@zip build/appindicator-support.zip $(ZIP) locale/*/*/*.mo
-	$(MAKE) clean-translations
+	$(MAKE) clean-translations clean-gschemas
 
 compile-schema: ./schemas/org.gnome.shell.extensions.appindicator.gschema.xml
 	@echo +++ Compiling schema
 	@glib-compile-schemas schemas
+
+schemas/gschemas.compiled: compile-schema
 
 check:
 	eslint $(shell find -name '*.js')
@@ -37,7 +40,9 @@ translations: $(PO_FILES)
 clean-translations:
 	rm -rf ls -d locale/*/
 
-clean: clean-translations
+clean-gschemas:
+	rm -f schemas/gschemas.compiled
+
+clean: clean-translations clean-gschemas
 	@echo +++ Removing all generated files
 	rm -rf build
-	rm -f schemas/*.compiled
