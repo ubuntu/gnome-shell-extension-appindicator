@@ -9,7 +9,7 @@
     "gettext-domain": "AppIndicatorExtension",
     "settings-schema": "org.gnome.shell.extensions.appindicator",
     "uuid": "appindicatorsupport@rgcjonas.gmail.com",
-    "name": "KStatusNotifierItem/AppIndicator Support",
-    "description": "Adds KStatusNotifierItem support to the Shell",
+    "name": "AppIndicator and KStatusNotifierItem Support",
+    "description": "Adds AppIndicator, KStatusNotifierItem and legacy Tray icons support to the Shell",
     "url": "https://github.com/ubuntu/gnome-shell-extension-appindicator"
 }
