@@ -401,6 +401,7 @@ class AppIndicatorsIconActor extends St.Icon {
         this.height = iconSize * themeContext.scale_factor;
 
         this._indicator     = indicator;
+        this._customIcons   = new Map();
         this._iconSize      = iconSize;
         this._iconCache     = new IconCache.IconCache();
         this._cancellable   = new Gio.Cancellable();
@@ -412,6 +413,10 @@ class AppIndicatorsIconActor extends St.Icon {
 
         const settings = SettingsManager.getDefaultGSettings();
         Util.connectSmart(settings, 'changed::icon-size', this, this._invalidateIcon);
+        Util.connectSmart(settings, 'changed::custom-icons', this, () => {
+            this._updateCustomIcons();
+            this._invalidateIcon();
+        });
 
         Util.connectSmart(themeContext, 'notify::scale-factor', this, tc => {
             this.height = iconSize * tc.scale_factor;
@@ -420,13 +425,16 @@ class AppIndicatorsIconActor extends St.Icon {
 
         Util.connectSmart(this._indicator, 'ready', this, () => {
             this._updateIconClass();
+            this._updateCustomIcons();
             this._invalidateIcon();
         });
 
         Util.connectSmart(Util.getDefaultTheme(), 'changed', this, this._invalidateIcon);
 
-        if (indicator.isReady)
+        if (indicator.isReady) {
+            this._updateCustomIcons();
             this._invalidateIcon();
+        }
 
         this.connect('destroy', () => {
             this._iconCache.destroy();
@@ -727,22 +735,46 @@ class AppIndicatorsIconActor extends St.Icon {
 
         const [name, pixmap, theme] = icon;
         let gicon = null;
+        const commonArgs = [theme, iconType, iconSize];
+
+        if (this._customIcons.size) {
+            let customIcon = this._customIcons.get(iconType);
+            gicon = await this._createIcon(customIcon, null, ...commonArgs);
+
+            if (!gicon) {
+                customIcon = this._customIcons.get(SNIconType.NORMAL);
+                gicon = await this._createIcon(customIcon, null, ...commonArgs);
+            }
+        } else {
+            gicon = await this._createIcon(name, pixmap, ...commonArgs);
+        }
+
         try {
-            if (name && name.length) {
-                gicon = await this._cacheOrCreateIconByName(iconSize, name, theme);
-                if (!gicon && pixmap)
-                    gicon = await this._createIconFromPixmap(iconSize, pixmap, iconType);
-            } else if (pixmap) {
-                gicon = await this._createIconFromPixmap(iconSize, pixmap, iconType);
+            this._setGicon(iconType, gicon, iconSize);
+        } catch (e) {
+            logError(e, 'Setting GIcon failed');
+        }
+    }
+
+    // updates the base icon
+    async _createIcon(name, pixmap, theme, iconType, iconSize) {
+        try {
+            if (name) {
+                const gicon = await this._cacheOrCreateIconByName(iconSize, name, theme);
+                if (gicon)
+                    return gicon;
             }
 
-            this._setGicon(iconType, gicon, iconSize);
+            if (pixmap)
+                return this._createIconFromPixmap(iconSize, pixmap, iconType);
         } catch (e) {
             /* We handle the error messages already */
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED) &&
                 !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING))
                 Util.Logger.debug(`${this._indicator.id}, Impossible to load icon: ${e}`);
         }
+
+        return null;
     }
 
     // updates the base icon
@@ -799,5 +831,18 @@ class AppIndicatorsIconActor extends St.Icon {
             this._iconSize = this._defaultIconSize;
             delete this._defaultIconSize;
         }
+    }
+
+    _updateCustomIcons() {
+        const settings = SettingsManager.getDefaultGSettings();
+        this._customIcons.clear();
+
+        settings.get_value('custom-icons').deep_unpack().forEach(customIcons => {
+            const [indicatorId, normalIcon, attentionIcon] = customIcons;
+            if (this._indicator.id === indicatorId) {
+                this._customIcons.set(SNIconType.NORMAL, normalIcon);
+                this._customIcons.set(SNIconType.ATTENTION, attentionIcon);
+            }
+        });
     }
 });
