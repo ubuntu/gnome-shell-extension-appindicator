@@ -36,5 +36,10 @@
       <summary>Order in tray</summary>
       <description>Set where the Icon tray should appear among other trays</description>
     </key>
+    <key name="custom-icons" type="a(sss)">
+      <default>[]</default>
+      <summary>Custom icons</summary>
+      <description>Replace any icons with custom icons from themes</description>
+    </key>
   </schema>
 </schemalist>
