@@ -21,6 +21,7 @@ const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
 const GObject = imports.gi.GObject;
 const Gtk = imports.gi.Gtk;
+const Meta = imports.gi.Meta;
 const St = imports.gi.St;
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
@@ -422,7 +423,7 @@ class AppIndicatorsIconActor extends St.Icon {
             this._invalidateIcon();
         });
 
-        Util.connectSmart(Gtk.IconTheme.get_default(), 'changed', this, this._invalidateIcon);
+        Util.connectSmart(Util.getDefaultTheme(), 'changed', this, this._invalidateIcon);
 
         if (indicator.isReady)
             this._invalidateIcon();
@@ -555,14 +556,20 @@ class AppIndicatorsIconActor extends St.Icon {
 
             // we try to avoid messing with the default icon theme, so we'll create a new one if needed
             let iconTheme = null;
+            const defaultTheme = Util.getDefaultTheme();
             if (themePath) {
                 iconTheme = new Gtk.IconTheme();
-                Gtk.IconTheme.get_default().get_search_path().forEach(p =>
+                defaultTheme.get_search_path().forEach(p =>
                     iconTheme.append_search_path(p));
                 iconTheme.append_search_path(themePath);
-                iconTheme.set_screen(imports.gi.Gdk.Screen.get_default());
+
+                if (!Meta.is_wayland_compositor()) {
+                    const defaultScreen = imports.gi.Gdk.Screen.get_default();
+                    if (defaultScreen)
+                        iconTheme.set_screen(defaultScreen);
+                }
             } else {
-                iconTheme = Gtk.IconTheme.get_default();
+                iconTheme = defaultTheme;
             }
             if (iconTheme) {
                 // try to look up the icon in the icon theme

@@ -16,7 +16,7 @@
 
 /* exported refreshPropertyOnProxy, getUniqueBusName, getBusNames,
    introspectBusObject, dbusNodeImplementsInterfaces, waitForStartupCompletion,
-   connectSmart, versionCheck, BUS_ADDRESS_REGEX */
+   connectSmart, versionCheck, getDefaultTheme, BUS_ADDRESS_REGEX */
 
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
@@ -25,6 +25,7 @@ const Gdk = imports.gi.Gdk;
 const Main = imports.ui.main;
 const Meta = imports.gi.Meta;
 const GObject = imports.gi.GObject;
+const St = imports.gi.St;
 
 const Config = imports.misc.config;
 const ExtensionUtils = imports.misc.extensionUtils;
@@ -272,6 +273,18 @@ function connectSmart(...args) {
         return connectSmart4A(...args);
     else
         return connectSmart3A(...args);
+}
+
+function getDefaultTheme() {
+    if (Gdk.Screen.get_default()) {
+        const defaultTheme = Gtk.IconTheme.get_default();
+        if (defaultTheme)
+            return defaultTheme;
+    }
+
+    const defaultTheme = new Gtk.IconTheme();
+    defaultTheme.set_custom_theme(St.Settings.get().gtk_icon_theme);
+    return defaultTheme;
 }
 
 // eslint-disable-next-line valid-jsdoc
