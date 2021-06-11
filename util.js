@@ -23,6 +23,7 @@ const GLib = imports.gi.GLib;
 const Gtk = imports.gi.Gtk;
 const Gdk = imports.gi.Gdk;
 const Main = imports.ui.main;
+const Meta = imports.gi.Meta;
 const GObject = imports.gi.GObject;
 
 const Config = imports.misc.config;
@@ -282,8 +283,9 @@ async function waitForStartupCompletion(cancellable) {
     if (Main.layoutManager._startingUp)
         await Main.layoutManager.connect_once('startup-complete', cancellable);
 
-    if (Gtk.IconTheme.get_default() === null)
-        await Gdk.DisplayManager.get().connect_once('display-opened', cancellable);
+    const displayManager = Gdk.DisplayManager.get();
+    if (!Meta.is_wayland_compositor() && !displayManager.get_default_display())
+        await displayManager.connect_once('display-opened', cancellable);
 }
 
 /**
