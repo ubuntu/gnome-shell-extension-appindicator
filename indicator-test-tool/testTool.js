@@ -62,7 +62,7 @@ const ScrollType = {
             let newName = `${iconName}-${Math.floor(Math.random() * 100)}.${extension}`;
             let newFile = Gio.File.new_for_path(
                 `${GLib.dir_make_tmp('indicator-test-XXXXXX')}/${newName}`);
-            iconFile.copy(newFile, Gio.FileCopyFlagsOVERWRITE, null, null);
+            iconFile.copy(newFile, Gio.FileCopyFlags.OVERWRITE, null, null);
 
             indicator.set_icon_theme_path(newFile.get_parent().get_path());
             indicator.set_icon(newFile.get_basename());
