@@ -22,11 +22,10 @@ Normal users are recommended to get the extension from [extensions.gnome.org](ht
 Alternatively, you can check out a version from git, compile the language files, and symlink
 `~/.local/share/gnome-shell/extensions/appindicatorsupport@rgcjonas.gmail.com` to your clone:
 
-```
+```bash
 git clone https://github.com/ubuntu/gnome-shell-extension-appindicator.git
-cd gnome-shell-extension-appindicator
-make
-ln -s $PWD ~/.local/share/gnome-shell/extensions/appindicatorsupport@rgcjonas.gmail.com
+meson gnome-shell-extension-appindicator /tmp/g-s-appindicators-build
+ninja -C /tmp/g-s-appindicators-build install
 gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com
 ```
 
@@ -55,8 +54,8 @@ This section serves as reminder for the current maintainer and as instruction se
 * The maintainer decides when to release a new version.
 * Versions are tagged (and signed). Version numbers sould be kept in sync with the versions submitted to `extensions.gnome.org`.
   This implies that version numbers are integers which will be incremented with each release.
-* The maintainer will tag a new version and generate a zip file using `make`.
+* The maintainer will tag a new version, update the meson version and generate a zip file using `ninja -C <build-dir> zip-file`.
 * The zip file will be tested to ensure that nothing was missed when packaging it.
 * Only if it passed, it is uploaded to `extensions.gnome.org` and the tag is pushed.
 
-This release process has been in place since v9.
+This release process has been in place since v41.
