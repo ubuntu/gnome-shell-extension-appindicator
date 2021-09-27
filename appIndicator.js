@@ -100,7 +100,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         try {
             await this._proxy.init_async(GLib.PRIORITY_DEFAULT, this._cancellable);
             this._checkIfReady();
-            this._checkMenuReady();
+            this._checkNeededProperties();
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 Util.Logger.warn(`While initalizing proxy for ${this._uniqueId}: ${e}`);
@@ -111,7 +111,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         let wasReady = this.isReady;
         let isReady = false;
 
-        if (this.hasNameOwner && this.menuPath)
+        if (this.hasNameOwner && this.id && this.menuPath)
             isReady = true;
 
         this.isReady = isReady;
@@ -130,8 +130,8 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         return false;
     }
 
-    async _checkMenuReady() {
-        if (this.menuPath)
+    async _checkNeededProperties() {
+        if (this.id && this.menuPath)
             return true;
 
         const cancellable = this._cancellable;
@@ -140,17 +140,18 @@ var AppIndicator = class AppIndicatorsAppIndicator {
                 GLib.PRIORITY_DEFAULT_IDLE, cancellable);
             // eslint-disable-next-line no-await-in-loop
             await this._delayCheck;
+            Util.refreshPropertyOnProxy(this._proxy, 'Id');
             Util.refreshPropertyOnProxy(this._proxy, 'Menu');
         }
 
-        return !!this.menuPath;
+        return this.id && this.menuPath;
     }
 
     _nameOwnerChanged() {
         if (!this.hasNameOwner)
             this._checkIfReady();
         else
-            this._checkMenuReady();
+            this._checkNeededProperties();
 
         this.emit('name-owner-changed');
     }
@@ -300,12 +301,13 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         props.forEach(property => {
             // some property changes require updates on our part,
             // a few need to be passed down to the displaying code
+            if (property === 'Id')
+                this._checkIfReady();
 
             // all these can mean that the icon has to be changed
             if (property.startsWith('Icon') ||
                 property.startsWith('AttentionIcon'))
                 signalsToEmit.add('icon');
-
 
             // same for overlays
             if (property.startsWith('OverlayIcon'))
