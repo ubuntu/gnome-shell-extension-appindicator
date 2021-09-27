@@ -2,13 +2,30 @@
 
 /* exported init, buildPrefsWidget */
 
+const Gio = imports.gi.Gio;
+
+try {
+    // eslint-disable-next-line no-unused-expressions
+    imports.misc.extensionUtils;
+} catch (e) {
+    const resource = Gio.Resource.load(
+        '/usr/share/gnome-shell/org.gnome.Extensions.src.gresource');
+    resource._register();
+    imports.searchPath.push('resource:///org/gnome/Extensions/js');
+
+    const { GLib } = imports.gi;
+    const gtkVersion = GLib.getenv('FORCE_GTK_VERSION') || '4.0';
+    imports.gi.versions.Gtk = gtkVersion;
+    imports.gi.versions.Gdk = gtkVersion;
+}
+
 const GObject = imports.gi.GObject;
 const Gtk = imports.gi.Gtk;
-const Gio = imports.gi.Gio;
 
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
-const Gettext = imports.gettext.domain(Me.metadata['gettext-domain']);
+const Gettext = imports.gettext.domain(
+    Me ? Me.metadata['gettext-domain'] : 'AppIndicatorExtension');
 const _ = Gettext.gettext;
 
 function init() {
@@ -20,7 +37,8 @@ class AppIndicatorPreferences extends Gtk.Grid {
     _init() {
         super._init({ row_spacing: 10 });
         this.margin = 24;
-        this._settings = ExtensionUtils.getSettings();
+        this._settings = Me ? ExtensionUtils.getSettings()
+            : new Gio.Settings({ schema_id: 'org.gnome.shell.extensions.appindicator' });
 
         let label = null;
         let widget = null;
@@ -142,4 +160,23 @@ function buildPrefsWidget() {
         widget.show_all();
 
     return widget;
+}
+
+if (!Me) {
+    const { GLib } = imports.gi;
+    GLib.setenv('GSETTINGS_SCHEMA_DIR', './schemas', true);
+    Gtk.init(null);
+
+    const loop = GLib.MainLoop.new(null, false);
+    const win = new Gtk.Window();
+    if (win.set_child) {
+        win.set_child(buildPrefsWidget());
+        win.connect('close-request', () => loop.quit());
+    } else {
+        win.add(buildPrefsWidget());
+        win.connect('delete-event', () => loop.quit());
+    }
+    win.present();
+
+    loop.run();
 }
