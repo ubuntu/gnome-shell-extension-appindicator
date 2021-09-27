@@ -7,8 +7,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: TopIcons-Plus\n"
-"Report-Msgid-Bugs-To: https://github.com/phocean/TopIcons-plus/issues\n"
-"POT-Creation-Date: 2017-08-27 21:59+0200\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-09-27 20:43+0200\n"
 "PO-Revision-Date: 2019-04-17 23:02-0300\n"
 "Last-Translator: Rafael Fontenelle <rafaelff@gnome.org>\n"
 "Language-Team: Brazilian Portuguese <gnome-pt_br-list@gnome.org>\n"
@@ -19,46 +19,121 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n > 1)\n"
 "X-Generator: Gtranslator 3.32.0\n"
 
-#: prefs.js:60
+#: prefs.js:67
 msgid "Opacity (min: 0, max: 255)"
 msgstr "Opacidade (mín: 0, máx: 255)"
 
-#: prefs.js:78
+#: prefs.js:95
 msgid "Desaturation (min: 0.0, max: 1.0)"
 msgstr "Dessaturação (mín: 0.0, máx: 1.0)"
 
-#: prefs.js:96
+#: prefs.js:123
 msgid "Brightness (min: -1.0, max: 1.0)"
 msgstr "Brilho (mín: -1.0, máx: 1.0)"
 
-#: prefs.js:114
+#: prefs.js:151
 msgid "Contrast (min: -1.0, max: 1.0)"
 msgstr "Contraste (mín: -1.0, máx: 1.0)"
 
-#: prefs.js:132
+#: prefs.js:179
 msgid "Icon size (min: 0, max: 96)"
 msgstr "Tamanho de ícones (mín: 0, máx: 96)"
 
-#: prefs.js:150
-msgid "Spacing between icons (min: 0, max: 20)"
-msgstr "Espaço entre ícones (mín: 0, máx: 20)"
-
-#: prefs.js:168
+#: prefs.js:207
 msgid "Tray horizontal alignment"
 msgstr "Alinhamento horizontal da bandeja"
 
-#: prefs.js:173
+#: prefs.js:212
 msgid "Center"
 msgstr "Centro"
 
-#: prefs.js:174
+#: prefs.js:213
 msgid "Left"
 msgstr "Esquerda"
 
-#: prefs.js:175
+#: prefs.js:214
 msgid "Right"
 msgstr "Direita"
 
-#: prefs.js:182
-msgid "Tray offset"
-msgstr "Deslocamento da bandeja"
+#: prefs.js:259
+msgid "Indicator ID"
+msgstr ""
+
+#: prefs.js:260
+msgid "Icon Name"
+msgstr ""
+
+#: prefs.js:261
+msgid "Attention Icon Name"
+msgstr ""
+
+#: prefs.js:336
+msgid "Preferences"
+msgstr ""
+
+#: prefs.js:338
+msgid "Custom Icons"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
+msgid "Saturation"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
+msgid "Brightness"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
+msgid "Contrast"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
+msgid "Opacity"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
+msgid "Icon size"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:22
+#, fuzzy
+msgid "Icon size in pixel"
+msgstr "Tamanho de ícones (mín: 0, máx: 96)"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
+msgid "Icon spacing"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:27
+msgid "Icon spacing within the tray"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
+msgid "Position in tray"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:32
+msgid "Set where the Icon tray should appear in Gnome tray"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
+msgid "Order in tray"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:37
+msgid "Set where the Icon tray should appear among other trays"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
+msgid "Custom icons"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:42
+msgid "Replace any icons with custom icons from themes"
+msgstr ""
+
+#~ msgid "Spacing between icons (min: 0, max: 20)"
+#~ msgstr "Espaço entre ícones (mín: 0, máx: 20)"
+
+#~ msgid "Tray offset"
+#~ msgstr "Deslocamento da bandeja"

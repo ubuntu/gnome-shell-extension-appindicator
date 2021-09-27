@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-08-20 12:22+0200\n"
+"POT-Creation-Date: 2021-09-27 20:43+0200\n"
 "PO-Revision-Date: 2017-09-27 06:58+0200\n"
 "Last-Translator: Falu <falu@gmx.us>\n"
 "Language-Team: \n"
@@ -17,46 +17,121 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 2.0.1\n"
 
-#: prefs.js:60
+#: prefs.js:67
 msgid "Opacity (min: 0, max: 255)"
 msgstr "Átlátszóság (min: 0, max: 255)"
 
-#: prefs.js:78
+#: prefs.js:95
 msgid "Desaturation (min: 0.0, max: 1.0)"
 msgstr "Telítetlenség (min: 0.0, max: 1.0)"
 
-#: prefs.js:96
+#: prefs.js:123
 msgid "Brightness (min: -1.0, max: 1.0)"
 msgstr "Fényesség (min: -1.0, max: 1.0)"
 
-#: prefs.js:114
+#: prefs.js:151
 msgid "Contrast (min: -1.0, max: 1.0)"
 msgstr "Kontraszt (min: -1.0, max: 1.0)"
 
-#: prefs.js:132
+#: prefs.js:179
 msgid "Icon size (min: 0, max: 96)"
 msgstr "Ikon méret (min: 0, max: 96)"
 
-#: prefs.js:150
-msgid "Spacing between icons (min: 0, max: 20)"
-msgstr "Ikonok közti távolság (min: 0, max: 20)"
-
-#: prefs.js:168
+#: prefs.js:207
 msgid "Tray horizontal alignment"
 msgstr "Tálca vízszintes illesztése"
 
-#: prefs.js:173
+#: prefs.js:212
 msgid "Center"
 msgstr "Középre"
 
-#: prefs.js:174
+#: prefs.js:213
 msgid "Left"
 msgstr "Balra"
 
-#: prefs.js:175
+#: prefs.js:214
 msgid "Right"
 msgstr "Jobbra"
 
-#: prefs.js:182
-msgid "Tray offset"
-msgstr "Tálca eltolás"
+#: prefs.js:259
+msgid "Indicator ID"
+msgstr ""
+
+#: prefs.js:260
+msgid "Icon Name"
+msgstr ""
+
+#: prefs.js:261
+msgid "Attention Icon Name"
+msgstr ""
+
+#: prefs.js:336
+msgid "Preferences"
+msgstr ""
+
+#: prefs.js:338
+msgid "Custom Icons"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
+msgid "Saturation"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
+msgid "Brightness"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
+msgid "Contrast"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
+msgid "Opacity"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
+msgid "Icon size"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:22
+#, fuzzy
+msgid "Icon size in pixel"
+msgstr "Ikon méret (min: 0, max: 96)"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
+msgid "Icon spacing"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:27
+msgid "Icon spacing within the tray"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
+msgid "Position in tray"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:32
+msgid "Set where the Icon tray should appear in Gnome tray"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
+msgid "Order in tray"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:37
+msgid "Set where the Icon tray should appear among other trays"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
+msgid "Custom icons"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:42
+msgid "Replace any icons with custom icons from themes"
+msgstr ""
+
+#~ msgid "Spacing between icons (min: 0, max: 20)"
+#~ msgstr "Ikonok közti távolság (min: 0, max: 20)"
+
+#~ msgid "Tray offset"
+#~ msgstr "Tálca eltolás"

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AppIndicatorExtension\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-14 19:31+0200\n"
+"POT-Creation-Date: 2021-09-27 20:43+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,40 +17,60 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: prefs.js:30
+#: prefs.js:67
 msgid "Opacity (min: 0, max: 255)"
 msgstr ""
 
-#: prefs.js:47
+#: prefs.js:95
 msgid "Desaturation (min: 0.0, max: 1.0)"
 msgstr ""
 
-#: prefs.js:64
+#: prefs.js:123
 msgid "Brightness (min: -1.0, max: 1.0)"
 msgstr ""
 
-#: prefs.js:81
+#: prefs.js:151
 msgid "Contrast (min: -1.0, max: 1.0)"
 msgstr ""
 
-#: prefs.js:98
+#: prefs.js:179
 msgid "Icon size (min: 0, max: 96)"
 msgstr ""
 
-#: prefs.js:115
+#: prefs.js:207
 msgid "Tray horizontal alignment"
 msgstr ""
 
-#: prefs.js:120
+#: prefs.js:212
 msgid "Center"
 msgstr ""
 
-#: prefs.js:121
+#: prefs.js:213
 msgid "Left"
 msgstr ""
 
-#: prefs.js:122
+#: prefs.js:214
 msgid "Right"
+msgstr ""
+
+#: prefs.js:259
+msgid "Indicator ID"
+msgstr ""
+
+#: prefs.js:260
+msgid "Icon Name"
+msgstr ""
+
+#: prefs.js:261
+msgid "Attention Icon Name"
+msgstr ""
+
+#: prefs.js:336
+msgid "Preferences"
+msgstr ""
+
+#: prefs.js:338
+msgid "Custom Icons"
 msgstr ""
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
@@ -99,4 +119,12 @@ msgstr ""
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:37
 msgid "Set where the Icon tray should appear among other trays"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
+msgid "Custom icons"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:42
+msgid "Replace any icons with custom icons from themes"
 msgstr ""
