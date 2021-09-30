@@ -294,6 +294,14 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
             this._icon.click(event);
             return Clutter.EVENT_PROPAGATE;
         });
+        this.connect('key-press-event', (_actor, event) => {
+            this._icon.click(event);
+            return Clutter.EVENT_PROPAGATE;
+        });
+        this.connect('key-release-event', (_actor, event) => {
+            this._icon.click(event);
+            return Clutter.EVENT_PROPAGATE;
+        });
 
         Util.connectSmart(this._icon, 'destroy', this, () => {
             icon.clear_effects();
@@ -323,6 +331,11 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
 
     get uniqueId() {
         return `legacy:${this._icon.wm_class}:${this._icon.pid}`;
+    }
+
+    vfunc_navigate_focus(from, direction) {
+        this.grab_key_focus();
+        return super.vfunc_navigate_focus(from, direction);
     }
 
     _updateIconSize() {
