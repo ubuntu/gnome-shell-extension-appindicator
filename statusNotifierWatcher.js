@@ -54,7 +54,10 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
         this._items = new Map();
 
         this._dbusImpl.emit_signal('StatusNotifierHostRegistered', null);
-        this._seekStatusNotifierItems();
+        this._seekStatusNotifierItems().catch(e => {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                logError(e, 'Looking for StatusNotifierItem\'s');
+        });
     }
 
     _acquiredName() {
