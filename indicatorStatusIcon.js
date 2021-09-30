@@ -290,12 +290,7 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
         this.add_style_class_name('appindicator-icon');
         this.add_style_class_name('tray-icon');
 
-        this._icon.reactive = true;
         this.connect('button-release-event', (_actor, event) => {
-            this._icon.click(event);
-            return Clutter.EVENT_PROPAGATE;
-        });
-        Util.connectSmart(this._icon, 'button-release-event', this, (_actor, event) => {
             this._icon.click(event);
             return Clutter.EVENT_PROPAGATE;
         });
