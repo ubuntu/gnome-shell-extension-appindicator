@@ -297,12 +297,17 @@ var AppIndicator = class AppIndicatorsAppIndicator {
     _onPropertiesChanged(_proxy, changed, _invalidated) {
         let props = Object.keys(changed.unpack());
         let signalsToEmit = new Set();
+        const checkIfReadyChanged = () => {
+            if (checkIfReadyChanged.value === undefined)
+                checkIfReadyChanged.value = this._checkIfReady();
+            return checkIfReadyChanged.value;
+        };
 
         props.forEach(property => {
             // some property changes require updates on our part,
             // a few need to be passed down to the displaying code
             if (property === 'Id')
-                this._checkIfReady();
+                checkIfReadyChanged();
 
             // all these can mean that the icon has to be changed
             if (property.startsWith('Icon') ||
@@ -324,7 +329,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
                 signalsToEmit.add('label');
 
             if (property === 'Menu') {
-                if (!this._checkIfReady() && this.isReady)
+                if (!checkIfReadyChanged() && this.isReady)
                     signalsToEmit.add('menu');
             }
 
