@@ -290,16 +290,23 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
         this.add_style_class_name('appindicator-icon');
         this.add_style_class_name('tray-icon');
 
+        this.connect('button-press-event', (_actor, _event) => {
+            this.add_style_pseudo_class('active');
+            return Clutter.EVENT_PROPAGATE;
+        });
         this.connect('button-release-event', (_actor, event) => {
             this._icon.click(event);
+            this.remove_style_pseudo_class('active');
             return Clutter.EVENT_PROPAGATE;
         });
         this.connect('key-press-event', (_actor, event) => {
+            this.add_style_pseudo_class('active');
             this._icon.click(event);
             return Clutter.EVENT_PROPAGATE;
         });
         this.connect('key-release-event', (_actor, event) => {
             this._icon.click(event);
+            this.remove_style_pseudo_class('active');
             return Clutter.EVENT_PROPAGATE;
         });
 
@@ -336,6 +343,12 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
     vfunc_navigate_focus(from, direction) {
         this.grab_key_focus();
         return super.vfunc_navigate_focus(from, direction);
+    }
+
+    vfunc_leave_event(crossingEvent) {
+        this.remove_style_pseudo_class('active');
+
+        return super.vfunc_leave_event(crossingEvent);
     }
 
     _updateIconSize() {
