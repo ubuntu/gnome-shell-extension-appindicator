@@ -61,6 +61,7 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
     }
 
     _acquiredName() {
+        this._everAcquiredName = true;
         this._watchDog.nameAcquired = true;
     }
 
