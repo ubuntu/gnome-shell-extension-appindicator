@@ -192,7 +192,6 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
         // FIXME: this is useless if the path name disappears while the bus stays alive (not unheard of)
         if (this._items.has(id))
             this._remove(id);
-
     }
 
     _remove(id) {
