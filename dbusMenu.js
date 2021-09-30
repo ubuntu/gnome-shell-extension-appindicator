@@ -517,21 +517,26 @@ const MenuItemFactory = {
 
         // initially create children
         if (shellItem instanceof PopupMenu.PopupSubMenuMenuItem) {
-            let children = dbusItem.getChildren();
-            for (let i = 0; i < children.length; ++i)
-                shellItem.menu.addMenuItem(MenuItemFactory.createItem(client, children[i]));
-
+            dbusItem.getChildren().forEach(c =>
+                shellItem.menu.addMenuItem(MenuItemFactory.createItem(client, c)));
         }
 
         // now, connect various events
-        Util.connectSmart(dbusItem, 'property-changed', shellItem, MenuItemFactory._onPropertyChanged);
-        Util.connectSmart(dbusItem, 'child-added',      shellItem, MenuItemFactory._onChildAdded);
-        Util.connectSmart(dbusItem, 'child-removed',    shellItem, MenuItemFactory._onChildRemoved);
-        Util.connectSmart(dbusItem, 'child-moved',      shellItem, MenuItemFactory._onChildMoved);
-        Util.connectSmart(shellItem, 'activate',        shellItem, MenuItemFactory._onActivate);
+        Util.connectSmart(dbusItem, 'property-changed',
+            shellItem, MenuItemFactory._onPropertyChanged);
+        Util.connectSmart(dbusItem, 'child-added',
+            shellItem, MenuItemFactory._onChildAdded);
+        Util.connectSmart(dbusItem, 'child-removed',
+            shellItem, MenuItemFactory._onChildRemoved);
+        Util.connectSmart(dbusItem, 'child-moved',
+            shellItem, MenuItemFactory._onChildMoved);
+        Util.connectSmart(shellItem, 'activate',
+            shellItem, MenuItemFactory._onActivate);
 
-        if (shellItem.menu)
-            Util.connectSmart(shellItem.menu, 'open-state-changed', shellItem,  MenuItemFactory._onOpenStateChanged);
+        if (shellItem.menu) {
+            Util.connectSmart(shellItem.menu, 'open-state-changed',
+                shellItem,  MenuItemFactory._onOpenStateChanged);
+        }
 
         return shellItem;
     },
@@ -751,8 +756,7 @@ var Client = class AppIndicatorsClient {
 
         // fill the menu for the first time
         this._rootItem.getChildren().forEach(child =>
-            this._rootMenu.addMenuItem(MenuItemFactory.createItem(this, child)),
-        );
+            this._rootMenu.addMenuItem(MenuItemFactory.createItem(this, child)));
     }
 
     _setOpenedSubmenu(submenu) {
