@@ -17,6 +17,7 @@
 /* exported IndicatorStatusIcon, IndicatorStatusTrayIcon */
 
 const Clutter = imports.gi.Clutter;
+const GLib = imports.gi.GLib;
 const GObject = imports.gi.GObject;
 const St = imports.gi.St;
 
@@ -181,6 +182,13 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
                 this._menuClient = null;
             }
         });
+
+        const settings = SettingsManager.getDefaultGSettings();
+        const iconIDs = settings.get_value('recent-icons').deep_unpack();
+        if (this._indicator.id && !iconIDs.includes(this._indicator.id)) {
+            iconIDs.push(this._indicator.id);
+            settings.set_value('recent-icons', new GLib.Variant('as', iconIDs));
+        }
 
         this._showIfReady();
     }

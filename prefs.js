@@ -48,7 +48,7 @@ class AppIndicatorPreferences extends Gtk.Box {
             margin_end: 30,
             margin_top: 30,
             margin_bottom: 30 });
-        this.custom_icons_vbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL,
+        this.custom_icons_vbox = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL,
             spacing: 10,
             margin_start: 10,
             margin_end: 10,
@@ -286,10 +286,33 @@ class AppIndicatorPreferences extends Gtk.Box {
         customTreeView.insert_column(customAttentionIconColumn, 2);
         customTreeView.set_grid_lines(Gtk.TreeViewGridLines.BOTH);
 
-        if (imports.gi.versions.Gtk === '4.0')
+        const iconIDListStore = new Gtk.ListStore();
+        iconIDListStore.set_column_types([
+            GObject.TYPE_STRING,
+        ]);
+        const iconIDs = this._settings.get_value('recent-icons').deep_unpack();
+        iconIDs.forEach(v => {
+            iconIDListStore.set(iconIDListStore.append(), [0], [v]);
+        });
+        const iconIDTreeView = new Gtk.TreeView({
+            model: iconIDListStore,
+        });
+        const iconIDTreeViewColumn = new Gtk.TreeViewColumn({
+            title: 'Recent Indicator IDs',
+        });
+        const standardCellRenderer = new Gtk.CellRendererText();
+        iconIDTreeViewColumn.pack_start(standardCellRenderer, true);
+        iconIDTreeViewColumn.add_attribute(standardCellRenderer, 'text', 0);
+        iconIDTreeView.insert_column(iconIDTreeViewColumn, 0);
+        iconIDTreeView.set_grid_lines(Gtk.TreeViewGridLines.BOTH);
+
+        if (imports.gi.versions.Gtk === '4.0') {
             this.custom_icons_vbox.append(customTreeView);
-        else
+            this.custom_icons_vbox.append(iconIDTreeView);
+        } else {
             this.custom_icons_vbox.pack_start(customTreeView, false, false, 0);
+            this.custom_icons_vbox.pack_start(iconIDTreeView, true, true, 0);
+        }
 
         cellrenderer.connect('edited', (w, path, text) => {
             this.selection = customTreeView.get_selection();

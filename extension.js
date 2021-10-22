@@ -21,6 +21,7 @@ const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const StatusNotifierWatcher = Extension.imports.statusNotifierWatcher;
 const TrayIconsManager = Extension.imports.trayIconsManager;
 const Util = Extension.imports.util;
+const SettingsManager = Extension.imports.settingsManager;
 
 let statusNotifierWatcher = null;
 let isEnabled = false;
@@ -42,6 +43,8 @@ function init() {
         watchDog.destroy();
     };
     /* eslint-enable no-undef */
+    const settings = SettingsManager.getDefaultGSettings();
+    settings.reset('recent-icons'); // clear in preparation of new collection
 }
 
 // FIXME: when entering/leaving the lock screen, the extension might be enabled/disabled rapidly.
