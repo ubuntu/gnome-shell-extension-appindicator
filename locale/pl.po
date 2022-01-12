@@ -1,0 +1,131 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the AppIndicatorExtension package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: AppIndicatorExtension\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-09-27 20:43+0200\n"
+"PO-Revision-Date: 2022-01-12 14:32+0000\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 3.0\n"
+"Last-Translator: HydeFromT70s\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
+"Language: pl\n"
+
+#: prefs.js:67
+msgid "Opacity (min: 0, max: 255)"
+msgstr "Krycie (min: 0, max: 255)"
+
+#: prefs.js:95
+msgid "Desaturation (min: 0.0, max: 1.0)"
+msgstr "Desaturacja (min: 0.0, max: 1.0)"
+
+#: prefs.js:123
+msgid "Brightness (min: -1.0, max: 1.0)"
+msgstr "Jasność (min: -1.0, max: 1.0)"
+
+#: prefs.js:151
+msgid "Contrast (min: -1.0, max: 1.0)"
+msgstr "Kontrast (min: -1.0, max: 1.0)"
+
+#: prefs.js:179
+msgid "Icon size (min: 0, max: 96)"
+msgstr "Rozmiar ikon (min: 0, max: 96)"
+
+#: prefs.js:207
+msgid "Tray horizontal alignment"
+msgstr "Wyśrodkowanie tacki systemowej"
+
+#: prefs.js:212
+msgid "Center"
+msgstr "Centralnie"
+
+#: prefs.js:213
+msgid "Left"
+msgstr "Po lewej"
+
+#: prefs.js:214
+msgid "Right"
+msgstr "Po prawej"
+
+#: prefs.js:259
+msgid "Indicator ID"
+msgstr "ID"
+
+#: prefs.js:260
+msgid "Icon Name"
+msgstr "Nazwa ikony"
+
+#: prefs.js:261
+msgid "Attention Icon Name"
+msgstr "Nazwa ikony uwagi"
+
+#: prefs.js:336
+msgid "Preferences"
+msgstr "Ustawienia"
+
+#: prefs.js:338
+msgid "Custom Icons"
+msgstr "Niestandardowe ikony"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
+msgid "Saturation"
+msgstr "Nasycenie"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
+msgid "Brightness"
+msgstr "Jasność"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
+msgid "Contrast"
+msgstr "Kontrast"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
+msgid "Opacity"
+msgstr "Krycie"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
+msgid "Icon size"
+msgstr "Rozmiar ikony"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:22
+msgid "Icon size in pixel"
+msgstr "Rozmiar ikony w pikselach"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
+msgid "Icon spacing"
+msgstr "Odstępy ikon"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:27
+msgid "Icon spacing within the tray"
+msgstr "Odstępy ikon na pasku zadań"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
+msgid "Position in tray"
+msgstr "Pozycja na pasku zadań"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:32
+msgid "Set where the Icon tray should appear in Gnome tray"
+msgstr "Ustaw, gdzie powinny pojawić się ikony na pasku zadań"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
+msgid "Order in tray"
+msgstr "Kolejność na pasku zadań"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:37
+msgid "Set where the Icon tray should appear among other trays"
+msgstr "Ustaw położenie tacki z ikonami między innymi tackami"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
+msgid "Custom icons"
+msgstr "Niestandardowe ikony"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:42
+msgid "Replace any icons with custom icons from themes"
+msgstr "Zastąp dowolne ikony niestandardowymi ikonami z motywów"
