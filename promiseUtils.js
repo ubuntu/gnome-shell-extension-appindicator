@@ -14,41 +14,58 @@ var CancellablePromise = class extends Promise {
         if (cancellable && !(cancellable instanceof Gio.Cancellable))
             throw TypeError('cancellable parameter is not a Gio.Cancellable');
 
-        const cancelled = cancellable && cancellable.is_cancelled();
-        let cancellationId;
         let rejector;
-
-        if (cancellable && !cancelled)
-            cancellationId = cancellable.connect(() => this.cancel());
-
+        let resolver;
         super((resolve, reject) => {
+            resolver = resolve;
             rejector = reject;
-            if (cancelled) {
-                reject(new GLib.Error(Gio.IOErrorEnum,
-                    Gio.IOErrorEnum.CANCELLED, 'Promise cancelled'));
-            } else if (cancellationId) {
-                rejector = (...args) => {
-                    reject(...args);
-                    // This must happen in an idle not to deadlock on ::cancelled
-                    GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () =>
-                        cancellable.disconnect(cancellationId));
-                };
-                executor((...args) => {
-                    resolve(...args);
-                    cancellable.disconnect(cancellationId);
-                }, rejector);
-            } else {
-                executor(resolve, reject);
-            }
         });
 
-        this._cancelled = cancelled;
-        this._rejector = rejector;
-        this._cancellable = cancellable || null;
+        this._resolver = (...args) => {
+            resolver(...args);
+            this._resolved = true;
+            this._cleanup();
+        };
+        this._rejector = (...args) => {
+            rejector(...args);
+            this._rejected = true;
+            this._cleanup();
+        };
+
+        if (!cancellable) {
+            executor(this._resolver, this._rejector);
+            return;
+        }
+
+        this._cancellable = cancellable;
+        this._cancelled = cancellable.is_cancelled();
+        if (this._cancelled) {
+            this._rejector(new GLib.Error(Gio.IOErrorEnum,
+                Gio.IOErrorEnum.CANCELLED, 'Promise cancelled'));
+            return;
+        }
+
+        this._cancellationId = cancellable.connect(() => {
+            const id = this._cancellationId;
+            this._cancellationId = 0;
+            GLib.idle_add(GLib.PRIORITY_DEFAULT, () => cancellable.disconnect(id));
+            this.cancel();
+        });
+
+        executor(this._resolver, this._rejector);
+    }
+
+    _cleanup() {
+        if (this._cancellationId)
+            this._cancellable.disconnect(this._cancellationId);
     }
 
     get cancellable() {
-        return this._cancellable;
+        return this._chainRoot._cancellable || null;
+    }
+
+    get _chainRoot() {
+        return this._root ? this._root : this;
     }
 
     then(...args) {
@@ -62,21 +79,25 @@ var CancellablePromise = class extends Promise {
          * the same method on the root object is called during cancellation
          * or any destruction method if you want this to work. */
         if (ret instanceof CancellablePromise)
-            ret._root = this._root || this;
+            ret._root = this._chainRoot;
 
         return ret;
     }
 
     resolved() {
-        return !this.cancelled() && !!(this._root || this)._resolved;
+        return !!this._chainRoot._resolved;
+    }
+
+    rejected() {
+        return !!this._chainRoot._rejected;
     }
 
     cancelled() {
-        return !!(this._root || this)._cancelled;
+        return !!this._chainRoot._cancelled;
     }
 
     pending() {
-        return !this.resolved() && !this.cancelled();
+        return !this.resolved() && !this.rejected();
     }
 
     cancel() {
@@ -85,10 +106,10 @@ var CancellablePromise = class extends Promise {
             return this;
         }
 
-        if (!this._rejector)
-            throw new GObject.NotImplementedError();
+        if (!this.pending())
+            return this;
 
-        this._cancelled = !this._resolved;
+        this._cancelled = true;
         this._rejector(new GLib.Error(Gio.IOErrorEnum,
             Gio.IOErrorEnum.CANCELLED, 'Promise cancelled'));
 
@@ -113,15 +134,23 @@ var SignalConnectionPromise = class extends CancellablePromise {
         let id;
         let destroyId;
         super(resolve => {
-            id = object.connect(signal, (_obj, ...args) => {
-                this._resolved = !this.cancelled();
-                this.disconnect();
-                resolve(args.length === 1 ? args[0] : args);
+            let connectSignal;
+            if (object instanceof GObject.Object)
+                connectSignal = (sig, cb) => GObject.signal_connect(object, sig, cb);
+            else
+                connectSignal = (sig, cb) => object.connect(sig, cb);
+
+            id = connectSignal(signal, (_obj, ...args) => {
+                if (!args.length)
+                    resolve();
+                else
+                    resolve(args.length === 1 ? args[0] : args);
             });
 
-            if (!(object instanceof GObject.Object) ||
-                GObject.signal_lookup('destroy', object.constructor.$gtype))
-                destroyId = object.connect('destroy', () => this.cancel());
+            if (signal !== 'destroy' &&
+                (!(object instanceof GObject.Object) ||
+                 GObject.signal_lookup('destroy', object.constructor.$gtype)))
+                destroyId = connectSignal('destroy', () => this.cancel());
         }, cancellable);
 
         this._object = object;
@@ -129,27 +158,29 @@ var SignalConnectionPromise = class extends CancellablePromise {
         this._destroyId = destroyId;
     }
 
-    disconnect() {
-        if (this._root) {
-            this._root.disconnect();
-            return this;
-        }
-
+    _cleanup() {
         if (this._id) {
-            this._object.disconnect(this._id);
+            let disconnectSignal;
+
+            if (this._object instanceof GObject.Object)
+                disconnectSignal = id => GObject.signal_handler_disconnect(this._object, id);
+            else
+                disconnectSignal = id => this._object.disconnect(id);
+
+            disconnectSignal(this._id);
             if (this._destroyId) {
-                this._object.disconnect(this._destroyId);
+                disconnectSignal(this._destroyId);
                 this._destroyId = 0;
             }
             this._object = null;
             this._id = 0;
         }
-        return this;
+
+        super._cleanup();
     }
 
-    cancel() {
-        this.disconnect();
-        return super.cancel();
+    get object() {
+        return this._chainRoot._object;
     }
 };
 
@@ -163,45 +194,39 @@ var GSourcePromise = class extends CancellablePromise {
         if (gsource.constructor.$gtype !== GLib.Source.$gtype)
             throw new TypeError(`gsource ${gsource} is not of type GLib.Source`);
 
-        if (!priority)
+        if (priority === undefined)
             priority = GLib.PRIORITY_DEFAULT;
+        else if (!Number.isInteger(priority))
+            throw TypeError('Invalid priority');
 
         super(resolve => {
+            gsource.set_priority(priority);
             gsource.set_callback(() => {
-                this._resolved = !this.cancelled();
-                this.remove();
                 resolve();
                 return GLib.SOURCE_REMOVE;
             });
-            gsource.set_name(`[gnome-shell] Source promise ${
-                new Error().stack.split('\n').filter(line =>
-                    !line.match(/promiseUtils\.js/))[0]}`);
             gsource.attach(null);
         }, cancellable);
 
         this._gsource = gsource;
+        this._gsource.set_name(`[gnome-shell] ${this.constructor.name} ${
+            new Error().stack.split('\n').filter(line =>
+                !line.match(/misc\/promiseUtils\.js/))[0]}`);
 
-        if (this.cancelled())
-            this.remove();
+        if (this.rejected())
+            this._gsource.destroy();
     }
 
-    remove() {
-        if (this._root) {
-            this._root.remove();
-            return this;
-        }
+    get gsource() {
+        return this._chainRoot._gsource;
+    }
 
+    _cleanup() {
         if (this._gsource) {
             this._gsource.destroy();
             this._gsource = null;
         }
-
-        return this;
-    }
-
-    cancel() {
-        this.remove();
-        return super.cancel();
+        super._cleanup();
     }
 };
 
@@ -214,8 +239,6 @@ var IdlePromise = class extends GSourcePromise {
 
         if (priority === undefined)
             priority = GLib.PRIORITY_DEFAULT_IDLE;
-        else if (!Number.isInteger(priority))
-            throw TypeError('Invalid priority');
 
         super(GLib.idle_source_new(), priority, cancellable);
     }
@@ -264,7 +287,6 @@ var MetaLaterPromise = class extends CancellablePromise {
         let id;
         super(resolve => {
             id = Meta.later_add(laterType, () => {
-                this._resolved = !this.cancelled();
                 this.remove();
                 resolve();
                 return GLib.SOURCE_REMOVE;
@@ -274,22 +296,12 @@ var MetaLaterPromise = class extends CancellablePromise {
         this._id = id;
     }
 
-    remove() {
-        if (this._root) {
-            this._root.remove();
-            return this;
-        }
-
+    _cleanup() {
         if (this._id) {
             Meta.later_remove(this._id);
             this._id = 0;
         }
-        return this;
-    }
-
-    cancel() {
-        this.remove();
-        return super.cancel();
+        super._cleanup();
     }
 };
 
