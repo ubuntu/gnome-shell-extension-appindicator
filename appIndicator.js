@@ -796,7 +796,7 @@ class AppIndicatorsIconActor extends St.Icon {
                     return gicon;
             }
 
-            if (pixmap)
+            if (pixmap && pixmap.length)
                 return this._createIconFromPixmap(iconSize, pixmap, iconType);
         } catch (e) {
             /* We handle the error messages already */
@@ -809,7 +809,7 @@ class AppIndicatorsIconActor extends St.Icon {
     }
 
     // updates the base icon
-    _updateIcon() {
+    async _updateIcon() {
         if (this.gicon instanceof Gio.EmblemedIcon) {
             let { gicon } = this.gicon;
 
@@ -822,10 +822,17 @@ class AppIndicatorsIconActor extends St.Icon {
             ? SNIconType.ATTENTION : SNIconType.NORMAL;
 
         this._updateIconSize();
-        this._updateIconByType(iconType, this._iconSize);
+
+        try {
+            await this._updateIconByType(iconType, this._iconSize);
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED) &&
+                !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING))
+                logError(e, `${this._indicator.id}: Updating icon type ${iconType} failed`);
+        }
     }
 
-    _updateOverlayIcon() {
+    async _updateOverlayIcon() {
         if (this._emblem) {
             let { icon } = this._emblem;
 
@@ -838,7 +845,13 @@ class AppIndicatorsIconActor extends St.Icon {
         // our algorithms will always pick a smaller one instead of stretching it.
         let iconSize = Math.floor(this._iconSize / 1.6);
 
-        this._updateIconByType(SNIconType.OVERLAY, iconSize);
+        try {
+            await this._updateIconByType(SNIconType.OVERLAY, iconSize);
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED) &&
+                !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING))
+                logError(e, `${this._indicator.id}: Updating overlay icon failed`);
+        }
     }
 
     // called when the icon theme changes
