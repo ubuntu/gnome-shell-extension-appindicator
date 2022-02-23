@@ -313,7 +313,14 @@ _promisifySignals(GObject.Object.prototype);
 var _promisify = Gio._promisify;
 if (imports.system.version < 16501) {
     /* This is backported from upstream gjs, so that all the features are available */
-    _promisify = function (proto, asyncFunc, finishFunc) {
+    _promisify = function (proto, asyncFunc,
+        finishFunc = `${asyncFunc.replace(/_(begin|async)$/, '')}_finish`) {
+        if (proto[asyncFunc] === undefined)
+            throw new Error(`${proto} has no method named ${asyncFunc}`);
+
+        if (proto[finishFunc] === undefined)
+            throw new Error(`${proto} has no method named ${finishFunc}`);
+
         if (proto[`_original_${asyncFunc}`] !== undefined)
             return;
         proto[`_original_${asyncFunc}`] = proto[asyncFunc];
