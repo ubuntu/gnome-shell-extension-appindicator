@@ -366,16 +366,16 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         delete this._nameWatcher;
     }
 
-    open() {
+    open(x, y) {
         // we can't use WindowID because we're not able to get the x11 window id from a MetaWindow
         // nor can we call any X11 functions. Luckily, the Activate method usually works fine.
         // parameters are "an hint to the item where to show eventual windows" [sic]
         // ... and don't seem to have any effect.
-        this._proxy.ActivateRemote(0, 0);
+        this._proxy.ActivateRemote(x, y);
     }
 
-    secondaryActivate() {
-        this._proxy.SecondaryActivateRemote(0, 0);
+    secondaryActivate(x, y) {
+        this._proxy.SecondaryActivateRemote(x, y);
     }
 
     scroll(dx, dy) {
