@@ -113,7 +113,12 @@ var IconCache = class AppIndicatorsIconCache {
             Util.Logger.debug('IconCache: garbage collector started');
             this._gcTimeout = new PromiseUtils.TimeoutSecondsPromise(GC_INTERVAL,
                 GLib.PRIORITY_LOW);
-            await this._gcTimeout;
+            try {
+                await this._gcTimeout;
+            } catch (e) {
+                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                    logError(e, 'IconCache: garbage collector');
+            }
         } else if (cacheIsEmpty && this._gcTimeout) {
             Util.Logger.debug('IconCache: garbage collector stopped');
             this._gcTimeout.cancel();
