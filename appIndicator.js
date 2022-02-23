@@ -371,24 +371,43 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         // nor can we call any X11 functions. Luckily, the Activate method usually works fine.
         // parameters are "an hint to the item where to show eventual windows" [sic]
         // ... and don't seem to have any effect.
-        this._proxy.ActivateRemote(x, y);
+        this._proxy.ActivateRemote(x, y, this._cancellable, (_, e) => {
+            if (e && !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                Util.Logger.critical(`${this._indicator.id}, failed to activate: ${e.message}`);
+        });
     }
 
     secondaryActivate(timestamp, x, y) {
-        this._proxy.XAyatanaSecondaryActivateRemote(timestamp, (_, e) => {
-            if (e && e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD))
-                this._proxy.SecondaryActivateRemote(x, y);
-            else if (e)
-                logError(e);
+        const cancellable = this._cancellable;
+
+        this._proxy.XAyatanaSecondaryActivateRemote(timestamp, cancellable, (_, e) => {
+            if (e && e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD)) {
+                this._proxy.SecondaryActivateRemote(x, y, cancellable, (_r, error) => {
+                    if (error && !error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                        Util.Logger.critical(`${this._indicator.id}, failed to secondary activate: ${e.message}`);
+                });
+            } else if (e && !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+                Util.Logger.critical(`${this._indicator.id}, failed to secondary activate: ${e.message}`);
+            }
         });
     }
 
     scroll(dx, dy) {
-        if (dx !== 0)
-            this._proxy.ScrollRemote(Math.floor(dx), 'horizontal');
+        const cancellable = this._cancellable;
 
-        if (dy !== 0)
-            this._proxy.ScrollRemote(Math.floor(dy), 'vertical');
+        if (dx !== 0) {
+            this._proxy.ScrollRemote(Math.floor(dx), 'horizontal', cancellable, (_, e) => {
+                if (e && !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                    Util.Logger.critical(`${this._indicator.id}, failed to scroll horizontally: ${e.message}`);
+            });
+        }
+
+        if (dy !== 0) {
+            this._proxy.ScrollRemote(Math.floor(dy), 'vertical', cancellable, (_, e) => {
+                if (e && !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                    Util.Logger.critical(`${this._indicator.id}, failed to scroll vertically: ${e.message}`);
+            });
+        }
     }
 };
 Signals.addSignalMethods(AppIndicator.prototype);
