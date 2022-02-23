@@ -142,7 +142,7 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
         await new PromiseUtils.IdlePromise(GLib.PRIORITY_LOW, cancellable);
         const bus = Gio.DBus.session;
         const uniqueNames = await Util.getBusNames(bus, cancellable);
-        uniqueNames.forEach(async name => {
+        const introspectName = async name => {
             const nodes = await Util.introspectBusObject(bus, name, cancellable);
             nodes.forEach(({ nodeInfo, path }) => {
                 if (Util.dbusNodeImplementsInterfaces(nodeInfo, ['org.kde.StatusNotifierItem'])) {
@@ -154,7 +154,8 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
                     }
                 }
             });
-        });
+        };
+        await Promise.allSettled([...uniqueNames].map(n => introspectName(n)));
     }
 
     async RegisterStatusNotifierItemAsync(params, invocation) {
