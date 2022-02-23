@@ -250,7 +250,7 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
         // if middle mouse button clicked send SecondaryActivate dbus event and do not show appindicator menu
         if (buttonEvent.button === 2) {
             Main.panel.menuManager._closeMenu(true, Main.panel.menuManager.activeMenu);
-            this._indicator.secondaryActivate(buttonEvent.x, buttonEvent.y);
+            this._indicator.secondaryActivate(buttonEvent.time, buttonEvent.x, buttonEvent.y);
             return Clutter.EVENT_STOP;
         }
 

@@ -374,8 +374,13 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         this._proxy.ActivateRemote(x, y);
     }
 
-    secondaryActivate(x, y) {
-        this._proxy.SecondaryActivateRemote(x, y);
+    secondaryActivate(timestamp, x, y) {
+        this._proxy.XAyatanaSecondaryActivateRemote(timestamp, (_, e) => {
+            if (e && e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD))
+                this._proxy.SecondaryActivateRemote(x, y);
+            else if (e)
+                logError(e);
+        });
     }
 
     scroll(dx, dy) {

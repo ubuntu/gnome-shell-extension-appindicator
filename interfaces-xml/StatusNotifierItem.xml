@@ -70,6 +70,10 @@
         <arg name="y" type="i" direction="in"/>
     </method>
 
+    <method name="XAyatanaSecondaryActivate">
+        <arg name="timestamp" type="u" direction="in"/>
+    </method>
+
     <method name="Scroll">
         <arg name="delta" type="i" direction="in"/>
         <arg name="orientation" type="s" direction="in"/>
