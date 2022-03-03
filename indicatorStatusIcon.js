@@ -183,13 +183,6 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
             }
         });
 
-        const settings = SettingsManager.getDefaultGSettings();
-        const iconIDs = settings.get_value('recent-icons').deep_unpack();
-        if (this._indicator.id && !iconIDs.includes(this._indicator.id)) {
-            iconIDs.push(this._indicator.id);
-            settings.set_value('recent-icons', new GLib.Variant('as', iconIDs));
-        }
-
         this._showIfReady();
     }
 
@@ -243,6 +236,16 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
         }
     }
 
+    _addToRecentIcons() {
+        const settings = SettingsManager.getDefaultGSettings();
+        const iconIDs = settings.get_value('recent-icons').deep_unpack();
+
+        if (this._indicator.id && !iconIDs.includes(this._indicator.id)) {
+            iconIDs.push(this._indicator.id);
+            settings.set_value('recent-icons', new GLib.Variant('as', iconIDs));
+        }
+    }
+
     _showIfReady() {
         if (!this.isReady())
             return;
@@ -250,6 +253,7 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
         this._updateLabel();
         this._updateStatus();
         this._updateMenu();
+        this._addToRecentIcons();
 
         super._showIfReady();
     }

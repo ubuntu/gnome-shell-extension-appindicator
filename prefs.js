@@ -290,16 +290,27 @@ class AppIndicatorPreferences extends Gtk.Box {
         iconIDListStore.set_column_types([
             GObject.TYPE_STRING,
         ]);
-        const iconIDs = this._settings.get_value('recent-icons').deep_unpack();
-        iconIDs.forEach(v => {
-            iconIDListStore.set(iconIDListStore.append(), [0], [v]);
-        });
+        const iconIDListTrack = [];
         const iconIDTreeView = new Gtk.TreeView({
             model: iconIDListStore,
         });
         const iconIDTreeViewColumn = new Gtk.TreeViewColumn({
             title: 'Recent Indicator IDs',
         });
+
+        const updateRecentIcons = () => {
+            const iconIDs = this._settings.get_value('recent-icons').deep_unpack();
+            iconIDs.forEach(v => {
+                if (!iconIDListTrack.includes(v)) {
+                    iconIDListStore.set(iconIDListStore.append(), [0], [v]);
+                    iconIDListTrack.push(v);
+                }
+            });
+        };
+
+        this._settings.connect('changed::recent-icons', updateRecentIcons);
+        updateRecentIcons();
+
         const standardCellRenderer = new Gtk.CellRendererText();
         iconIDTreeViewColumn.pack_start(standardCellRenderer, true);
         iconIDTreeViewColumn.add_attribute(standardCellRenderer, 'text', 0);
