@@ -1,0 +1,131 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the AppIndicatorExtension package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: AppIndicatorExtension\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-09-27 20:43+0200\n"
+"PO-Revision-Date: 2022-03-31 20:14+0200\n"
+"Last-Translator: Quentin PAGÈS\n"
+"Language-Team: \n"
+"Language: oc\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Generator: Poedit 3.0.1\n"
+
+#: prefs.js:67
+msgid "Opacity (min: 0, max: 255)"
+msgstr "Opacitat (min : 0, max : 255)"
+
+#: prefs.js:95
+msgid "Desaturation (min: 0.0, max: 1.0)"
+msgstr "Desaturacion (min : 0.0, max : 1.0)"
+
+#: prefs.js:123
+msgid "Brightness (min: -1.0, max: 1.0)"
+msgstr "Luminositat (min : -1.0, max : 1.0)"
+
+#: prefs.js:151
+msgid "Contrast (min: -1.0, max: 1.0)"
+msgstr "Contraste  (min: -1.0, max : 1.0)"
+
+#: prefs.js:179
+msgid "Icon size (min: 0, max: 96)"
+msgstr "Talha d’icòna (min : 0, max : 96)"
+
+#: prefs.js:207
+msgid "Tray horizontal alignment"
+msgstr "Alinhament orizontal del tirador"
+
+#: prefs.js:212
+msgid "Center"
+msgstr "Centre"
+
+#: prefs.js:213
+msgid "Left"
+msgstr "Esquèrra"
+
+#: prefs.js:214
+msgid "Right"
+msgstr "Drecha"
+
+#: prefs.js:259
+msgid "Indicator ID"
+msgstr "ID indicador"
+
+#: prefs.js:260
+msgid "Icon Name"
+msgstr "Nom de l'icòna"
+
+#: prefs.js:261
+msgid "Attention Icon Name"
+msgstr "Nom de l’icòna d’atencion"
+
+#: prefs.js:336
+msgid "Preferences"
+msgstr "Preferéncias"
+
+#: prefs.js:338
+msgid "Custom Icons"
+msgstr "Icònas personalizadas"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
+msgid "Saturation"
+msgstr "Saturacion"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
+msgid "Brightness"
+msgstr "Luminositat"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
+msgid "Contrast"
+msgstr "Contraste"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
+msgid "Opacity"
+msgstr "Opacitat"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
+msgid "Icon size"
+msgstr "Talha de las icònas"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:22
+msgid "Icon size in pixel"
+msgstr "Talha de las icònas en pixèl"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
+msgid "Icon spacing"
+msgstr "Espaçament de las icònas"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:27
+msgid "Icon spacing within the tray"
+msgstr "Espaçament de las icònas dedins lo tirador"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
+msgid "Position in tray"
+msgstr "Posicion pel tirador"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:32
+msgid "Set where the Icon tray should appear in Gnome tray"
+msgstr "Indica se l’icòna del tirador deu aparéisser pel panèl Gnome"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
+msgid "Order in tray"
+msgstr "Òrdre dins lo tirador"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:37
+msgid "Set where the Icon tray should appear among other trays"
+msgstr "Definís se l’icòna del tirador deu aparéisser demest los autres panèls"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
+msgid "Custom icons"
+msgstr "Icònas personalizadas"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:42
+msgid "Replace any icons with custom icons from themes"
+msgstr "Remplaçar quina icòna que siá per una icòna personalizada dels tèmas"
