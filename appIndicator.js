@@ -147,11 +147,17 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         return this.id && this.menuPath;
     }
 
-    _nameOwnerChanged() {
-        if (!this.hasNameOwner)
+    async _nameOwnerChanged() {
+        if (!this.hasNameOwner) {
             this._checkIfReady();
-        else
-            this._checkNeededProperties();
+        } else {
+            try {
+                await this._checkNeededProperties();
+            } catch (e) {
+                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                    Util.Logger.warn(`${this.uniqueId}, Impossible to get basic properties: ${e}`);
+            }
+        }
 
         this.emit('name-owner-changed');
     }
