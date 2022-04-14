@@ -56,6 +56,7 @@ function maybeEnableAfterNameAvailable() {
 
 function enable() {
     isEnabled = true;
+    Util.tryCleanupOldIndicators();
     maybeEnableAfterNameAvailable();
     TrayIconsManager.TrayIconsManager.initialize();
 }
