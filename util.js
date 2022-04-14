@@ -16,7 +16,8 @@
 
 /* exported refreshPropertyOnProxy, getUniqueBusName, getBusNames,
    introspectBusObject, dbusNodeImplementsInterfaces, waitForStartupCompletion,
-   connectSmart, versionCheck, getDefaultTheme, BUS_ADDRESS_REGEX */
+   connectSmart, versionCheck, getDefaultTheme, tryCleanupOldIndicators,
+   BUS_ADDRESS_REGEX */
 
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
@@ -30,6 +31,7 @@ const St = imports.gi.St;
 const Config = imports.misc.config;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Extension = ExtensionUtils.getCurrentExtension();
+const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon;
 const Params = imports.misc.params;
 const PromiseUtils = Extension.imports.promiseUtils;
 const Signals = imports.signals;
@@ -379,4 +381,22 @@ function versionCheck(required) {
             return true;
     }
     return false;
+}
+
+function tryCleanupOldIndicators() {
+    const indicatorType = IndicatorStatusIcon.BaseStatusIcon;
+    const indicators = Object.values(Main.panel.statusArea).filter(i => i instanceof indicatorType);
+
+    try {
+        const panelBoxes = [
+            Main.panel._leftBox, Main.panel._centerBox, Main.panel._rightBox,
+        ];
+
+        panelBoxes.forEach(box =>
+            indicators.push(...box.get_children().filter(i => i instanceof indicatorType)));
+    } catch (e) {
+        logError(e);
+    }
+
+    new Set(indicators).forEach(i => i.destroy());
 }

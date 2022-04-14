@@ -14,7 +14,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-/* exported IndicatorStatusIcon, IndicatorStatusTrayIcon */
+/* exported BaseStatusIcon, IndicatorStatusIcon, IndicatorStatusTrayIcon */
 
 const Clutter = imports.gi.Clutter;
 const GObject = imports.gi.GObject;
@@ -34,7 +34,7 @@ const Util = Extension.imports.util;
 const PromiseUtils = Extension.imports.promiseUtils;
 const SettingsManager = Extension.imports.settingsManager;
 
-const BaseStatusIcon = GObject.registerClass(
+var BaseStatusIcon = GObject.registerClass(
 class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
     _init(menuAlignment, nameText, iconActor, dontCreateMenu) {
         super._init(menuAlignment, nameText, dontCreateMenu);
