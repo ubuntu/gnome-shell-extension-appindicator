@@ -44,7 +44,12 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
     constructor(watchDog) {
         this._watchDog = watchDog;
         this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(Interfaces.StatusNotifierWatcher, this);
-        this._dbusImpl.export(Gio.DBus.session, WATCHER_OBJECT);
+        try {
+            this._dbusImpl.export(Gio.DBus.session, WATCHER_OBJECT);
+        } catch (e) {
+            Util.Logger.warn(`Failed to export ${WATCHER_OBJECT}`);
+            logError(e);
+        }
         this._cancellable = new Gio.Cancellable();
         this._everAcquiredName = false;
         this._ownName = Gio.DBus.session.own_name(WATCHER_BUS_NAME,
@@ -53,7 +58,12 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
             this._lostName.bind(this));
         this._items = new Map();
 
-        this._dbusImpl.emit_signal('StatusNotifierHostRegistered', null);
+        try {
+            this._dbusImpl.emit_signal('StatusNotifierHostRegistered', null);
+        } catch (e) {
+            Util.Logger.warn(`Failed to notify registered host ${WATCHER_OBJECT}`);
+        }
+
         this._seekStatusNotifierItems().catch(e => {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 logError(e, 'Looking for StatusNotifierItem\'s');
@@ -205,10 +215,14 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
         indicator.destroy();
         this._items.delete(id);
 
-        this._dbusImpl.emit_signal('StatusNotifierItemUnregistered',
-            GLib.Variant.new('(s)', [uniqueId]));
-        this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems',
-            GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
+        try {
+            this._dbusImpl.emit_signal('StatusNotifierItemUnregistered',
+                GLib.Variant.new('(s)', [uniqueId]));
+            this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems',
+                GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
+        } catch (e) {
+            Util.Logger.warn(`Failed to emit signals: ${e}`);
+        }
     }
 
     RegisterStatusNotifierHostAsync(_service, invocation) {
@@ -235,16 +249,30 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
     }
 
     destroy() {
-        if (!this._isDestroyed) {
-            // this doesn't do any sync operation and doesn't allow us to hook up the event of being finished
-            // which results in our unholy debounce hack (see extension.js)
-            Array.from(this._items.keys()).forEach(i => this._remove(i));
+        if (this._isDestroyed)
+            return;
+
+        // this doesn't do any sync operation and doesn't allow us to hook up
+        // the event of being finished which results in our unholy debounce hack
+        // (see extension.js)
+        Array.from(this._items.keys()).forEach(i => this._remove(i));
+        this._cancellable.cancel();
+
+        try {
             this._dbusImpl.emit_signal('StatusNotifierHostUnregistered', null);
-            Gio.DBus.session.unown_name(this._ownName);
-            this._cancellable.cancel();
-            this._dbusImpl.unexport();
-            delete this._items;
-            this._isDestroyed = true;
+        } catch (e) {
+            Util.Logger.warn(`Failed to emit uinregistered signal: ${e}`);
         }
+
+        Gio.DBus.session.unown_name(this._ownName);
+
+        try {
+            this._dbusImpl.unexport();
+        } catch (e) {
+            Util.Logger.warn(`Failed to unexport watcher object: ${e}`);
+        }
+
+        delete this._items;
+        this._isDestroyed = true;
     }
 };
