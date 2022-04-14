@@ -373,7 +373,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         // ... and don't seem to have any effect.
         this._proxy.ActivateRemote(x, y, this._cancellable, (_, e) => {
             if (e && !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                Util.Logger.critical(`${this._indicator.id}, failed to activate: ${e.message}`);
+                Util.Logger.critical(`${this.id}, failed to activate: ${e.message}`);
         });
     }
 
@@ -384,10 +384,10 @@ var AppIndicator = class AppIndicatorsAppIndicator {
             if (e && e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD)) {
                 this._proxy.SecondaryActivateRemote(x, y, cancellable, (_r, error) => {
                     if (error && !error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                        Util.Logger.critical(`${this._indicator.id}, failed to secondary activate: ${e.message}`);
+                        Util.Logger.critical(`${this.id}, failed to secondary activate: ${e.message}`);
                 });
             } else if (e && !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
-                Util.Logger.critical(`${this._indicator.id}, failed to secondary activate: ${e.message}`);
+                Util.Logger.critical(`${this.id}, failed to secondary activate: ${e.message}`);
             }
         });
     }
@@ -398,14 +398,14 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         if (dx !== 0) {
             this._proxy.ScrollRemote(Math.floor(dx), 'horizontal', cancellable, (_, e) => {
                 if (e && !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                    Util.Logger.critical(`${this._indicator.id}, failed to scroll horizontally: ${e.message}`);
+                    Util.Logger.critical(`${this.id}, failed to scroll horizontally: ${e.message}`);
             });
         }
 
         if (dy !== 0) {
             this._proxy.ScrollRemote(Math.floor(dy), 'vertical', cancellable, (_, e) => {
                 if (e && !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                    Util.Logger.critical(`${this._indicator.id}, failed to scroll vertically: ${e.message}`);
+                    Util.Logger.critical(`${this.id}, failed to scroll vertically: ${e.message}`);
             });
         }
     }
