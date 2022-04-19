@@ -15,7 +15,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 /* exported BaseStatusIcon, IndicatorStatusIcon, IndicatorStatusTrayIcon,
-            addIconToPanel */
+            addIconToPanel, getTrayIcons, getAppIndicatorIcons */
 
 const Clutter = imports.gi.Clutter;
 const GObject = imports.gi.GObject;
@@ -55,6 +55,16 @@ function addIconToPanel(statusIcon) {
 
     Util.connectSmart(settings, 'changed::tray-pos', statusIcon, () =>
         addIconToPanel(statusIcon));
+}
+
+function getTrayIcons() {
+    return Object.values(Main.panel.statusArea).filter(
+        i => i instanceof IndicatorStatusTrayIcon);
+}
+
+function getAppIndicatorIcons() {
+    return Object.values(Main.panel.statusArea).filter(
+        i => i instanceof IndicatorStatusIcon);
 }
 
 var BaseStatusIcon = GObject.registerClass(
