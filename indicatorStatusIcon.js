@@ -77,6 +77,9 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
         Util.connectSmart(settings, 'changed::icon-opacity', this, this._updateOpacity);
         this.connect('notify::hover', () => this._onHoverChanged());
 
+        if (!super._onDestroy)
+            this.connect('destroy', () => this._onDestroy());
+
         this._setIconActor(iconActor);
         this._showIfReady();
     }
@@ -96,6 +99,16 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
 
         this._icon = icon;
         this._updateEffects();
+    }
+
+    _onDestroy() {
+        if (this._icon) {
+            this._icon.destroy();
+            this._icon = null;
+        }
+
+        if (super._onDestroy)
+            super._onDestroy();
     }
 
     isReady() {
@@ -212,15 +225,17 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
 
         this.connect('notify::visible', () => this._updateMenu());
 
-        this.connect('destroy', () => {
-            if (this._menuClient) {
-                this._menuClient.disconnect(this._menuReadyId);
-                this._menuClient.destroy();
-                this._menuClient = null;
-            }
-        });
-
         this._showIfReady();
+    }
+
+    _onDestroy() {
+        if (this._menuClient) {
+            this._menuClient.disconnect(this._menuReadyId);
+            this._menuClient.destroy();
+            this._menuClient = null;
+        }
+
+        super._onDestroy();
     }
 
     get uniqueId() {
@@ -448,17 +463,17 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
             this._updateIconSize());
 
         this._updateIconSize();
+    }
 
-        this.connect('destroy', () => {
-            Util.Logger.debug(`Destroying legacy tray icon ${this.uniqueId}`);
-            this._icon.destroy();
-            this._icon = null;
+    _onDestroy() {
+        Util.Logger.debug(`Destroying legacy tray icon ${this.uniqueId}`);
 
-            if (this._waitDoubleClickId) {
-                GLib.source_remove(this._waitDoubleClickId);
-                this._waitDoubleClickId = 0;
-            }
-        });
+        if (this._waitDoubleClickId) {
+            GLib.source_remove(this._waitDoubleClickId);
+            this._waitDoubleClickId = 0;
+        }
+
+        super._onDestroy();
     }
 
     isReady() {
