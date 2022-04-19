@@ -264,6 +264,8 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
             Util.Logger.warn(`Failed to unexport watcher object: ${e}`);
         }
 
+        AppIndicator.AppIndicator.destroy();
+
         delete this._items;
         this._isDestroyed = true;
     }

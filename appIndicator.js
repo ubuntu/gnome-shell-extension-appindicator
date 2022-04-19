@@ -68,12 +68,24 @@ const SNIconType = {
  */
 var AppIndicator = class AppIndicatorsAppIndicator {
 
+    static interfaceInfo() {
+        if (!AppIndicator._interfaceInfo) {
+            AppIndicator._interfaceInfo = Gio.DBusInterfaceInfo.new_for_xml(
+                Interfaces.StatusNotifierItem);
+        }
+        return AppIndicator._interfaceInfo;
+    }
+
+    static destroy() {
+        delete AppIndicator._interfaceInfo;
+    }
+
     constructor(service, busName, object) {
         this.busName = busName;
         this._uniqueId = Util.indicatorId(busName, object);
         this._accumulatedSignals = new Set();
 
-        const interfaceInfo = Gio.DBusInterfaceInfo.new_for_xml(Interfaces.StatusNotifierItem);
+        const interfaceInfo = AppIndicator.interfaceInfo();
 
         // HACK: we cannot use Gio.DBusProxy.makeProxyWrapper because we need
         //      to specify G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES
