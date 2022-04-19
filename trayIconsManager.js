@@ -56,7 +56,12 @@ var TrayIconsManager = class TrayIconsManager {
     }
 
     onTrayIconRemoved(_tray, icon) {
-        icon.destroy();
+        try {
+            const [trayIcon] = IndicatorStatusIcon.getTrayIcons().filter(i => i.icon === icon);
+            trayIcon.destroy();
+        } catch (e) {
+            Util.Logger.warning(`No icon container found for ${icon.title} (${icon})`);
+        }
     }
 
     destroy() {
