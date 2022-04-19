@@ -16,8 +16,8 @@
 
 /* exported refreshPropertyOnProxy, getUniqueBusName, getBusNames,
    introspectBusObject, dbusNodeImplementsInterfaces, waitForStartupCompletion,
-   connectSmart, versionCheck, getDefaultTheme, tryCleanupOldIndicators,
-   BUS_ADDRESS_REGEX */
+   connectSmart, disconnectSmart, versionCheck, getDefaultTheme,
+   tryCleanupOldIndicators, BUS_ADDRESS_REGEX */
 
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
@@ -229,13 +229,16 @@ Signals.addSignalMethods(NameWatcher.prototype);
 
 function connectSmart3A(src, signal, handler) {
     let id = src.connect(signal, handler);
+    let destroyId = 0;
 
     if (src.connect && (!(src instanceof GObject.Object) || GObject.signal_lookup('destroy', src))) {
-        let destroyId = src.connect('destroy', () => {
+        destroyId = src.connect('destroy', () => {
             src.disconnect(id);
             src.disconnect(destroyId);
         });
     }
+
+    return [id, destroyId];
 }
 
 function connectSmart4A(src, signal, target, method) {
@@ -258,6 +261,8 @@ function connectSmart4A(src, signal, target, method) {
         GObject.signal_lookup('destroy', src)) ? src.connect('destroy', onDestroy) : 0;
     const tgtDestroyId = target.connect && (!(target instanceof GObject.Object) ||
         GObject.signal_lookup('destroy', target)) ? target.connect('destroy', onDestroy) : 0;
+
+    return [signalId, srcDestroyId, tgtDestroyId];
 }
 
 // eslint-disable-next-line valid-jsdoc
@@ -275,6 +280,32 @@ function connectSmart(...args) {
         return connectSmart4A(...args);
     else
         return connectSmart3A(...args);
+}
+
+function disconnectSmart3A(src, signalIds) {
+    const [id, destroyId] = signalIds;
+    src.disconnect(id);
+
+    if (destroyId)
+        src.disconnect(destroyId);
+}
+
+function disconnectSmart4A(src, tgt, signalIds) {
+    const [signalId, srcDestroyId, tgtDestroyId] = signalIds;
+
+    disconnectSmart3A(src, [signalId, srcDestroyId]);
+
+    if (tgtDestroyId)
+        tgt.disconnect(tgtDestroyId);
+}
+
+function disconnectSmart(...args) {
+    if (arguments.length === 2)
+        return disconnectSmart3A(...args);
+    else if (arguments.length === 3)
+        return disconnectSmart4A(...args);
+
+    throw new TypeError('Unexpected number of arguments');
 }
 
 function getDefaultTheme() {
