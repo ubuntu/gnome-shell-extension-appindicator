@@ -115,6 +115,7 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
             // if the desktop is not ready delay the icon creation and signal emissions
             await Util.waitForStartupCompletion(indicator.cancellable);
             const statusIcon = new IndicatorStatusIcon.IndicatorStatusIcon(indicator);
+            IndicatorStatusIcon.addIconToPanel(statusIcon);
             indicator.connect('destroy', () => statusIcon.destroy());
 
             this._dbusImpl.emit_signal('StatusNotifierItemRegistered',
