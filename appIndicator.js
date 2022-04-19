@@ -441,8 +441,9 @@ class AppIndicatorsIconActor extends St.Icon {
         this._customIcons   = new Map();
         this._iconSize      = iconSize;
         this._iconCache     = new IconCache.IconCache();
-        this._cancellable   = new Gio.Cancellable();
-        this._loadingIcons  = new Set();
+        this._loadingIcons  = {};
+
+        Object.values(SNIconType).forEach(t => (this._loadingIcons[t] = new Map()));
 
         Util.connectSmart(this._indicator, 'icon', this, this._updateIcon);
         Util.connectSmart(this._indicator, 'overlay-icon', this, this._updateOverlayIcon);
@@ -475,7 +476,7 @@ class AppIndicatorsIconActor extends St.Icon {
 
         this.connect('destroy', () => {
             this._iconCache.destroy();
-            this._cancellable.cancel();
+            this._cancelLoading();
         });
     }
 
@@ -485,16 +486,28 @@ class AppIndicatorsIconActor extends St.Icon {
     }
 
     _cancelLoading() {
-        if (this._loadingIcons.size > 0) {
-            this._cancellable.cancel();
-            this._cancellable = new Gio.Cancellable();
-            this._loadingIcons.clear();
+        Object.values(SNIconType).forEach(iconType => this._cancelLoadingByType(iconType));
+    }
+
+    _cancelLoadingByType(iconType) {
+        this._loadingIcons[iconType].forEach(c => c.cancel());
+        this._loadingIcons[iconType].clear();
+    }
+
+    _ensureNoIconIsLoading(iconType, id) {
+        if (this._loadingIcons[iconType].has(id)) {
+            Util.Logger.debug(`${this._indicator.id}, Icon ${id} Is still loading, ignoring the request`);
+            throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING,
+                'Already in progress');
+        } else if (this._loadingIcons[iconType].size > 0) {
+            throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.EXISTS,
+                'Another icon is already loading');
         }
     }
 
     // Will look the icon up in the cache, if it's found
     // it will return it. Otherwise, it will create it and cache it.
-    async _cacheOrCreateIconByName(iconSize, iconName, themePath) {
+    async _cacheOrCreateIconByName(iconSize, iconName, themePath, iconType) {
         // eslint-disable-next-line no-undef
         let { scale_factor: scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
         let id = `${iconName}@${iconSize * scaleFactor}${themePath || ''}`;
@@ -503,18 +516,24 @@ class AppIndicatorsIconActor extends St.Icon {
         if (gicon)
             return gicon;
 
-        if (this._loadingIcons.has(id)) {
-            Util.Logger.debug(`${this._indicator.id}, Icon ${id} Is still loading, ignoring the request`);
-            throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING,
-                'Already in progress');
-        } else {
-            this._cancelLoading();
+        const path = this._getIconInfo(iconName, themePath, iconSize, scaleFactor);
+        const loadingId = path || id;
+
+        try {
+            this._ensureNoIconIsLoading(iconType, loadingId);
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.EXISTS))
+                throw e;
+            this._cancelLoadingByType(iconType);
         }
 
-        this._loadingIcons.add(id);
-        let path = this._getIconInfo(iconName, themePath, iconSize, scaleFactor);
-        gicon = await this._createIconByName(path, this._cancellable);
-        this._loadingIcons.delete(id);
+        const cancellable = new Gio.Cancellable();
+        this._loadingIcons[iconType].set(loadingId, cancellable);
+        try {
+            gicon = await this._createIconByName(loadingId, cancellable);
+        } finally {
+            this._loadingIcons[iconType].delete(loadingId);
+        }
         if (gicon)
             gicon = this._iconCache.add(id, gicon);
         return gicon;
@@ -664,7 +683,7 @@ class AppIndicatorsIconActor extends St.Icon {
         return dest;
     }
 
-    async _createIconFromPixmap(iconSize, iconPixmapArray) {
+    async _createIconFromPixmap(iconSize, iconPixmapArray, iconType) {
         // eslint-disable-next-line no-undef
         const { scale_factor: scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
         iconSize *= scaleFactor;
@@ -694,20 +713,20 @@ class AppIndicatorsIconActor extends St.Icon {
         const rowStride = width * 4; // hopefully this is correct
 
         const id = `__PIXMAP_ICON_${width}x${height}`;
-        if (this._loadingIcons.has(id)) {
-            Util.Logger.debug(`${this._indicator.id}, Pixmap ${width}x${height} ` +
-                'Is still loading, ignoring the request');
-            throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING,
-                'Already in progress');
-        } else {
-            this._cancelLoading();
-        }
-
-        this._loadingIcons.add(id);
 
         try {
+            this._ensureNoIconIsLoading(iconType, id);
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.EXISTS))
+                throw e;
+            this._cancelLoadingByType(iconType);
+        }
+
+        const cancellable = new Gio.Cancellable();
+        this._loadingIcons[iconType].set(id, cancellable);
+        try {
             return GdkPixbuf.Pixbuf.new_from_bytes(
-                await this.argbToRgba(bytes, this._cancellable),
+                await this.argbToRgba(bytes, cancellable),
                 GdkPixbuf.Colorspace.RGB, true,
                 8, width, height, rowStride);
         } catch (e) {
@@ -716,7 +735,7 @@ class AppIndicatorsIconActor extends St.Icon {
                 Util.Logger.warn(`${this._indicator.id}, Impossible to create image from data: ${e}`);
             throw e;
         } finally {
-            this._loadingIcons.delete(id);
+            this._loadingIcons[iconType].delete(id);
         }
     }
 
@@ -795,9 +814,14 @@ class AppIndicatorsIconActor extends St.Icon {
 
     // updates the base icon
     async _createIcon(name, pixmap, theme, iconType, iconSize) {
+        // From now on we consider them the same thing, as one replaces the other
+        if (iconType === SNIconType.ATTENTION)
+            iconType = SNIconType.NORMAL;
+
         try {
             if (name) {
-                const gicon = await this._cacheOrCreateIconByName(iconSize, name, theme);
+                const gicon = await this._cacheOrCreateIconByName(iconSize,
+                    name, theme, iconType);
                 if (gicon)
                     return gicon;
             }
