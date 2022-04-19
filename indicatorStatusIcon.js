@@ -88,22 +88,18 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
         if (!(icon instanceof Clutter.Actor))
             throw new Error(`${icon} is not a valid actor`);
 
-        if (!this._icon) {
-            const settings = SettingsManager.getDefaultGSettings();
-            Util.connectSmart(settings, 'changed::icon-saturation', this, this._updateSaturation);
-            Util.connectSmart(settings, 'changed::icon-brightness', this, this._updateBrightnessContrast);
-            Util.connectSmart(settings, 'changed::icon-contrast', this, this._updateBrightnessContrast);
-        } else if (this._icon !== icon) {
+        if (this._icon && this._icon !== icon)
             this._icon.destroy();
-        }
 
         this._icon = icon;
         this._updateEffects();
+        this._monitorIconEffects();
 
         if (this._icon) {
             const id = this._icon.connect('destroy', () => {
                 this._icon.disconnect(id);
                 this._icon = null;
+                this._monitorIconEffects();
             });
         }
     }
@@ -159,6 +155,32 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
         if (this._icon) {
             this._updateSaturation();
             this._updateBrightnessContrast();
+        }
+    }
+
+    _monitorIconEffects() {
+        const settings = SettingsManager.getDefaultGSettings();
+        const monitoring = !!this._iconSaturationIds;
+
+        if (!this._icon && monitoring) {
+            Util.disconnectSmart(settings, this, this._iconSaturationIds);
+            delete this._iconSaturationIds;
+
+            Util.disconnectSmart(settings, this, this._iconBrightnessIds);
+            delete this._iconBrightnessIds;
+
+            Util.disconnectSmart(settings, this, this._iconContrastIds);
+            delete this._iconContrastIds;
+        } else if (this._icon && !monitoring) {
+            this._iconSaturationIds =
+                Util.connectSmart(settings, 'changed::icon-saturation', this,
+                    this._updateSaturation);
+            this._iconBrightnessIds =
+                Util.connectSmart(settings, 'changed::icon-brightness', this,
+                    this._updateBrightnessContrast);
+            this._iconContrastIds =
+                Util.connectSmart(settings, 'changed::icon-contrast', this,
+                    this._updateBrightnessContrast);
         }
     }
 
