@@ -513,19 +513,19 @@ class AppIndicatorsIconActor extends St.Icon {
 
         this._loadingIcons.add(id);
         let path = this._getIconInfo(iconName, themePath, iconSize, scaleFactor);
-        gicon = await this._createIconByName(path);
+        gicon = await this._createIconByName(path, this._cancellable);
         this._loadingIcons.delete(id);
         if (gicon)
             gicon = this._iconCache.add(id, gicon);
         return gicon;
     }
 
-    async _createIconByPath(path, width, height) {
+    async _createIconByPath(path, width, height, cancellable) {
         let file = Gio.File.new_for_path(path);
         try {
-            const inputStream = await file.read_async(GLib.PRIORITY_DEFAULT, this._cancellable);
+            const inputStream = await file.read_async(GLib.PRIORITY_DEFAULT, cancellable);
             const pixbuf = GdkPixbuf.Pixbuf.new_from_stream_at_scale_async(inputStream,
-                height, width, true, this._cancellable);
+                height, width, true, cancellable);
             this.icon_size = width > 0 ? width : this._iconSize;
             return pixbuf;
         } catch (e) {
@@ -535,7 +535,7 @@ class AppIndicatorsIconActor extends St.Icon {
         }
     }
 
-    async _createIconByName(path) {
+    async _createIconByName(path, cancellable) {
         if (!path) {
             if (this._createIconIdle) {
                 throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING,
@@ -544,7 +544,7 @@ class AppIndicatorsIconActor extends St.Icon {
 
             try {
                 this._createIconIdle = new PromiseUtils.IdlePromise(GLib.PRIORITY_DEFAULT_IDLE,
-                    this._cancellable);
+                    cancellable);
                 await this._createIconIdle;
             } catch (e) {
                 if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
@@ -561,7 +561,7 @@ class AppIndicatorsIconActor extends St.Icon {
 
         try {
             const [format, width, height] = await GdkPixbuf.Pixbuf.get_file_info_async(
-                path, this._cancellable);
+                path, cancellable);
 
             if (!format) {
                 Util.Logger.critical(`${this._indicator.id}, Invalid image format: ${path}`);
@@ -570,7 +570,7 @@ class AppIndicatorsIconActor extends St.Icon {
 
             if (width >= height * 1.5) {
                 /* Hello indicator-multiload! */
-                return this._createIconByPath(path, width, -1);
+                return this._createIconByPath(path, width, -1, cancellable);
             } else {
                 this.icon_size = this._iconSize;
                 return new Gio.FileIcon({
