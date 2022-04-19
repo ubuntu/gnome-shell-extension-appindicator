@@ -116,7 +116,6 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
             await Util.waitForStartupCompletion(indicator.cancellable);
             const statusIcon = new IndicatorStatusIcon.IndicatorStatusIcon(indicator);
             IndicatorStatusIcon.addIconToPanel(statusIcon);
-            indicator.connect('destroy', () => statusIcon.destroy());
 
             this._dbusImpl.emit_signal('StatusNotifierItemRegistered',
                 GLib.Variant.new('(s)', [indicator.uniqueId]));
