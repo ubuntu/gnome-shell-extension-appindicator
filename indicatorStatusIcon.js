@@ -222,6 +222,7 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
         });
         Util.connectSmart(this._indicator, 'accessible-name', this, () =>
             this.set_accessible_name(this._indicator.accessibleName));
+        Util.connectSmart(this._indicator, 'destroy', this, () => this.destroy());
 
         this._showIfReady();
     }
