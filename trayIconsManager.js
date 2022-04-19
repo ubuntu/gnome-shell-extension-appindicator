@@ -48,15 +48,11 @@ var TrayIconsManager = class TrayIconsManager {
         Util.connectSmart(this._tray, 'tray-icon-removed', this, this.onTrayIconRemoved);
 
         this._tray.manage_screen(Main.panel);
-        this._icons = [];
     }
 
     onTrayIconAdded(_tray, icon) {
         const trayIcon = new IndicatorStatusIcon.IndicatorStatusTrayIcon(icon);
         IndicatorStatusIcon.addIconToPanel(trayIcon);
-        this._icons.push(trayIcon);
-        trayIcon.connect('destroy', () =>
-            this._icons.splice(this._icons.indexOf(trayIcon), 1));
     }
 
     onTrayIconRemoved(_tray, icon) {
@@ -65,7 +61,7 @@ var TrayIconsManager = class TrayIconsManager {
 
     destroy() {
         this.emit('destroy');
-        this._icons.forEach(i => i.destroy());
+        IndicatorStatusIcon.getTrayIcons().forEach(i => i.destroy());
         if (this._tray.unmanage_screen) {
             this._tray.unmanage_screen();
             this._tray = null;
