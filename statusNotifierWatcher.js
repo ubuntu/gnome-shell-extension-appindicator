@@ -266,6 +266,9 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
 
         AppIndicator.AppIndicator.destroy();
 
+        this._dbusImpl.run_dispose();
+        delete this._dbusImpl;
+
         delete this._items;
         this._isDestroyed = true;
     }
