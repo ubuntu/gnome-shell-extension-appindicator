@@ -98,13 +98,18 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
 
         this._icon = icon;
         this._updateEffects();
+
+        if (this._icon) {
+            const id = this._icon.connect('destroy', () => {
+                this._icon.disconnect(id);
+                this._icon = null;
+            });
+        }
     }
 
     _onDestroy() {
-        if (this._icon) {
+        if (this._icon)
             this._icon.destroy();
-            this._icon = null;
-        }
 
         if (super._onDestroy)
             super._onDestroy();
