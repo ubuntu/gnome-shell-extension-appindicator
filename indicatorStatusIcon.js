@@ -101,6 +101,10 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
         throw new GObject.NotImplementedError('isReady() in %s'.format(this.constructor.name));
     }
 
+    get icon() {
+        return this._icon;
+    }
+
     get uniqueId() {
         throw new GObject.NotImplementedError('uniqueId in %s'.format(this.constructor.name));
     }
