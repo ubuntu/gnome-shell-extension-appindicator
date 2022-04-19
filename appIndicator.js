@@ -903,7 +903,6 @@ class AppIndicatorsIconActor extends St.Icon {
                 this.set_icon_size(iconSize);
             } else {
                 this.gicon = null;
-                Util.Logger.debug(`unable to update icon for ${this._indicator.id}`);
             }
         } else if (gicon) {
             this._emblem = new Gio.Emblem({ icon: gicon });
@@ -912,7 +911,6 @@ class AppIndicatorsIconActor extends St.Icon {
                 gicon.inUse = true;
         } else {
             this._emblem = null;
-            Util.Logger.debug(`unable to update icon emblem for ${this._indicator.id}`);
         }
 
         if (this.gicon) {
@@ -939,28 +937,45 @@ class AppIndicatorsIconActor extends St.Icon {
         }
 
         const [name, pixmap, theme] = icon;
-        let gicon = null;
         const commonArgs = [theme, iconType, iconSize];
 
         if (this._customIcons.size) {
             let customIcon = this._customIcons.get(iconType);
-            if (customIcon)
-                gicon = await this._createIcon(customIcon, null, ...commonArgs);
-            else if (iconType === SNIconType.OVERLAY)
-                return;
-
-            if (!gicon && iconType !== SNIconType.NORMAL) {
-                customIcon = this._customIcons.get(SNIconType.NORMAL);
-                gicon = await this._createIcon(customIcon, null, ...commonArgs);
+            if (!await this._createAndSetIcon(customIcon, null, ...commonArgs)) {
+                if (iconType !== SNIconType.OVERLAY) {
+                    customIcon = this._customIcons.get(SNIconType.NORMAL);
+                    this._createAndSetIcon(customIcon, null, ...commonArgs);
+                }
             }
         } else {
-            gicon = await this._createIcon(name, pixmap, ...commonArgs);
+            this._createAndSetIcon(name, pixmap, ...commonArgs);
+        }
+    }
+
+    async _createAndSetIcon(name, pixmap, theme, iconType, iconSize) {
+        let gicon = null;
+
+        try {
+            gicon = await this._createIcon(name, pixmap, theme, iconType, iconSize);
+        } catch (e) {
+            if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED) ||
+                e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING)) {
+                Util.Logger.debug(`${this._indicator.id}, Impossible to load icon: ${e}`);
+                return null;
+            }
+
+            if (iconType === SNIconType.OVERLAY)
+                logError(e, `unable to update icon emblem for ${this._indicator.id}`);
+            else
+                logError(e, `unable to update icon for ${this._indicator.id}`);
         }
 
         try {
             this._setGicon(iconType, gicon, iconSize);
+            return gicon;
         } catch (e) {
             logError(e, 'Setting GIcon failed');
+            return null;
         }
     }
 
