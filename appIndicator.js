@@ -790,7 +790,7 @@ class AppIndicatorsIconActor extends St.Icon {
         const [name, pixmap, theme] = icon;
         const commonArgs = [theme, iconType, iconSize];
 
-        if (this._customIcons.size) {
+        if (iconType !== SNIconType.OVERLAY && this._customIcons.size) {
             let customIcon = this._customIcons.get(iconType);
             if (!await this._createAndSetIcon(customIcon, null, ...commonArgs)) {
                 customIcon = this._customIcons.get(SNIconType.NORMAL);
