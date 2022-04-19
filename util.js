@@ -418,7 +418,10 @@ var Logger = class AppIndicatorsLogger {
             return;
         }
 
-        let domain = Extension.metadata.name;
+        Logger._init(Extension.metadata.name);
+        if (!Logger._levels.includes(logLevel))
+            return;
+
         let fields = {
             'SYSLOG_IDENTIFIER': Extension.metadata.uuid,
             'MESSAGE': `${message}`,
@@ -445,7 +448,23 @@ var Logger = class AppIndicatorsLogger {
             break;
         }
 
-        GLib.log_structured(domain, logLevel, Object.assign(fields, extraFields));
+        GLib.log_structured(Logger._domain, logLevel, Object.assign(fields, extraFields));
+    }
+
+    static _init(domain) {
+        if (Logger._domain)
+            return;
+
+        const allLevels = Object.values(GLib.LogLevelFlags);
+        const domains = GLib.getenv('G_MESSAGES_DEBUG');
+        Logger._domain = domain.replaceAll(' ', '-');
+
+        if (domains === 'all' || (domains && domains.split(' ').includes(Logger._domain))) {
+            Logger._levels = allLevels;
+        } else {
+            Logger._levels = allLevels.filter(
+                l => l <= GLib.LogLevelFlags.LEVEL_WARNING);
+        }
     }
 
     static debug(message) {
