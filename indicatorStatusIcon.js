@@ -14,7 +14,8 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-/* exported BaseStatusIcon, IndicatorStatusIcon, IndicatorStatusTrayIcon */
+/* exported BaseStatusIcon, IndicatorStatusIcon, IndicatorStatusTrayIcon,
+            addIconToPanel */
 
 const Clutter = imports.gi.Clutter;
 const GObject = imports.gi.GObject;
@@ -34,6 +35,28 @@ const Util = Extension.imports.util;
 const PromiseUtils = Extension.imports.promiseUtils;
 const SettingsManager = Extension.imports.settingsManager;
 
+function addIconToPanel(statusIcon) {
+    if (!(statusIcon instanceof BaseStatusIcon))
+        throw TypeError(`Unexpected icon type: ${statusIcon}`);
+
+    const settings = SettingsManager.getDefaultGSettings();
+    const indicatorId = `appindicator-${statusIcon.uniqueId}`;
+
+    const currentIcon = Main.panel.statusArea[indicatorId];
+    if (currentIcon) {
+        if (currentIcon !== statusIcon)
+            currentIcon.destroy();
+
+        Main.panel.statusArea[indicatorId] = null;
+    }
+
+    Main.panel.addToStatusArea(indicatorId, statusIcon, 1,
+        settings.get_string('tray-pos'));
+
+    Util.connectSmart(settings, 'changed::tray-pos', statusIcon, () =>
+        addIconToPanel(statusIcon));
+}
+
 var BaseStatusIcon = GObject.registerClass(
 class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
     _init(menuAlignment, nameText, iconActor, dontCreateMenu) {
@@ -41,7 +64,6 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
 
         const settings = SettingsManager.getDefaultGSettings();
         Util.connectSmart(settings, 'changed::icon-opacity', this, this._updateOpacity);
-        Util.connectSmart(settings, 'changed::tray-pos', this, this._showIfReady);
         this.connect('notify::hover', () => this._onHoverChanged());
 
         this._setIconActor(iconActor);
@@ -74,13 +96,7 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
     }
 
     _showIfReady() {
-        if (!this.isReady())
-            return;
-
-        const indicatorId = `appindicator-${this.uniqueId}`;
-        Main.panel.statusArea[indicatorId] = null;
-        Main.panel.addToStatusArea(indicatorId, this, 1,
-            SettingsManager.getDefaultGSettings().get_string('tray-pos'));
+        this.visible = this.isReady();
     }
 
     _onHoverChanged() {
@@ -246,8 +262,6 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
         this._updateLabel();
         this._updateStatus();
         this._updateMenu();
-
-        super._showIfReady();
     }
 
     _updateClickCount(buttonEvent) {

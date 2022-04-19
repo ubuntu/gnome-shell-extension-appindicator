@@ -53,6 +53,7 @@ var TrayIconsManager = class TrayIconsManager {
 
     onTrayIconAdded(_tray, icon) {
         const trayIcon = new IndicatorStatusIcon.IndicatorStatusTrayIcon(icon);
+        IndicatorStatusIcon.addIconToPanel(trayIcon);
         this._icons.push(trayIcon);
         trayIcon.connect('destroy', () =>
             this._icons.splice(this._icons.indexOf(trayIcon), 1));
