@@ -1,0 +1,131 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the AppIndicatorExtension package.
+# Junghee Lee <daemul72@gmail.com>, 2022.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: AppIndicatorExtension\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-09-27 20:43+0200\n"
+"PO-Revision-Date: 2022-04-22 17:45+0900\n"
+"Last-Translator: 이정희 <daemul72@gmail.com>\n"
+"Language-Team: 이정희 <daemul72@gmail.com>\n"
+"Language: ko\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Poedit 3.0.1\n"
+
+#: prefs.js:67
+msgid "Opacity (min: 0, max: 255)"
+msgstr "불투명도 (최소: 0, 최대: 255)"
+
+#: prefs.js:95
+msgid "Desaturation (min: 0.0, max: 1.0)"
+msgstr "채도 감소 (최소: 0.0, 최대: 1.0)"
+
+#: prefs.js:123
+msgid "Brightness (min: -1.0, max: 1.0)"
+msgstr "명도 (최소: -1.0, 최대: 1.0)"
+
+#: prefs.js:151
+msgid "Contrast (min: -1.0, max: 1.0)"
+msgstr "대비 (최소: -1.0, 최대: 1.0)"
+
+#: prefs.js:179
+msgid "Icon size (min: 0, max: 96)"
+msgstr "아이콘 크기 (최소: 0, 최대: 96)"
+
+#: prefs.js:207
+msgid "Tray horizontal alignment"
+msgstr "트레이 수평 정렬"
+
+#: prefs.js:212
+msgid "Center"
+msgstr "중앙"
+
+#: prefs.js:213
+msgid "Left"
+msgstr "왼쪽"
+
+#: prefs.js:214
+msgid "Right"
+msgstr "오른쪽"
+
+#: prefs.js:259
+msgid "Indicator ID"
+msgstr "표시기 ID"
+
+#: prefs.js:260
+msgid "Icon Name"
+msgstr "아이콘 이름"
+
+#: prefs.js:261
+msgid "Attention Icon Name"
+msgstr "주의 아이콘 이름"
+
+#: prefs.js:336
+msgid "Preferences"
+msgstr "기본 설정"
+
+#: prefs.js:338
+msgid "Custom Icons"
+msgstr "사용자 지정 아이콘"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
+msgid "Saturation"
+msgstr "채도"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
+msgid "Brightness"
+msgstr "명도"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
+msgid "Contrast"
+msgstr "대비"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
+msgid "Opacity"
+msgstr "불투명도"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
+msgid "Icon size"
+msgstr "아이콘 크기"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:22
+msgid "Icon size in pixel"
+msgstr "아이콘 크기 (픽셀)"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
+msgid "Icon spacing"
+msgstr "아이콘 간격"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:27
+msgid "Icon spacing within the tray"
+msgstr "트레이 내 아이콘 간격"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
+msgid "Position in tray"
+msgstr "트레이의 위치"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:32
+msgid "Set where the Icon tray should appear in Gnome tray"
+msgstr "그놈 트레이에서 아이콘 트레이가 나타날 위치 지정하기"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
+msgid "Order in tray"
+msgstr "트레이에서 지시하기"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:37
+msgid "Set where the Icon tray should appear among other trays"
+msgstr "아이콘 트레이가 다른 트레이 중에서 표시되어야 하는 위치 지정하기"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
+msgid "Custom icons"
+msgstr "사용자 지정 아이콘"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:42
+msgid "Replace any icons with custom icons from themes"
+msgstr "모든 아이콘을 테마의 사용자 지정 아이콘으로 바꾸기"
