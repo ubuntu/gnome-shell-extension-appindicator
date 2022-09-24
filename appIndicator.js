@@ -211,7 +211,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
             this._proxyPropertyList.includes(p)).forEach(p =>
             Util.refreshPropertyOnProxy(this._proxy, p, {
                 skipEqualityCheck: p.endsWith('Pixmap'),
-            }),
+            }).catch(e => logError(e)),
         );
     }
 
@@ -865,7 +865,7 @@ class AppIndicatorsIconActor extends St.Icon {
         this._iconCache.clear();
         this._cancelLoading();
 
-        this._updateIcon();
+        this._updateIcon().catch(e => logError(e));
         this._updateOverlayIcon();
     }
 

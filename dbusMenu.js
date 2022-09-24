@@ -381,7 +381,10 @@ var DBusClient = class AppIndicatorsDBusClient {
         } else {
             // we don't, so let's create us
             this._items.set(id, new DbusMenuItem(this, id, properties, childrenIds));
-            this._requestProperties(id);
+            this._requestProperties(id).catch(e => {
+                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                    Util.Logger.warn(`Could not get menu properties menu proxy: ${e}`);
+            });
         }
 
         return id;
