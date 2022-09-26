@@ -17,7 +17,7 @@
 /* exported refreshPropertyOnProxy, getUniqueBusName, getBusNames,
    introspectBusObject, dbusNodeImplementsInterfaces, waitForStartupCompletion,
    connectSmart, versionCheck, getDefaultTheme, tryCleanupOldIndicators,
-   getProcessName, BUS_ADDRESS_REGEX */
+   getProcessName, ensureProxyAsyncMethod, BUS_ADDRESS_REGEX */
 
 const ByteArray = imports.byteArray;
 const Gio = imports.gi.Gio;
@@ -174,6 +174,26 @@ async function getProcessId(connectionName, cancellable = null, bus = Gio.DBus.s
         cancellable);
     const [pid] = res.deepUnpack();
     return pid;
+}
+
+// This can be removed when we will have GNOME 43 as minimum version
+function ensureProxyAsyncMethod(proxy, method) {
+    if (proxy[`${method}Async`])
+        return;
+
+    if (!proxy[`${method}Remote`])
+        throw new Error(`Missing remote method '${method}'`);
+
+    proxy[`${method}Async`] = function (...args) {
+        return new Promise((resolve, reject) => {
+            this[`${method}Remote`](...args, (ret, e) => {
+                if (e)
+                    reject(e);
+                else
+                    resolve(ret);
+            });
+        });
+    };
 }
 
 async function getProcessName(connectionName, cancellable = null,
