@@ -571,8 +571,9 @@ const MenuItemFactory = {
         }
     },
 
-    _onActivate() {
-        this._dbusItem.handleEvent('clicked', GLib.Variant.new('i', 0), 0);
+    _onActivate(_item, event) {
+        this._dbusItem.handleEvent('clicked', GLib.Variant.new('i', 0),
+            event.get_time());
     },
 
     _onPropertyChanged(dbusItem, prop, _value) {
