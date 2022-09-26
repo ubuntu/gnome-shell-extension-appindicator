@@ -97,14 +97,23 @@ var AppIndicator = class AppIndicatorsAppIndicator {
     }
 
     async _setupProxy() {
+        const cancellable = this._cancellable;
+
         try {
-            await this._proxy.init_async(GLib.PRIORITY_DEFAULT, this._cancellable);
+            await this._proxy.init_async(GLib.PRIORITY_DEFAULT, cancellable);
             this._setupProxyAsyncMethods();
             this._checkIfReady();
             this._checkNeededProperties();
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 Util.Logger.warn(`While initalizing proxy for ${this._uniqueId}: ${e}`);
+        }
+
+        try {
+            this._commandLine = await Util.getProcessName(this.busName,
+                cancellable, GLib.PRIORITY_LOW);
+        } catch (e) {
+            Util.Logger.debug(`${this._indicator.id}, failed getting command line: ${e.message}`);
         }
     }
 
@@ -136,6 +145,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         Util.ensureProxyAsyncMethod(this._proxy, 'ContextMenu');
         Util.ensureProxyAsyncMethod(this._proxy, 'Scroll');
         Util.ensureProxyAsyncMethod(this._proxy, 'SecondaryActivate');
+        Util.ensureProxyAsyncMethod(this._proxy, 'ProvideXdgActivationToken');
         Util.ensureProxyAsyncMethod(this._proxy, 'XAyatanaSecondaryActivate');
     }
 
@@ -381,14 +391,43 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         delete this._nameWatcher;
     }
 
+    _getActivationToken(timestamp) {
+        const launchContext = global.create_app_launch_context(timestamp, -1);
+        const fakeAppInfo = Gio.AppInfo.create_from_commandline(
+            this._commandLine || 'true', this.id,
+            Gio.AppInfoCreateFlags.SUPPORTS_STARTUP_NOTIFICATION);
+        return [launchContext, launchContext.get_startup_notify_id(fakeAppInfo, [])];
+    }
+
+    async provideActivationToken(timestamp) {
+        if (this._hasProvideXdgActivationToken === false)
+            return;
+
+        const [launchContext, activationToken] = this._getActivationToken(timestamp);
+        try {
+            await this._proxy.ProvideXdgActivationTokenAsync(activationToken,
+                this._cancellable);
+            this._hasProvideXdgActivationToken = true;
+        } catch (e) {
+            launchContext.launch_failed(activationToken);
+
+            if (e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD))
+                this._hasProvideXdgActivationToken = false;
+            else
+                Util.Logger.warn(`${this.id}, failed to provide activation token: ${e.message}`);
+        }
+    }
+
     async open(x, y, timestamp) {
+        const cancellable = this._cancellable;
         // we can't use WindowID because we're not able to get the x11 window id from a MetaWindow
         // nor can we call any X11 functions. Luckily, the Activate method usually works fine.
         // parameters are "an hint to the item where to show eventual windows" [sic]
         // ... and don't seem to have any effect.
 
         try {
-            await this._proxy.ActivateAsync(x, y, this._cancellable);
+            await this.provideActivationToken(timestamp);
+            await this._proxy.ActivateAsync(x, y, cancellable);
             this.supportsActivation = true;
         } catch (e) {
             if (e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD)) {
@@ -406,6 +445,8 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         const cancellable = this._cancellable;
 
         try {
+            await this.provideActivationToken(timestamp);
+
             if (this._hasAyatanaSecondaryActivate !== false) {
                 try {
                     await this._proxy.XAyatanaSecondaryActivateAsync(timestamp, cancellable);

@@ -1,3 +1,8 @@
 extends:
  - ./lint/eslintrc-gjs.yml
  - ./lint/eslintrc-shell.yml
+
+overrides:
+  - files: ./*.js
+    globals:
+      global: readonly
