@@ -536,6 +536,11 @@ const MenuItemFactory = {
         Util.connectSmart(shellItem, 'activate',
             shellItem, MenuItemFactory._onActivate);
 
+        shellItem.connect('destroy', () => {
+            shellItem._dbusItem = null;
+            shellItem._dbusClient = null;
+        });
+
         if (shellItem.menu) {
             Util.connectSmart(shellItem.menu, 'open-state-changed',
                 shellItem,  MenuItemFactory._onOpenStateChanged);
