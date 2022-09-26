@@ -99,6 +99,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
     async _setupProxy() {
         try {
             await this._proxy.init_async(GLib.PRIORITY_DEFAULT, this._cancellable);
+            this._setupProxyAsyncMethods();
             this._checkIfReady();
             this._checkNeededProperties();
         } catch (e) {
@@ -128,6 +129,14 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         }
 
         return false;
+    }
+
+    _setupProxyAsyncMethods() {
+        Util.ensureProxyAsyncMethod(this._proxy, 'Activate');
+        Util.ensureProxyAsyncMethod(this._proxy, 'ContextMenu');
+        Util.ensureProxyAsyncMethod(this._proxy, 'Scroll');
+        Util.ensureProxyAsyncMethod(this._proxy, 'SecondaryActivate');
+        Util.ensureProxyAsyncMethod(this._proxy, 'XAyatanaSecondaryActivate');
     }
 
     async _checkNeededProperties() {
@@ -372,17 +381,16 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         delete this._nameWatcher;
     }
 
-    open(x, y) {
+    async open(x, y, timestamp) {
         // we can't use WindowID because we're not able to get the x11 window id from a MetaWindow
         // nor can we call any X11 functions. Luckily, the Activate method usually works fine.
         // parameters are "an hint to the item where to show eventual windows" [sic]
         // ... and don't seem to have any effect.
-        this._proxy.ActivateRemote(x, y, this._cancellable, (_, e) => {
-            if (!e) {
-                this.supportsActivation = true;
-                return;
-            }
 
+        try {
+            await this._proxy.ActivateAsync(x, y, this._cancellable);
+            this.supportsActivation = true;
+        } catch (e) {
             if (e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD)) {
                 this.supportsActivation = false;
                 Util.Logger.warn(`${this.id}, does not support activation: ${e.message}`);
@@ -391,39 +399,52 @@ var AppIndicator = class AppIndicatorsAppIndicator {
 
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 Util.Logger.critical(`${this.id}, failed to activate: ${e.message}`);
-        });
-    }
-
-    secondaryActivate(timestamp, x, y) {
-        const cancellable = this._cancellable;
-
-        this._proxy.XAyatanaSecondaryActivateRemote(timestamp, cancellable, (_, e) => {
-            if (e && e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD)) {
-                this._proxy.SecondaryActivateRemote(x, y, cancellable, (_r, error) => {
-                    if (error && !error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                        Util.Logger.critical(`${this.id}, failed to secondary activate: ${e.message}`);
-                });
-            } else if (e && !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
-                Util.Logger.critical(`${this.id}, failed to secondary activate: ${e.message}`);
-            }
-        });
-    }
-
-    scroll(dx, dy) {
-        const cancellable = this._cancellable;
-
-        if (dx !== 0) {
-            this._proxy.ScrollRemote(Math.floor(dx), 'horizontal', cancellable, (_, e) => {
-                if (e && !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                    Util.Logger.critical(`${this.id}, failed to scroll horizontally: ${e.message}`);
-            });
         }
+    }
 
-        if (dy !== 0) {
-            this._proxy.ScrollRemote(Math.floor(dy), 'vertical', cancellable, (_, e) => {
-                if (e && !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                    Util.Logger.critical(`${this.id}, failed to scroll vertically: ${e.message}`);
-            });
+    async secondaryActivate(timestamp, x, y) {
+        const cancellable = this._cancellable;
+
+        try {
+            if (this._hasAyatanaSecondaryActivate !== false) {
+                try {
+                    await this._proxy.XAyatanaSecondaryActivateAsync(timestamp, cancellable);
+                    this._hasAyatanaSecondaryActivate = true;
+                } catch (e) {
+                    if (e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD))
+                        this._hasAyatanaSecondaryActivate = false;
+                    else
+                        throw e;
+                }
+            }
+
+            if (!this._hasAyatanaSecondaryActivate)
+                await this._proxy.SecondaryActivateAsync(x, y, cancellable);
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                Util.Logger.critical(`${this.id}, failed to secondary activate: ${e.message}`);
+        }
+    }
+
+    async scroll(dx, dy) {
+        const cancellable = this._cancellable;
+
+        try {
+            const actions = [];
+
+            if (dx !== 0) {
+                actions.push(this._proxy.ScrollAsync(Math.floor(dx),
+                    'horizontal', cancellable));
+            }
+
+            if (dy !== 0) {
+                actions.push(this._proxy.ScrollAsync(Math.floor(dy),
+                    'vertical', cancellable));
+            }
+
+            await Promise.all(actions);
+        } catch (e) {
+            Util.Logger.critical(`${this.id}, failed to scroll: ${e.message}`);
         }
     }
 };
