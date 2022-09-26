@@ -378,7 +378,18 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         // parameters are "an hint to the item where to show eventual windows" [sic]
         // ... and don't seem to have any effect.
         this._proxy.ActivateRemote(x, y, this._cancellable, (_, e) => {
-            if (e && !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+            if (!e) {
+                this.supportsActivation = true;
+                return;
+            }
+
+            if (e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD)) {
+                this.supportsActivation = false;
+                Util.Logger.warn(`${this.id}, does not support activation: ${e.message}`);
+                return;
+            }
+
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 Util.Logger.critical(`${this.id}, failed to activate: ${e.message}`);
         });
     }

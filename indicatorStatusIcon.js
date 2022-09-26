@@ -18,6 +18,7 @@
             addIconToPanel, getTrayIcons, getAppIndicatorIcons */
 
 const Clutter = imports.gi.Clutter;
+const GLib = imports.gi.GLib;
 const GObject = imports.gi.GObject;
 const St = imports.gi.St;
 
@@ -298,6 +299,9 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
     }
 
     _maybeHandleDoubleClick(buttonEvent) {
+        if (this._indicator.supportsActivation === false)
+            return Clutter.EVENT_PROPAGATE;
+
         if (buttonEvent.button !== Clutter.BUTTON_PRIMARY)
             return Clutter.EVENT_PROPAGATE;
 
@@ -311,19 +315,52 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
         return Clutter.EVENT_PROPAGATE;
     }
 
+    vfunc_event(event) {
+        if (this.menu.numMenuItems && event.type() === Clutter.EventType.TOUCH_BEGIN)
+            this.menu.toggle();
+
+        return Clutter.EVENT_PROPAGATE;
+    }
+
     vfunc_button_press_event(buttonEvent) {
+        if (this._waitDoubleClickId) {
+            GLib.source_remove(this._waitDoubleClickId);
+            this._waitDoubleClickId = 0;
+        }
+
         // if middle mouse button clicked send SecondaryActivate dbus event and do not show appindicator menu
         if (buttonEvent.button === Clutter.BUTTON_MIDDLE) {
-            Main.panel.menuManager._closeMenu(true, Main.panel.menuManager.activeMenu);
+            if (Main.panel.menuManager.activeMenu)
+                Main.panel.menuManager._closeMenu(true, Main.panel.menuManager.activeMenu);
             this._indicator.secondaryActivate(buttonEvent.time, buttonEvent.x, buttonEvent.y);
             return Clutter.EVENT_STOP;
         }
 
-        return this._maybeHandleDoubleClick(buttonEvent);
+        const doubleClickHandled = this._maybeHandleDoubleClick(buttonEvent);
+        if (doubleClickHandled === Clutter.EVENT_PROPAGATE &&
+            buttonEvent.button === Clutter.BUTTON_PRIMARY &&
+            this.menu.numMenuItems) {
+            if (this._indicator.supportsActivation) {
+                const { doubleClickTime } = Clutter.Settings.get_default();
+                this._waitDoubleClickId = GLib.timeout_add(GLib.PRIORITY_DEFAULT,
+                    doubleClickTime, () => {
+                        this.menu.toggle();
+                        this._waitDoubleClickId = 0;
+                        return GLib.SOURCE_REMOVE;
+                    });
+            } else {
+                this.menu.toggle();
+            }
+        }
+
+        return Clutter.EVENT_PROPAGATE;
     }
 
     vfunc_button_release_event(buttonEvent) {
-        return this._maybeHandleDoubleClick(buttonEvent);
+        if (!this._indicator.supportsActivation)
+            return this._maybeHandleDoubleClick(buttonEvent);
+
+        return Clutter.EVENT_PROPAGATE;
     }
 
     vfunc_scroll_event(scrollEvent) {
@@ -395,6 +432,11 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
             Util.Logger.debug(`Destroying legacy tray icon ${this.uniqueId}`);
             this._icon.destroy();
             this._icon = null;
+
+            if (this._waitDoubleClickId) {
+                GLib.source_remove(this._waitDoubleClickId);
+                this._waitDoubleClickId = 0;
+            }
         });
     }
 
