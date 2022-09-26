@@ -17,8 +17,9 @@
 /* exported refreshPropertyOnProxy, getUniqueBusName, getBusNames,
    introspectBusObject, dbusNodeImplementsInterfaces, waitForStartupCompletion,
    connectSmart, versionCheck, getDefaultTheme, tryCleanupOldIndicators,
-   BUS_ADDRESS_REGEX */
+   getProcessName, BUS_ADDRESS_REGEX */
 
+const ByteArray = imports.byteArray;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
 const Gtk = imports.gi.Gtk;
@@ -39,6 +40,8 @@ const Signals = imports.signals;
 var BUS_ADDRESS_REGEX = /([a-zA-Z0-9._-]+\.[a-zA-Z0-9.-]+)|(:[0-9]+\.[0-9]+)$/;
 
 PromiseUtils._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
+PromiseUtils._promisify(Gio._LocalFilePrototype, 'read', 'read_finish');
+PromiseUtils._promisify(Gio.InputStream.prototype, 'read_bytes_async', 'read_bytes_finish');
 
 async function refreshPropertyOnProxy(proxy, propertyName, params) {
     if (!proxy._proxyCancellables)
@@ -159,6 +162,27 @@ async function getBusNames(bus, cancellable) {
     }
 
     return uniqueNames;
+}
+
+async function getProcessId(connectionName, cancellable = null, bus = Gio.DBus.session) {
+    const res = await bus.call('org.freedesktop.DBus', '/',
+        'org.freedesktop.DBus', 'GetConnectionUnixProcessID',
+        new GLib.Variant('(s)', [connectionName]),
+        new GLib.VariantType('(u)'),
+        Gio.DBusCallFlags.NONE,
+        -1,
+        cancellable);
+    const [pid] = res.deepUnpack();
+    return pid;
+}
+
+async function getProcessName(connectionName, cancellable = null,
+    priority = GLib.PRIORITY_DEFAULT, bus = Gio.DBus.session) {
+    const pid = await getProcessId(connectionName, cancellable, bus);
+    const cmdFile = Gio.File.new_for_path(`/proc/${pid}/cmdline`);
+    const inputStream = await cmdFile.read_async(priority, cancellable);
+    const bytes = await inputStream.read_bytes_async(2048, priority, cancellable);
+    return ByteArray.toString(bytes.toArray().map(v => !v ? 0x20 : v));
 }
 
 async function introspectBusObject(bus, name, cancellable, path = undefined) {
