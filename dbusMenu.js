@@ -577,8 +577,12 @@ const MenuItemFactory = {
     },
 
     _onActivate(_item, event) {
+        const timestamp = event.get_time();
+        if (timestamp && this._dbusClient.indicator)
+            this._dbusClient.indicator.provideActivationToken(timestamp);
+
         this._dbusItem.handleEvent('clicked', GLib.Variant.new('i', 0),
-            event.get_time());
+            timestamp);
     },
 
     _onPropertyChanged(dbusItem, prop, _value) {
@@ -728,12 +732,13 @@ const MenuUtils = {
  */
 var Client = class AppIndicatorsClient {
 
-    constructor(busName, path) {
+    constructor(busName, path, indicator) {
         this._busName  = busName;
         this._busPath  = path;
         this._client   = new DBusClient(busName, path);
         this._rootMenu = null; // the shell menu
         this._rootItem = null; // the DbusMenuItem for the root
+        this.indicator = indicator;
     }
 
     get isReady() {
@@ -825,6 +830,7 @@ var Client = class AppIndicatorsClient {
         this._client   = null;
         this._rootItem = null;
         this._rootMenu = null;
+        this.indicator = null;
     }
 };
 Signals.addSignalMethods(Client.prototype);

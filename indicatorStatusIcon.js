@@ -265,7 +265,7 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
 
         if (this._indicator.menuPath) {
             this._menuClient = new DBusMenu.Client(this._indicator.busName,
-                this._indicator.menuPath);
+                this._indicator.menuPath, this._indicator);
             this._menuClient.attachToMenu(this.menu);
         }
     }
