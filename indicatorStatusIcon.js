@@ -79,7 +79,7 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
 
         const indicatorId = `appindicator-${this.uniqueId}`;
         Main.panel.statusArea[indicatorId] = null;
-        Main.panel.addToStatusArea(indicatorId, this, 1,
+        Main.panel.addToStatusArea(indicatorId, this, 0,
             SettingsManager.getDefaultGSettings().get_string('tray-pos'));
     }
 
