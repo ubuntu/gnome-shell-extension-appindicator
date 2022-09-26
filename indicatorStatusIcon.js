@@ -158,6 +158,10 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
             new AppIndicator.IconActor(indicator, Panel.PANEL_ICON_SIZE));
         this._indicator = indicator;
 
+        this._lastClickTime = -1;
+        this._lastClickX = -1;
+        this._lastClickY = -1;
+
         this._box = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
         this._box.add_style_class_name('appindicator-box');
         this.add_child(this._box);
@@ -246,20 +250,52 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
         super._showIfReady();
     }
 
+    _updateClickCount(buttonEvent) {
+        const { x, y, time } = buttonEvent;
+        const { doubleClickDistance, doubleClickTime } =
+            Clutter.Settings.get_default();
+
+        if (time > (this._lastClickTime + doubleClickTime) ||
+            (Math.abs(x - this._lastClickX) > doubleClickDistance) ||
+            (Math.abs(y - this._lastClickY) > doubleClickDistance))
+            this._clickCount = 0;
+
+        this._lastClickTime = time;
+        this._lastClickX = x;
+        this._lastClickY = y;
+
+        this._clickCount = (this._clickCount % 2) + 1;
+
+        return this._clickCount;
+    }
+
+    _maybeHandleDoubleClick(buttonEvent) {
+        if (buttonEvent.button !== Clutter.BUTTON_PRIMARY)
+            return Clutter.EVENT_PROPAGATE;
+
+        if (buttonEvent.click_count === 2 ||
+            (buttonEvent.click_count === undefined &&
+             this._updateClickCount(buttonEvent) === 2)) {
+            this._indicator.open(buttonEvent.x, buttonEvent.y, buttonEvent.time);
+            return Clutter.EVENT_STOP;
+        }
+
+        return Clutter.EVENT_PROPAGATE;
+    }
+
     vfunc_button_press_event(buttonEvent) {
         // if middle mouse button clicked send SecondaryActivate dbus event and do not show appindicator menu
-        if (buttonEvent.button === 2) {
+        if (buttonEvent.button === Clutter.BUTTON_MIDDLE) {
             Main.panel.menuManager._closeMenu(true, Main.panel.menuManager.activeMenu);
             this._indicator.secondaryActivate(buttonEvent.time, buttonEvent.x, buttonEvent.y);
             return Clutter.EVENT_STOP;
         }
 
-        if (buttonEvent.button === 1 && buttonEvent.click_count === 2) {
-            this._indicator.open(buttonEvent.x, buttonEvent.y);
-            return Clutter.EVENT_STOP;
-        }
+        return this._maybeHandleDoubleClick(buttonEvent);
+    }
 
-        return Clutter.EVENT_PROPAGATE;
+    vfunc_button_release_event(buttonEvent) {
+        return this._maybeHandleDoubleClick(buttonEvent);
     }
 
     vfunc_scroll_event(scrollEvent) {
