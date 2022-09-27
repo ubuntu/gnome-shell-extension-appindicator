@@ -336,6 +336,11 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
             return Clutter.EVENT_STOP;
         }
 
+        if (buttonEvent.button === Clutter.BUTTON_SECONDARY) {
+            this.menu.toggle();
+            return Clutter.EVENT_PROPAGATE;
+        }
+
         const doubleClickHandled = this._maybeHandleDoubleClick(buttonEvent);
         if (doubleClickHandled === Clutter.EVENT_PROPAGATE &&
             buttonEvent.button === Clutter.BUTTON_PRIMARY &&
