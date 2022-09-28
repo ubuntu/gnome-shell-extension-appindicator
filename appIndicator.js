@@ -868,21 +868,14 @@ class AppIndicatorsIconActor extends St.Icon {
 
     // updates the base icon
     async _createIcon(name, pixmap, theme, iconType, iconSize) {
-        try {
-            if (name) {
-                const gicon = await this._cacheOrCreateIconByName(iconSize, name, theme);
-                if (gicon)
-                    return gicon;
-            }
-
-            if (pixmap && pixmap.length)
-                return this._createIconFromPixmap(iconSize, pixmap, iconType);
-        } catch (e) {
-            /* We handle the error messages already */
-            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED) &&
-                !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING))
-                Util.Logger.debug(`${this._indicator.id}, Impossible to load icon: ${e}`);
+        if (name) {
+            const gicon = await this._cacheOrCreateIconByName(iconSize, name, theme);
+            if (gicon)
+                return gicon;
         }
+
+        if (pixmap && pixmap.length)
+            return this._createIconFromPixmap(iconSize, pixmap, iconType);
 
         return null;
     }
