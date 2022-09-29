@@ -662,9 +662,12 @@ class AppIndicatorsIconActor extends St.Icon {
         }
 
         this._loadingIcons.add(id);
-        let path = this._getIconInfo(iconName, themePath, iconSize, scaleFactor);
-        gicon = await this._createIconByName(path, cancellable);
-        this._loadingIcons.delete(id);
+        try {
+            const path = this._getIconInfo(iconName, themePath, iconSize, scaleFactor);
+            gicon = await this._createIconByName(path, cancellable);
+        } finally {
+            this._loadingIcons.delete(id);
+        }
         if (gicon)
             gicon = this._iconCache.add(id, gicon);
         return gicon;
