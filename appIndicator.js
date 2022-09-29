@@ -86,7 +86,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
 
         this._setupProxy();
         Util.connectSmart(this._proxy, 'g-properties-changed', this, this._onPropertiesChanged);
-        Util.connectSmart(this._proxy, 'g-signal', this, this._onProxySignal);
+        Util.connectSmart(this._proxy, 'g-signal', this, (...args) => this._onProxySignal(...args).catch(logError));
         Util.connectSmart(this._proxy, 'notify::g-name-owner', this, this._nameOwnerChanged);
 
         if (service !== busName && service.match(Util.BUS_ADDRESS_REGEX)) {
@@ -214,14 +214,18 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         }
     }
 
+    _signalToPropertyName(signal) {
+        if (signal.startsWith('New'))
+            return signal.substr(3);
+        else if (signal.startsWith('XAyatanaNew'))
+            return `XAyatana${signal.substr(11)}`;
+
+        return null;
+    }
+
     // The Author of the spec didn't like the PropertiesChanged signal, so he invented his own
     _translateNewSignals(signal) {
-        let prop = null;
-
-        if (signal.startsWith('New'))
-            prop = signal.substr(3);
-        else if (signal.startsWith('XAyatanaNew'))
-            prop = `XAyatana${signal.substr(11)}`;
+        const prop = this._signalToPropertyName(signal);
 
         if (!prop)
             return;
@@ -234,7 +238,17 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         );
     }
 
-    async _onProxySignal(_proxy, _sender, signal, _params) {
+    async _onProxySignal(_proxy, _sender, signal, params) {
+        const property = this._signalToPropertyName(signal);
+
+        if (property && !params.get_type().equal(GLib.VariantType.new('()'))) {
+            // If the property includes arguments, we can just emit the changes
+            // unless if a delayed change is already planned
+            const [value] = params.unpack();
+            await Util.queueProxyPropertyUpdate(this._proxy, property, value);
+            return;
+        }
+
         this._accumulatedSignals.add(signal);
 
         if (this._signalsAccumulator)

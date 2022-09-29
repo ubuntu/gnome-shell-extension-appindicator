@@ -17,7 +17,8 @@
 /* exported refreshPropertyOnProxy, getUniqueBusName, getBusNames,
    introspectBusObject, dbusNodeImplementsInterfaces, waitForStartupCompletion,
    connectSmart, versionCheck, getDefaultTheme, tryCleanupOldIndicators,
-   getProcessName, ensureProxyAsyncMethod, BUS_ADDRESS_REGEX */
+   getProcessName, ensureProxyAsyncMethod, queueProxyPropertyUpdate,
+   BUS_ADDRESS_REGEX */
 
 const ByteArray = imports.byteArray;
 const Gio = imports.gi.Gio;
@@ -44,14 +45,11 @@ PromiseUtils._promisify(Gio._LocalFilePrototype, 'read', 'read_finish');
 PromiseUtils._promisify(Gio.InputStream.prototype, 'read_bytes_async', 'read_bytes_finish');
 
 async function refreshPropertyOnProxy(proxy, propertyName, params) {
-    if (!proxy._proxyCancellables)
-        proxy._proxyCancellables = new Map();
-
     params = Params.parse(params, {
         skipEqualityCheck: false,
     });
 
-    let cancellable = cancelRefreshPropertyOnProxy(proxy, {
+    const cancellable = cancelRefreshPropertyOnProxy(proxy, {
         propertyName,
         addNew: true,
     });
@@ -64,26 +62,8 @@ async function refreshPropertyOnProxy(proxy, propertyName, params) {
             cancellable)).deep_unpack();
 
         proxy._proxyCancellables.delete(propertyName);
-
-        if (!params.skipEqualityCheck &&
-            proxy.get_cached_property(propertyName).equal(valueVariant))
-            return;
-
-        proxy.set_cached_property(propertyName, valueVariant);
-
-        // synthesize a batched property changed event
-        if (!proxy._proxyChangedProperties)
-            proxy._proxyChangedProperties = {};
-        proxy._proxyChangedProperties[propertyName] = valueVariant;
-
-        if (!proxy._proxyPropertiesEmit || !proxy._proxyPropertiesEmit.pending()) {
-            proxy._proxyPropertiesEmit = new PromiseUtils.TimeoutPromise(16,
-                GLib.PRIORITY_DEFAULT_IDLE, cancellable);
-            await proxy._proxyPropertiesEmit;
-            proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}',
-                proxy._proxyChangedProperties), []);
-            delete proxy._proxyChangedProperties;
-        }
+        await queueProxyPropertyUpdate(proxy, propertyName, valueVariant,
+            { ...params, cancellable });
     } catch (e) {
         if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
             // the property may not even exist, silently ignore it
@@ -95,14 +75,51 @@ async function refreshPropertyOnProxy(proxy, propertyName, params) {
     }
 }
 
-function cancelRefreshPropertyOnProxy(proxy, params) {
-    if (!proxy._proxyCancellables)
-        return null;
+async function queueProxyPropertyUpdate(proxy, propertyName, value, params) {
+    params = Params.parse(params, {
+        skipEqualityCheck: false,
+        cancellable: null,
+    });
 
+    if (!params.skipEqualityCheck &&
+        value.equal(proxy.get_cached_property(propertyName)))
+        return;
+
+    proxy.set_cached_property(propertyName, value);
+
+    // synthesize a batched property changed event
+    if (!proxy._proxyChangedProperties)
+        proxy._proxyChangedProperties = {};
+    proxy._proxyChangedProperties[propertyName] = value;
+
+    if (!proxy._proxyPropertiesEmit || !proxy._proxyPropertiesEmit.pending()) {
+        if (!params.cancellable) {
+            params.cancellable = cancelRefreshPropertyOnProxy(proxy, {
+                propertyName,
+                addNew: true,
+            });
+        }
+        proxy._proxyPropertiesEmit = new PromiseUtils.TimeoutPromise(16,
+            GLib.PRIORITY_DEFAULT_IDLE, params.cancellable);
+        await proxy._proxyPropertiesEmit;
+        proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}',
+            proxy._proxyChangedProperties), []);
+        delete proxy._proxyChangedProperties;
+    }
+}
+
+function cancelRefreshPropertyOnProxy(proxy, params) {
     params = Params.parse(params, {
         propertyName: undefined,
         addNew: false,
     });
+
+    if (!proxy._proxyCancellables) {
+        if (!params.addNew)
+            return null;
+
+        proxy._proxyCancellables = new Map();
+    }
 
     if (params.propertyName !== undefined) {
         let cancellable = proxy._proxyCancellables.get(params.propertyName);
