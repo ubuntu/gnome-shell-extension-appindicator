@@ -105,10 +105,15 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
 
             indicator.connect('name-owner-changed', async () => {
                 if (!indicator.hasNameOwner) {
-                    await new PromiseUtils.TimeoutPromise(500,
-                        GLib.PRIORITY_DEFAULT, this._cancellable);
-                    if (!indicator.hasNameOwner)
-                        this._itemVanished(id);
+                    try {
+                        await new PromiseUtils.TimeoutPromise(500,
+                            GLib.PRIORITY_DEFAULT, this._cancellable);
+                        if (!indicator.hasNameOwner)
+                            this._itemVanished(id);
+                    } catch (e) {
+                        if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                            logError(e);
+                    }
                 }
             });
 
