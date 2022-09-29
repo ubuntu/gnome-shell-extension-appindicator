@@ -83,14 +83,8 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
         this._watchDog.nameAcquired = false;
     }
 
-
-    // create a unique index for the _items dictionary
-    _getItemId(busName, objPath) {
-        return busName + objPath;
-    }
-
     async _registerItem(service, busName, objPath) {
-        let id = this._getItemId(busName, objPath);
+        const id = Util.indicatorId(busName, objPath);
 
         if (this._items.has(id)) {
             Util.Logger.warn(`Item ${id} is already registered`);
@@ -135,7 +129,7 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
     }
 
     _ensureItemRegistered(service, busName, objPath) {
-        let id = this._getItemId(busName, objPath);
+        const id = Util.indicatorId(busName, objPath);
         let item = this._items.get(id);
 
         if (item) {
@@ -163,7 +157,7 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
             nodes.forEach(({ nodeInfo, path }) => {
                 if (Util.dbusNodeImplementsInterfaces(nodeInfo, ['org.kde.StatusNotifierItem'])) {
                     Util.Logger.debug(`Found ${name} at ${path} implementing StatusNotifierItem iface`);
-                    const id = this._getItemId(name, path);
+                    const id = Util.indicatorId(name, path);
                     if (!this._items.has(id)) {
                         Util.Logger.warn(`Using Brute-force mode for StatusNotifierItem ${id}`);
                         this._registerItem(path, name, path);

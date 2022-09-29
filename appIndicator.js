@@ -69,7 +69,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
 
     constructor(service, busName, object) {
         this.busName = busName;
-        this._uniqueId = busName + object;
+        this._uniqueId = Util.indicatorId(busName, object);
         this._accumulatedSignals = new Set();
 
         const interfaceInfo = Gio.DBusInterfaceInfo.new_for_xml(Interfaces.StatusNotifierItem);
