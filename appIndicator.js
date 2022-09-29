@@ -190,8 +190,10 @@ var AppIndicator = class AppIndicatorsAppIndicator {
             try {
                 await this._checkNeededProperties();
             } catch (e) {
-                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
                     Util.Logger.warn(`${this.uniqueId}, Impossible to get basic properties: ${e}`);
+                    this.checkAlive();
+                }
             }
         }
 
