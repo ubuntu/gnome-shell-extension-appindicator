@@ -327,8 +327,9 @@ var AppIndicator = class AppIndicatorsAppIndicator {
     }
 
     get hasNameOwner() {
-        return !!this._proxy.g_name_owner ||
-            this._nameWatcher && this._nameWatcher.nameOnBus;
+        if (this._nameWatcher && !this._nameWatcher.nameOnBus)
+            return false;
+        return !!this._proxy.g_name_owner;
     }
 
     get cancellable() {
