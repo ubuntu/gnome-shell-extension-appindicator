@@ -849,9 +849,12 @@ class AppIndicatorsIconActor extends St.Icon {
 
         if (this._customIcons.size) {
             let customIcon = this._customIcons.get(iconType);
-            gicon = await this._createIcon(customIcon, null, ...commonArgs);
+            if (customIcon)
+                gicon = await this._createIcon(customIcon, null, ...commonArgs);
+            else if (iconType === SNIconType.OVERLAY)
+                return;
 
-            if (!gicon) {
+            if (!gicon && iconType !== SNIconType.NORMAL) {
                 customIcon = this._customIcons.get(SNIconType.NORMAL);
                 gicon = await this._createIcon(customIcon, null, ...commonArgs);
             }
