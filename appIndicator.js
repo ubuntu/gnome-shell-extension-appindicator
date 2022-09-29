@@ -154,6 +154,11 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         Util.ensureProxyAsyncMethod(this._proxy, 'XAyatanaSecondaryActivate');
     }
 
+    _resetNeededProperties() {
+        NEEDED_PROPERTIES.forEach(p =>
+            this._proxy.set_cached_property(p, null));
+    }
+
     async _checkNeededProperties() {
         if (this.id && this.menuPath)
             return true;
@@ -176,6 +181,8 @@ var AppIndicator = class AppIndicatorsAppIndicator {
     }
 
     async _nameOwnerChanged() {
+        this._resetNeededProperties();
+
         if (!this.hasNameOwner) {
             this._checkIfReady();
         } else {
