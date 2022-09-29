@@ -426,7 +426,6 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
         const settings = SettingsManager.getDefaultGSettings();
         Util.connectSmart(settings, 'changed::icon-size', this, this._updateIconSize);
 
-        // eslint-disable-next-line no-undef
         const themeContext = St.ThemeContext.get_for_stage(global.stage);
         Util.connectSmart(themeContext, 'notify::scale-factor', this, () =>
             this._updateIconSize());
@@ -524,7 +523,6 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
 
     _updateIconSize() {
         const settings = SettingsManager.getDefaultGSettings();
-        // eslint-disable-next-line no-undef
         const { scale_factor: scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
         let iconSize = settings.get_int('icon-size');
 

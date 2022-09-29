@@ -506,7 +506,6 @@ class AppIndicatorsIconActor extends St.Icon {
         this.add_style_class_name('status-notifier-icon');
         this.set_style('padding:0');
 
-        // eslint-disable-next-line no-undef
         let themeContext = St.ThemeContext.get_for_stage(global.stage);
         this.height = iconSize * themeContext.scale_factor;
 
@@ -569,7 +568,6 @@ class AppIndicatorsIconActor extends St.Icon {
     // Will look the icon up in the cache, if it's found
     // it will return it. Otherwise, it will create it and cache it.
     async _cacheOrCreateIconByName(iconType, iconSize, iconName, themePath, cancellable) {
-        // eslint-disable-next-line no-undef
         let { scale_factor: scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
         const id = `${iconType}:${iconName}@${iconSize * scaleFactor}${themePath || ''}`;
         let gicon = this._iconCache.get(id);
@@ -740,7 +738,6 @@ class AppIndicatorsIconActor extends St.Icon {
     }
 
     async _createIconFromPixmap(iconSize, iconPixmapArray, cancellable) {
-        // eslint-disable-next-line no-undef
         const { scale_factor: scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
         iconSize *= scaleFactor;
         // the pixmap actually is an array of pixmaps with different sizes
