@@ -96,6 +96,7 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
         try {
             const indicator = new AppIndicator.AppIndicator(service, busName, objPath);
             this._items.set(id, indicator);
+            indicator.connect('destroy', () => this._onIndicatorDestroyed(indicator));
 
             indicator.connect('name-owner-changed', async () => {
                 if (!indicator.hasNameOwner) {
@@ -103,7 +104,7 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
                         await new PromiseUtils.TimeoutPromise(500,
                             GLib.PRIORITY_DEFAULT, this._cancellable);
                         if (!indicator.hasNameOwner)
-                            this._itemVanished(id);
+                            indicator.destroy();
                     } catch (e) {
                         if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                             logError(e);
@@ -203,17 +204,9 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
         invocation.return_value(null);
     }
 
-    _itemVanished(id) {
-        // FIXME: this is useless if the path name disappears while the bus stays alive (not unheard of)
-        if (this._items.has(id))
-            this._remove(id);
-    }
-
-    _remove(id) {
-        const indicator = this._items.get(id);
+    _onIndicatorDestroyed(indicator) {
         const { uniqueId } = indicator;
-        indicator.destroy();
-        this._items.delete(id);
+        this._items.delete(uniqueId);
 
         try {
             this._dbusImpl.emit_signal('StatusNotifierItemUnregistered',
@@ -255,7 +248,7 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
         // this doesn't do any sync operation and doesn't allow us to hook up
         // the event of being finished which results in our unholy debounce hack
         // (see extension.js)
-        Array.from(this._items.keys()).forEach(i => this._remove(i));
+        this._items.forEach(indicator => indicator.destroy());
         this._cancellable.cancel();
 
         try {
