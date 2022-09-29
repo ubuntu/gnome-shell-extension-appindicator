@@ -888,7 +888,7 @@ class AppIndicatorsIconActor extends St.Icon {
                 this.set_icon_size(iconSize);
             } else {
                 this.gicon = null;
-                Util.Logger.critical(`unable to update icon for ${this._indicator.id}`);
+                Util.Logger.debug(`unable to update icon for ${this._indicator.id}`);
             }
         } else if (gicon) {
             this._emblem = new Gio.Emblem({ icon: gicon });
