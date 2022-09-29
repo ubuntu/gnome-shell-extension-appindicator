@@ -306,7 +306,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         if (this._proxy.Menu === '/NO_DBUSMENU')
             return null;
 
-        return this._proxy.Menu || '/MenuBar';
+        return this._proxy.Menu;
     }
 
     get attentionIcon() {
