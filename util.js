@@ -77,9 +77,11 @@ async function refreshPropertyOnProxy(proxy, propertyName, params) {
         if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
             // the property may not even exist, silently ignore it
             Logger.debug(`While refreshing property ${propertyName}: ${e}`);
+            proxy.set_cached_property(propertyName, null);
             proxy._proxyCancellables.delete(propertyName);
             if (proxy._proxyChangedProperties)
                 delete proxy._proxyChangedProperties[propertyName];
+            throw e;
         }
     }
 }
