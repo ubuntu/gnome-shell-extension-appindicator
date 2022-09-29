@@ -227,6 +227,7 @@ var DBusClient = class AppIndicatorsDBusClient {
         // property requests are queued
         this._propertiesRequestedFor = new Set(/* ids */);
 
+        this._layoutUpdated = false;
         Util.connectSmart(this._proxy, 'notify::g-name-owner', this, () => {
             if (this.isReady)
                 this._requestLayoutUpdate();
@@ -234,7 +235,7 @@ var DBusClient = class AppIndicatorsDBusClient {
     }
 
     get isReady() {
-        return !!this._proxy.g_name_owner;
+        return this._layoutUpdated && !!this._proxy.g_name_owner;
     }
 
     getRoot() {
@@ -321,14 +322,24 @@ var DBusClient = class AppIndicatorsDBusClient {
         this._flagLayoutUpdateInProgress = true;
     }
 
+    _updateLayoutState(state) {
+        const wasReady = this.isReady;
+        this._layoutUpdated = state;
+        if (this.isReady !== wasReady)
+            this.emit('ready-changed');
+    }
+
     _endLayoutUpdate(result, error) {
         if (error) {
-            if (!error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+            if (!error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
                 Util.Logger.warn(`While reading menu layout on proxy ${this._proxy.g_name_owner}: ${error}`);
+                this._updateLayoutState(false);
+            }
             return;
         }
 
         let [revision_, root] = result;
+        this._updateLayoutState(true);
         this._doLayoutUpdate(root);
         this._gcItems();
 
@@ -739,6 +750,9 @@ var Client = class AppIndicatorsClient {
         this._rootMenu = null; // the shell menu
         this._rootItem = null; // the DbusMenuItem for the root
         this.indicator = indicator;
+
+        Util.connectSmart(this._client, 'ready-changed', this,
+            () => this.emit('ready-changed'));
     }
 
     get isReady() {
