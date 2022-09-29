@@ -210,6 +210,8 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
         Util.connectSmart(this._indicator, 'accessible-name', this, () =>
             this.set_accessible_name(this._indicator.accessibleName));
 
+        this.connect('notify::visible', () => this._updateMenu());
+
         this.connect('destroy', () => {
             if (this._menuClient) {
                 this._menuClient.disconnect(this._menuReadyId);
@@ -269,7 +271,7 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
             this.menu.removeAll();
         }
 
-        if (this._indicator.menuPath) {
+        if (this.visible && this._indicator.menuPath) {
             this._menuClient = new DBusMenu.Client(this._indicator.busName,
                 this._indicator.menuPath, this._indicator);
 
