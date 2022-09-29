@@ -538,7 +538,7 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
 
     _updateIconSize() {
         const settings = SettingsManager.getDefaultGSettings();
-        const { scale_factor: scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+        const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
         let iconSize = settings.get_int('icon-size');
 
         if (iconSize <= 0)

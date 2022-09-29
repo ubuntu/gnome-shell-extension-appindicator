@@ -627,7 +627,7 @@ class AppIndicatorsIconActor extends St.Icon {
     // Will look the icon up in the cache, if it's found
     // it will return it. Otherwise, it will create it and cache it.
     async _cacheOrCreateIconByName(iconType, iconSize, iconName, themePath, cancellable) {
-        let { scale_factor: scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+        let { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
         const id = `${iconType}:${iconName}@${iconSize * scaleFactor}${themePath || ''}`;
         let gicon = this._iconCache.get(id);
 
@@ -797,7 +797,7 @@ class AppIndicatorsIconActor extends St.Icon {
     }
 
     async _createIconFromPixmap(iconSize, iconPixmapArray, cancellable) {
-        const { scale_factor: scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+        const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
         iconSize *= scaleFactor;
         // the pixmap actually is an array of pixmaps with different sizes
         // we use the one that is smaller or equal the iconSize
