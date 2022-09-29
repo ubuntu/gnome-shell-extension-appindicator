@@ -18,7 +18,7 @@
    introspectBusObject, dbusNodeImplementsInterfaces, waitForStartupCompletion,
    connectSmart, versionCheck, getDefaultTheme, tryCleanupOldIndicators,
    getProcessName, ensureProxyAsyncMethod, queueProxyPropertyUpdate,
-   BUS_ADDRESS_REGEX */
+   getProxyProperty, BUS_ADDRESS_REGEX */
 
 const ByteArray = imports.byteArray;
 const Gio = imports.gi.Gio;
@@ -44,6 +44,14 @@ PromiseUtils._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
 PromiseUtils._promisify(Gio._LocalFilePrototype, 'read', 'read_finish');
 PromiseUtils._promisify(Gio.InputStream.prototype, 'read_bytes_async', 'read_bytes_finish');
 
+function getProxyProperty(proxy, propertyName, cancellable) {
+    return proxy.g_connection.call(proxy.g_name,
+        proxy.g_object_path, 'org.freedesktop.DBus.Properties', 'Get',
+        GLib.Variant.new('(ss)', [proxy.g_interface_name, propertyName]),
+        GLib.VariantType.new('(v)'), Gio.DBusCallFlags.NONE, -1,
+        cancellable);
+}
+
 async function refreshPropertyOnProxy(proxy, propertyName, params) {
     params = Params.parse(params, {
         skipEqualityCheck: false,
@@ -55,11 +63,8 @@ async function refreshPropertyOnProxy(proxy, propertyName, params) {
     });
 
     try {
-        const [valueVariant] = (await proxy.g_connection.call(proxy.g_name,
-            proxy.g_object_path, 'org.freedesktop.DBus.Properties', 'Get',
-            GLib.Variant.new('(ss)', [proxy.g_interface_name, propertyName]),
-            GLib.VariantType.new('(v)'), Gio.DBusCallFlags.NONE, -1,
-            cancellable)).deep_unpack();
+        const [valueVariant] = (await getProxyProperty(
+            proxy, propertyName, cancellable)).deep_unpack();
 
         proxy._proxyCancellables.delete(propertyName);
         await queueProxyPropertyUpdate(proxy, propertyName, valueVariant,

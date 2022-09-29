@@ -254,7 +254,11 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
     }
 
     _updateStatus() {
+        const wasVisible = this.visible;
         this.visible = this._indicator.status !== AppIndicator.SNIStatus.PASSIVE;
+
+        if (this.visible !== wasVisible)
+            this._indicator.checkAlive().catch(logError);
     }
 
     _updateMenu() {

@@ -100,6 +100,8 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         const cancellable = this._cancellable;
 
         try {
+            this._proxy.set_cached_property('Status',
+                new GLib.Variant('s', SNIStatus.PASSIVE));
             await this._proxy.init_async(GLib.PRIORITY_DEFAULT, cancellable);
             this._setupProxyAsyncMethods();
             this._checkIfReady();
@@ -331,6 +333,49 @@ var AppIndicator = class AppIndicatorsAppIndicator {
 
     get cancellable() {
         return this._cancellable;
+    }
+
+    async checkAlive() {
+        // Some applications (hey electron!) just remove the indicator object
+        // from bus after hiding it, without closing its bus name, so we are
+        // not able to understand whe they're gone.
+        // Thus we just kill it when an expected well-known method is failing.
+        if (this.status !== SNIStatus.PASSIVE && this._checkIfReady()) {
+            if (this._checkAliveTimeout) {
+                this._checkAliveTimeout.cancel();
+                delete this._checkAliveTimeout;
+            }
+            return;
+        }
+
+        if (this._checkAliveTimeout)
+            return;
+
+        try {
+            const cancellable = this._cancellable;
+            this._checkAliveTimeout = new PromiseUtils.TimeoutSecondsPromise(10,
+                GLib.PRIORITY_DEFAULT_IDLE, cancellable);
+            Util.Logger.debug(`${this.uniqueId}: may not respond, checking...`);
+            await this._checkAliveTimeout;
+
+            // We should call the Ping method instead but in some containers
+            // such as snaps that's not accessible, so let's just use our own
+            await Util.getProxyProperty(this._proxy, 'Status', cancellable);
+        } catch (e) {
+            if (e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_OBJECT) ||
+                e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_INTERFACE) ||
+                e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD) ||
+                e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_PROPERTY)) {
+                Util.Logger.warn(`${this.uniqueId}: not on bus anymore, removing it`);
+                this.destroy();
+                return;
+            }
+
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                logError(e);
+        } finally {
+            delete this._checkAliveTimeout;
+        }
     }
 
     _onPropertiesChanged(_proxy, changed, _invalidated) {
