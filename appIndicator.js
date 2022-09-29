@@ -443,6 +443,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
             // status updates may cause the indicator to be hidden
             if (property === 'Status') {
                 signalsToEmit.add('icon');
+                signalsToEmit.add('overlay-icon');
                 signalsToEmit.add('status');
                 signalsToEmit.add('accessible-name');
             }
@@ -966,6 +967,9 @@ class AppIndicatorsIconActor extends St.Icon {
 
     // updates the base icon
     async _updateIcon() {
+        if (this._indicator.status === SNIStatus.PASSIVE)
+            return;
+
         if (this.gicon instanceof Gio.EmblemedIcon) {
             let { gicon } = this.gicon;
 
@@ -989,6 +993,9 @@ class AppIndicatorsIconActor extends St.Icon {
     }
 
     async _updateOverlayIcon() {
+        if (this._indicator.status === SNIStatus.PASSIVE)
+            return;
+
         if (this._emblem) {
             let { icon } = this._emblem;
 
