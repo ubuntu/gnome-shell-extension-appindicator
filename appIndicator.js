@@ -548,6 +548,7 @@ class AppIndicatorsIconActor extends St.Icon {
 
         this.connect('destroy', () => {
             this._iconCache.destroy();
+            this._loadingIcons.clear();
             this._cancellable.cancel();
         });
     }
