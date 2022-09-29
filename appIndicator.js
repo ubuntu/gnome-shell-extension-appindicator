@@ -184,6 +184,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         this._resetNeededProperties();
 
         if (!this.hasNameOwner) {
+            Util.cancelRefreshPropertyOnProxy(this._proxy);
             this._checkIfReady();
         } else {
             try {
