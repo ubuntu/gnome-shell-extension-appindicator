@@ -212,6 +212,7 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
 
         this.connect('destroy', () => {
             if (this._menuClient) {
+                this._menuClient.disconnect(this._menuReadyId);
                 this._menuClient.destroy();
                 this._menuClient = null;
             }
@@ -258,6 +259,7 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
 
     _updateMenu() {
         if (this._menuClient) {
+            this._menuClient.disconnect(this._menuReadyId);
             this._menuClient.destroy();
             this._menuClient = null;
             this.menu.removeAll();
@@ -266,7 +268,16 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
         if (this._indicator.menuPath) {
             this._menuClient = new DBusMenu.Client(this._indicator.busName,
                 this._indicator.menuPath, this._indicator);
-            this._menuClient.attachToMenu(this.menu);
+
+            if (this._menuClient.isReady)
+                this._menuClient.attachToMenu(this.menu);
+
+            this._menuReadyId = this._menuClient.connect('ready-changed', () => {
+                if (this._menuClient.isReady)
+                    this._menuClient.attachToMenu(this.menu);
+                else
+                    this._updateMenu();
+            });
         }
     }
 
