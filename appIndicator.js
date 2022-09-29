@@ -567,10 +567,10 @@ class AppIndicatorsIconActor extends St.Icon {
 
     // Will look the icon up in the cache, if it's found
     // it will return it. Otherwise, it will create it and cache it.
-    async _cacheOrCreateIconByName(iconSize, iconName, themePath) {
+    async _cacheOrCreateIconByName(iconType, iconSize, iconName, themePath) {
         // eslint-disable-next-line no-undef
         let { scale_factor: scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
-        let id = `${iconName}@${iconSize * scaleFactor}${themePath || ''}`;
+        const id = `${iconType}:${iconName}@${iconSize * scaleFactor}${themePath || ''}`;
         let gicon = this._iconCache.get(id);
 
         if (gicon)
@@ -580,7 +580,7 @@ class AppIndicatorsIconActor extends St.Icon {
             Util.Logger.debug(`${this._indicator.id}, Icon ${id} Is still loading, ignoring the request`);
             throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING,
                 'Already in progress');
-        } else {
+        } else if (iconType !== SNIconType.OVERLAY) {
             this._cancelLoading();
         }
 
@@ -872,7 +872,8 @@ class AppIndicatorsIconActor extends St.Icon {
     // updates the base icon
     async _createIcon(name, pixmap, theme, iconType, iconSize) {
         if (name) {
-            const gicon = await this._cacheOrCreateIconByName(iconSize, name, theme);
+            const gicon = await this._cacheOrCreateIconByName(
+                iconType, iconSize, name, theme);
             if (gicon)
                 return gicon;
         }
