@@ -89,7 +89,8 @@ async function refreshPropertyOnProxy(proxy, propertyName, params) {
             // the property may not even exist, silently ignore it
             Logger.debug(`While refreshing property ${propertyName}: ${e}`);
             proxy._proxyCancellables.delete(propertyName);
-            delete proxy._proxyChangedProperties[propertyName];
+            if (proxy._proxyChangedProperties)
+                delete proxy._proxyChangedProperties[propertyName];
         }
     }
 }
