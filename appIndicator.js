@@ -40,6 +40,7 @@ PromiseUtils._promisify(GdkPixbuf.Pixbuf, 'new_from_stream_at_scale_async', 'new
 PromiseUtils._promisify(Gio.DBusProxy.prototype, 'init_async', 'init_finish');
 
 const MAX_UPDATE_FREQUENCY = 100; // In ms
+const NEEDED_PROPERTIES = ['Id', 'Menu'];
 
 // eslint-disable-next-line no-unused-vars
 const SNICategory = {
@@ -105,7 +106,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
             await this._proxy.init_async(GLib.PRIORITY_DEFAULT, cancellable);
             this._setupProxyAsyncMethods();
             this._checkIfReady();
-            this._checkNeededProperties();
+            await this._checkNeededProperties();
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 Util.Logger.warn(`While initalizing proxy for ${this._uniqueId}: ${e}`);
@@ -156,13 +157,17 @@ var AppIndicator = class AppIndicatorsAppIndicator {
             return true;
 
         const cancellable = this._cancellable;
-        for (let checks = 0; checks < 3 && !this.isReady; ++checks) {
+        for (let checks = 0; checks < 3; ++checks) {
             this._delayCheck = new PromiseUtils.TimeoutSecondsPromise(1,
                 GLib.PRIORITY_DEFAULT_IDLE, cancellable);
             // eslint-disable-next-line no-await-in-loop
             await this._delayCheck;
-            Util.refreshPropertyOnProxy(this._proxy, 'Id');
-            Util.refreshPropertyOnProxy(this._proxy, 'Menu');
+            // eslint-disable-next-line no-await-in-loop
+            await Promise.all(NEEDED_PROPERTIES.map(p =>
+                Util.refreshPropertyOnProxy(this._proxy, p)));
+
+            if (this.id && this.menuPath)
+                break;
         }
 
         return this.id && this.menuPath;
