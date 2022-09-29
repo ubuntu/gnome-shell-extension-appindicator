@@ -108,8 +108,10 @@ var AppIndicator = class AppIndicatorsAppIndicator {
             this._checkIfReady();
             await this._checkNeededProperties();
         } catch (e) {
-            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
                 Util.Logger.warn(`While initalizing proxy for ${this._uniqueId}: ${e}`);
+                this.destroy();
+            }
         }
 
         try {
