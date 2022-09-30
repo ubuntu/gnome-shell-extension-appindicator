@@ -697,6 +697,16 @@ class AppIndicatorsIconActor extends St.Icon {
         });
     }
 
+    vfunc_paint(paintContext) {
+        if (this._customImage) {
+            this.paint_background(paintContext);
+            this._customImage.paint(paintContext);
+            return;
+        }
+
+        super.vfunc_paint(paintContext);
+    }
+
     _updateIconClass() {
         this.add_style_class_name(
             `appindicator-icon-${this._indicator.id.toLowerCase().replace(/_|\s/g, '-')}`);
@@ -813,20 +823,69 @@ class AppIndicatorsIconActor extends St.Icon {
                 return null;
             }
 
+            const file = Gio.File.new_for_path(path);
             if (width >= height * 1.5) {
                 /* Hello indicator-multiload! */
-                return this._createIconByPath(path, width, -1, cancellable);
+                await this._loadCustomImage(file, width, height, cancellable);
+                return null;
             } else {
-                this.icon_size = this._iconSize;
-                return new Gio.FileIcon({
-                    file: Gio.File.new_for_path(path),
-                });
+                return new Gio.FileIcon({ file });
             }
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 Util.Logger.warn(`${this._indicator.id}, Impossible to read image info from path '${path}': ${e}`);
             throw e;
         }
+    }
+
+    async _loadCustomImage(file, width, height, cancellable) {
+        const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+        const textureCache = St.TextureCache.get_default();
+        const resourceScale = this.get_resource_scale();
+
+        const customImage = textureCache.load_file_async(file, -1,
+            height, scaleFactor, resourceScale);
+
+        customImage.set({
+            xAlign: imports.gi.Clutter.ActorAlign.CENTER,
+            yAlign: imports.gi.Clutter.ActorAlign.CENTER,
+        });
+
+        if (customImage.content) {
+            this._setCustomImage(customImage, width, height);
+            return;
+        }
+
+        const imageContentPromise = new PromiseUtils.SignalConnectionPromise(
+            customImage, 'notify::content', cancellable);
+        const waitPromise = new PromiseUtils.TimeoutSecondsPromise(
+            1, GLib.PRIORITY_DEFAULT, cancellable);
+
+        const racingPromises = [imageContentPromise, waitPromise];
+
+        try {
+            await Promise.race(racingPromises);
+            if (!waitPromise.resolved())
+                this._setCustomImage(customImage, width, height);
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                throw e;
+        } finally {
+            racingPromises.forEach(p => p.cancel());
+
+            if (this._customImage !== customImage)
+                customImage.destroy();
+        }
+    }
+
+    _setCustomImage(imageActor, width, height) {
+        if (this._customImage)
+            this._customImage.destroy();
+
+        this._customImage = imageActor;
+        this.add_child(this._customImage);
+        this.width = width;
+        this.height = height;
     }
 
     _getIconInfo(name, themePath, size, scale) {
