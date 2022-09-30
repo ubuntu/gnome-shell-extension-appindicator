@@ -49,7 +49,7 @@ In order to successfully resolve remaining issues, you need to provide some data
 Bug reports which do not provide the necessary information may be closed as "invalid" without prior notice.
 
 ## Release process
-This section serves as reminder for the current maintainer and as instruction set for an eventual sucessor.
+This section serves as reminder for the current maintainer and as instruction set for an eventual successor.
 
 * The maintainer decides when to release a new version.
 * Versions are tagged (and signed). Version numbers sould be kept in sync with the versions submitted to `extensions.gnome.org`.
