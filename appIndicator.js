@@ -284,7 +284,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
             this._commandLine = await Util.getProcessName(this.busName,
                 cancellable, GLib.PRIORITY_LOW);
         } catch (e) {
-            Util.Logger.debug(`${this._indicator.id}, failed getting command line: ${e.message}`);
+            Util.Logger.debug(`${this.uniqueId}, failed getting command line: ${e.message}`);
         }
     }
 
@@ -662,7 +662,7 @@ class AppIndicatorsIconActor extends St.Icon {
 
         Object.values(SNIconType).forEach(t => (this._loadingIcons[t] = new Map()));
 
-        Util.connectSmart(this._indicator, 'icon', this, this._updateIcon);
+        Util.connectSmart(this._indicator, 'icon', this, () => this._updateIcon().catch(logError));
         Util.connectSmart(this._indicator, 'overlay-icon', this, this._updateOverlayIcon);
         Util.connectSmart(this._indicator, 'reset', this, this._invalidateIcon);
 
@@ -1011,11 +1011,11 @@ class AppIndicatorsIconActor extends St.Icon {
             if (!await this._createAndSetIcon(customIcon, null, ...commonArgs)) {
                 if (iconType !== SNIconType.OVERLAY) {
                     customIcon = this._customIcons.get(SNIconType.NORMAL);
-                    this._createAndSetIcon(customIcon, null, ...commonArgs);
+                    await this._createAndSetIcon(customIcon, null, ...commonArgs);
                 }
             }
         } else {
-            this._createAndSetIcon(name, pixmap, ...commonArgs);
+            await this._createAndSetIcon(name, pixmap, ...commonArgs);
         }
     }
 
@@ -1027,7 +1027,7 @@ class AppIndicatorsIconActor extends St.Icon {
         } catch (e) {
             if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED) ||
                 e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING)) {
-                Util.Logger.debug(`${this._indicator.id}, Impossible to load icon: ${e}`);
+                Util.Logger.debug(`${this._indicator.uniqueId}, Impossible to load icon: ${e}`);
                 return null;
             }
 
