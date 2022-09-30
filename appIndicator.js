@@ -61,9 +61,10 @@ const SNIconType = {
     OVERLAY: 2,
 };
 
-var AppIndicatorProxy = GObject.registerClass(
-class AppIndicatorProxy extends Gio.DBusProxy {
-    static interfaceInfo() {
+var AppIndicatorProxy = GObject.registerClass({
+    Signals: { 'destroy': {} },
+}, class AppIndicatorProxy extends Gio.DBusProxy {
+    static get interfaceInfo() {
         if (!AppIndicator._interfaceInfo) {
             AppIndicator._interfaceInfo = Gio.DBusInterfaceInfo.new_for_xml(
                 Interfaces.StatusNotifierItem);
@@ -71,19 +72,170 @@ class AppIndicatorProxy extends Gio.DBusProxy {
         return AppIndicator._interfaceInfo;
     }
 
+    static get OPTIONAL_PROPERTIES() {
+        return [
+            'XAyatanaLabel',
+            'XAyatanaLabelGuide',
+            'XAyatanaOrderingIndex',
+            'IconAccessibleDesc',
+            'AttentionAccessibleDesc',
+        ];
+    }
+
     static destroy() {
         delete AppIndicator._interfaceInfo;
     }
 
     _init(busName, objectPath) {
+        const { interfaceInfo } = AppIndicatorProxy;
+
         super._init({
             g_connection: Gio.DBus.session,
-            g_interface_name: AppIndicatorProxy.interfaceInfo().name,
-            g_interface_info: AppIndicatorProxy.interfaceInfo(),
+            g_interface_name: interfaceInfo.name,
+            g_interface_info: interfaceInfo,
             g_name: busName,
             g_object_path: objectPath,
             g_flags: Gio.DBusProxyFlags.GET_INVALIDATED_PROPERTIES,
         });
+
+        this.set_cached_property('Status',
+            new GLib.Variant('s', SNIStatus.PASSIVE));
+
+        this._signalIds = [];
+        this._accumulatedProperties = new Set();
+
+        this._signalIds.push(this.connect('g-signal',
+            (_proxy, ...args) => this._onSignal(...args).catch(logError)));
+
+        this._signalIds.push(this.connect('notify::g-name-owner', () => {
+            this._resetNeededProperties();
+            if (!this.gNameOwner)
+                Util.cancelRefreshPropertyOnProxy(this);
+            else
+                this._setupProxyPropertyList();
+        }));
+    }
+
+    async initAsync(cancellable) {
+        await this.init_async(GLib.PRIORITY_DEFAULT, cancellable);
+        this._cancellable = cancellable;
+
+        this.gInterfaceInfo.methods.map(m => m.name).forEach(method =>
+            Util.ensureProxyAsyncMethod(this, method));
+
+        this._setupProxyPropertyList();
+    }
+
+    destroy() {
+        this.emit('destroy');
+        this._signalIds.forEach(id => this.disconnect(id));
+        Util.cancelRefreshPropertyOnProxy(this);
+    }
+
+    _setupProxyPropertyList() {
+        this._propertiesList =
+            (this.get_cached_property_names() || []).filter(p =>
+                this.gInterfaceInfo.properties.some(pInfo => pInfo.name === p));
+
+        if (this._propertiesList.length) {
+            AppIndicatorProxy.OPTIONAL_PROPERTIES.forEach(
+                p => this._addExtraProperty(p));
+        }
+    }
+
+    _addExtraProperty(name) {
+        if (this._propertiesList.includes(name))
+            return;
+
+        if (!(name in this)) {
+            Object.defineProperty(this, name, {
+                configurable: false,
+                enumerable: true,
+                get: () => {
+                    const v = this.get_cached_property(name);
+                    return v ? v.deep_unpack() : null;
+                },
+            });
+        }
+
+        this._propertiesList.push(name);
+    }
+
+    _signalToPropertyName(signal) {
+        if (signal.startsWith('New'))
+            return signal.substr(3);
+        else if (signal.startsWith('XAyatanaNew'))
+            return `XAyatana${signal.substr(11)}`;
+
+        return null;
+    }
+
+    // The Author of the spec didn't like the PropertiesChanged signal, so he invented his own
+    async _refreshProperty(prop) {
+        await Promise.all(
+            [prop, `${prop}Name`, `${prop}Pixmap`, `${prop}AccessibleDesc`].filter(p =>
+                this._propertiesList.includes(p)).map(async p => {
+                try {
+                    await Util.refreshPropertyOnProxy(this, p, {
+                        skipEqualityCheck: p.endsWith('Pixmap'),
+                    });
+                } catch (e) {
+                    if (!AppIndicatorProxy.OPTIONAL_PROPERTIES.includes(p) ||
+                        !e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_PROPERTY))
+                        logError(e);
+                }
+            }));
+    }
+
+    async _onSignal(_sender, signal, params) {
+        const property = this._signalToPropertyName(signal);
+        if (!property)
+            return;
+
+        if (this.status === SNIStatus.PASSIVE &&
+            ![...AppIndicator.NEEDED_PROPERTIES, 'Status'].includes(property)) {
+            this._accumulatedProperties.add(property);
+            return;
+        }
+
+        if (property && !params.get_type().equal(GLib.VariantType.new('()'))) {
+            // If the property includes arguments, we can just queue the signal emission
+            const [value] = params.unpack();
+            try {
+                await Util.queueProxyPropertyUpdate(this, property, value);
+            } catch (e) {
+                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                    throw e;
+            }
+
+            if (!this._accumulatedProperties.size)
+                return;
+        } else {
+            this._accumulatedProperties.add(property);
+        }
+
+        if (this._signalsAccumulator)
+            return;
+
+        this._signalsAccumulator = new PromiseUtils.TimeoutPromise(
+            GLib.PRIORITY_DEFAULT_IDLE, MAX_UPDATE_FREQUENCY, this._cancellable);
+        try {
+            await this._signalsAccumulator;
+            const refreshPropertiesPromises =
+                [...this._accumulatedProperties].map(p => this._refreshProperty(p));
+            this._accumulatedProperties.clear();
+            await Promise.all(refreshPropertiesPromises);
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                throw e;
+        } finally {
+            delete this._signalsAccumulator;
+        }
+    }
+
+    _resetNeededProperties() {
+        AppIndicator.NEEDED_PROPERTIES.forEach(p =>
+            this.set_cached_property(p, null));
     }
 });
 
@@ -97,40 +249,15 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         return ['Id', 'Menu'];
     }
 
-    static get OPTIONAL_PROPERTIES() {
-        return [
-            'XAyatanaLabel',
-            'XAyatanaLabelGuide',
-            'XAyatanaOrderingIndex',
-            'IconAccessibleDesc',
-            'AttentionAccessibleDesc',
-        ];
-    }
-
-    static get OPTIONAL_METHODS() {
-        return [
-            'Activate',
-            'ContextMenu',
-            'Scroll',
-            'SecondaryActivate',
-            'ProvideXdgActivationToken',
-            'XAyatanaSecondaryActivate',
-        ];
-    }
-
     constructor(service, busName, object) {
         this.busName = busName;
         this._uniqueId = Util.indicatorId(service, busName, object);
-        this._accumulatedProperties = new Set();
 
-        // HACK: we cannot use Gio.DBusProxy.makeProxyWrapper because we need
-        //      to specify G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES
         this._cancellable = new Gio.Cancellable();
         this._proxy = new AppIndicatorProxy(busName, object);
 
-        this._setupProxy();
+        this._setupProxy().catch(logError);
         Util.connectSmart(this._proxy, 'g-properties-changed', this, this._onPropertiesChanged);
-        Util.connectSmart(this._proxy, 'g-signal', this, (...args) => this._onProxySignal(...args).catch(logError));
         Util.connectSmart(this._proxy, 'notify::g-name-owner', this, this._nameOwnerChanged);
 
         if (this.uniqueId === service) {
@@ -143,15 +270,12 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         const cancellable = this._cancellable;
 
         try {
-            this._proxy.set_cached_property('Status',
-                new GLib.Variant('s', SNIStatus.PASSIVE));
-            await this._proxy.init_async(GLib.PRIORITY_DEFAULT, cancellable);
-            this._setupProxyAsyncMethods();
+            await this._proxy.initAsync(cancellable);
             this._checkIfReady();
             await this._checkNeededProperties();
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
-                Util.Logger.warn(`While initalizing proxy for ${this._uniqueId}: ${e}`);
+                logError(e, `While initalizing proxy for ${this._uniqueId}`);
                 this.destroy();
             }
         }
@@ -172,7 +296,6 @@ var AppIndicator = class AppIndicatorsAppIndicator {
             isReady = true;
 
         this.isReady = isReady;
-        this._setupProxyPropertyList();
 
         if (this.isReady && !wasReady) {
             if (this._delayCheck) {
@@ -185,16 +308,6 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         }
 
         return false;
-    }
-
-    _setupProxyAsyncMethods() {
-        AppIndicator.OPTIONAL_METHODS.forEach(m =>
-            Util.ensureProxyAsyncMethod(this._proxy, m));
-    }
-
-    _resetNeededProperties() {
-        AppIndicator.NEEDED_PROPERTIES.forEach(p =>
-            this._proxy.set_cached_property(p, null));
     }
 
     async _checkNeededProperties() {
@@ -219,10 +332,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
     }
 
     async _nameOwnerChanged() {
-        this._resetNeededProperties();
-
         if (!this.hasNameOwner) {
-            Util.cancelRefreshPropertyOnProxy(this._proxy);
             this._checkIfReady();
         } else {
             try {
@@ -236,105 +346,6 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         }
 
         this.emit('name-owner-changed');
-    }
-
-    _addExtraProperty(name) {
-        if (this._proxyPropertyList.includes(name))
-            return;
-
-        if (!(name in this._proxy)) {
-            Object.defineProperty(this._proxy, name, {
-                configurable: false,
-                enumerable: true,
-                get: () => {
-                    const v = this._proxy.get_cached_property(name);
-                    return v ? v.deep_unpack() : null;
-                },
-            });
-        }
-
-        this._proxyPropertyList.push(name);
-    }
-
-    _setupProxyPropertyList() {
-        let interfaceProps = this._proxy.g_interface_info.properties;
-        this._proxyPropertyList =
-            (this._proxy.get_cached_property_names() || []).filter(p =>
-                interfaceProps.some(propinfo => propinfo.name === p));
-
-        if (this._proxyPropertyList.length) {
-            AppIndicator.OPTIONAL_PROPERTIES.forEach(
-                p => this._addExtraProperty(p));
-        }
-    }
-
-    _signalToPropertyName(signal) {
-        if (signal.startsWith('New'))
-            return signal.substr(3);
-        else if (signal.startsWith('XAyatanaNew'))
-            return `XAyatana${signal.substr(11)}`;
-
-        return null;
-    }
-
-    // The Author of the spec didn't like the PropertiesChanged signal, so he invented his own
-    async _refreshProperty(prop) {
-        await Promise.all(
-            [prop, `${prop}Name`, `${prop}Pixmap`, `${prop}AccessibleDesc`].filter(p =>
-                this._proxyPropertyList.includes(p)).map(async p => {
-                try {
-                    await Util.refreshPropertyOnProxy(this._proxy, p, {
-                        skipEqualityCheck: p.endsWith('Pixmap'),
-                    });
-                } catch (e) {
-                    if (!AppIndicator.OPTIONAL_PROPERTIES.includes(p) ||
-                        !e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_PROPERTY))
-                        logError(e);
-                }
-            }));
-    }
-
-    async _onProxySignal(_proxy, _sender, signal, params) {
-        const property = this._signalToPropertyName(signal);
-        if (!property)
-            return;
-
-        if (this.status === SNIStatus.PASSIVE &&
-            ![...AppIndicator.NEEDED_PROPERTIES, 'Status'].includes(property)) {
-            this._accumulatedProperties.add(property);
-            return;
-        }
-
-        if (property && !params.get_type().equal(GLib.VariantType.new('()'))) {
-            // If the property includes arguments, we can just queue the signal emission
-            const [value] = params.unpack();
-            try {
-                await Util.queueProxyPropertyUpdate(this._proxy, property, value);
-            } catch (e) {
-                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                    throw e;
-            }
-
-            if (!this._accumulatedProperties.size)
-                return;
-        } else {
-            this._accumulatedProperties.add(property);
-        }
-
-        if (this._signalsAccumulator)
-            return;
-
-        this._signalsAccumulator = new PromiseUtils.TimeoutPromise(
-            GLib.PRIORITY_DEFAULT_IDLE, MAX_UPDATE_FREQUENCY, this._cancellable);
-        try {
-            await this._signalsAccumulator;
-            const refreshPropertiesPromises =
-                [...this._accumulatedProperties].map(p => this._refreshProperty(p));
-            this._accumulatedProperties.clear();
-            await Promise.all(refreshPropertiesPromises);
-        } finally {
-            delete this._signalsAccumulator;
-        }
     }
 
     // public property getters
@@ -515,8 +526,9 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         this.emit('destroy');
 
         this.disconnectAll();
+        this._proxy.destroy();
         this._cancellable.cancel();
-        Util.cancelRefreshPropertyOnProxy(this._proxy);
+
         if (this._nameWatcher)
             this._nameWatcher.destroy();
         delete this._cancellable;
