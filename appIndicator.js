@@ -815,7 +815,7 @@ class AppIndicatorsIconActor extends St.Icon {
 
             if (width >= height * 1.5) {
                 /* Hello indicator-multiload! */
-                return this._createIconByPath(path, width, -1);
+                return this._createIconByPath(path, width, -1, cancellable);
             } else {
                 this.icon_size = this._iconSize;
                 return new Gio.FileIcon({
