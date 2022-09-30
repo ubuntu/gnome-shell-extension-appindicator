@@ -121,7 +121,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
     constructor(service, busName, object) {
         this.busName = busName;
         this._uniqueId = Util.indicatorId(service, busName, object);
-        this._accumulatedSignals = new Set();
+        this._accumulatedProperties = new Set();
 
         // HACK: we cannot use Gio.DBusProxy.makeProxyWrapper because we need
         //      to specify G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES
@@ -278,12 +278,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
     }
 
     // The Author of the spec didn't like the PropertiesChanged signal, so he invented his own
-    async _translateNewSignals(signal) {
-        const prop = this._signalToPropertyName(signal);
-
-        if (!prop)
-            return;
-
+    async _refreshProperty(prop) {
         await Promise.all(
             [prop, `${prop}Name`, `${prop}Pixmap`, `${prop}AccessibleDesc`].filter(p =>
                 this._proxyPropertyList.includes(p)).map(async p => {
@@ -301,10 +296,12 @@ var AppIndicator = class AppIndicatorsAppIndicator {
 
     async _onProxySignal(_proxy, _sender, signal, params) {
         const property = this._signalToPropertyName(signal);
+        if (!property)
+            return;
 
         if (this.status === SNIStatus.PASSIVE &&
             ![...AppIndicator.NEEDED_PROPERTIES, 'Status'].includes(property)) {
-            this._accumulatedSignals.add(signal);
+            this._accumulatedProperties.add(property);
             return;
         }
 
@@ -318,10 +315,10 @@ var AppIndicator = class AppIndicatorsAppIndicator {
                     throw e;
             }
 
-            if (!this._accumulatedSignals.size)
+            if (!this._accumulatedProperties.size)
                 return;
         } else {
-            this._accumulatedSignals.add(signal);
+            this._accumulatedProperties.add(property);
         }
 
         if (this._signalsAccumulator)
@@ -332,8 +329,8 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         try {
             await this._signalsAccumulator;
             const refreshPropertiesPromises =
-                [...this._accumulatedSignals].map(s => this._translateNewSignals(s));
-            this._accumulatedSignals.clear();
+                [...this._accumulatedProperties].map(p => this._refreshProperty(p));
+            this._accumulatedProperties.clear();
             await Promise.all(refreshPropertiesPromises);
         } finally {
             delete this._signalsAccumulator;
