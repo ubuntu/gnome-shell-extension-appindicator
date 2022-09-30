@@ -84,7 +84,7 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
     }
 
     async _registerItem(service, busName, objPath) {
-        const id = Util.indicatorId(busName, objPath);
+        const id = Util.indicatorId(service, busName, objPath);
 
         if (this._items.has(id)) {
             Util.Logger.warn(`Item ${id} is already registered`);
@@ -129,7 +129,7 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
     }
 
     _ensureItemRegistered(service, busName, objPath) {
-        const id = Util.indicatorId(busName, objPath);
+        const id = Util.indicatorId(service, busName, objPath);
         let item = this._items.get(id);
 
         if (item) {
@@ -154,12 +154,16 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
         const uniqueNames = await Util.getBusNames(bus, cancellable);
         const introspectName = async name => {
             const nodes = await Util.introspectBusObject(bus, name, cancellable);
-            const service = [...uniqueNames.get(name)][0];
+            const services = [...uniqueNames.get(name)];
             nodes.forEach(({ nodeInfo, path }) => {
                 if (Util.dbusNodeImplementsInterfaces(nodeInfo, ['org.kde.StatusNotifierItem'])) {
-                    Util.Logger.debug(`Found ${name} at ${path} implementing StatusNotifierItem iface`);
-                    const id = Util.indicatorId(name, path);
-                    if (!this._items.has(id)) {
+                    const ids = services.map(s => Util.indicatorId(s, name, path));
+                    if (ids.every(id => !this._items.has(id))) {
+                        const service = services.find(s =>
+                            s.startsWith('org.kde.StatusNotifierItem')) || services[0];
+                        const id = Util.indicatorId(
+                            path === DEFAULT_ITEM_OBJECT_PATH ? service : null,
+                            name, path);
                         Util.Logger.warn(`Using Brute-force mode for StatusNotifierItem ${id}`);
                         this._registerItem(service, name, path);
                     }

@@ -82,7 +82,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
 
     constructor(service, busName, object) {
         this.busName = busName;
-        this._uniqueId = Util.indicatorId(busName, object);
+        this._uniqueId = Util.indicatorId(service, busName, object);
         this._accumulatedSignals = new Set();
 
         const interfaceInfo = AppIndicator.interfaceInfo();
@@ -102,8 +102,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         Util.connectSmart(this._proxy, 'g-signal', this, (...args) => this._onProxySignal(...args).catch(logError));
         Util.connectSmart(this._proxy, 'notify::g-name-owner', this, this._nameOwnerChanged);
 
-        if (service !== busName && service.match(Util.BUS_ADDRESS_REGEX)) {
-            this._uniqueId = service;
+        if (this.uniqueId === service) {
             this._nameWatcher = new Util.NameWatcher(service);
             Util.connectSmart(this._nameWatcher, 'changed', this, this._nameOwnerChanged);
         }

@@ -18,7 +18,7 @@
    introspectBusObject, dbusNodeImplementsInterfaces, waitForStartupCompletion,
    connectSmart, disconnectSmart, versionCheck, getDefaultTheme,
    getProcessName, ensureProxyAsyncMethod, queueProxyPropertyUpdate,
-   getProxyProperty, indicatorId, tryCleanupOldIndicators, BUS_ADDRESS_REGEX */
+   getProxyProperty, indicatorId, tryCleanupOldIndicators */
 
 const ByteArray = imports.byteArray;
 const Gio = imports.gi.Gio;
@@ -44,7 +44,10 @@ PromiseUtils._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
 PromiseUtils._promisify(Gio._LocalFilePrototype, 'read', 'read_finish');
 PromiseUtils._promisify(Gio.InputStream.prototype, 'read_bytes_async', 'read_bytes_finish');
 
-function indicatorId(busName, objectPath) {
+function indicatorId(service, busName, objectPath) {
+    if (service && service !== busName && service.match(BUS_ADDRESS_REGEX))
+        return service;
+
     return `${busName}@${objectPath}`;
 }
 
