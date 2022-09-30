@@ -21,6 +21,9 @@ var CancellablePromise = class extends Promise {
             rejector = reject;
         });
 
+        const { stack: promiseStack } = new Error();
+        this._promiseStack = promiseStack;
+
         this._resolver = (...args) => {
             resolver(...args);
             this._resolved = true;
@@ -110,8 +113,10 @@ var CancellablePromise = class extends Promise {
             return this;
 
         this._cancelled = true;
-        this._rejector(new GLib.Error(Gio.IOErrorEnum,
-            Gio.IOErrorEnum.CANCELLED, 'Promise cancelled'));
+        const error = new GLib.Error(Gio.IOErrorEnum,
+            Gio.IOErrorEnum.CANCELLED, 'Promise cancelled');
+        error.stack += `## Promise created at:\n${this._promiseStack}`;
+        this._rejector(error);
 
         return this;
     }
