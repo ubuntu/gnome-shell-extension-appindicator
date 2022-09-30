@@ -293,10 +293,14 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         const property = this._signalToPropertyName(signal);
 
         if (property && !params.get_type().equal(GLib.VariantType.new('()'))) {
-            // If the property includes arguments, we can just emit the changes
-            // unless if a delayed change is already planned
+            // If the property includes arguments, we can just queue the signal emission
             const [value] = params.unpack();
-            await Util.queueProxyPropertyUpdate(this._proxy, property, value);
+            try {
+                await Util.queueProxyPropertyUpdate(this._proxy, property, value);
+            } catch (e) {
+                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                    throw e;
+            }
             return;
         }
 
