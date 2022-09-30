@@ -73,7 +73,8 @@ async function refreshPropertyOnProxy(proxy, propertyName, params) {
         const [valueVariant] = (await getProxyProperty(
             proxy, propertyName, cancellable)).deep_unpack();
 
-        proxy._proxyCancellables.delete(propertyName);
+        if (proxy._proxyCancellables)
+            proxy._proxyCancellables.delete(propertyName);
         await queueProxyPropertyUpdate(proxy, propertyName, valueVariant,
             Object.assign(params, { cancellable }));
     } catch (e) {
@@ -81,7 +82,8 @@ async function refreshPropertyOnProxy(proxy, propertyName, params) {
             // the property may not even exist, silently ignore it
             Logger.debug(`While refreshing property ${propertyName}: ${e}`);
             proxy.set_cached_property(propertyName, null);
-            proxy._proxyCancellables.delete(propertyName);
+            if (proxy._proxyCancellables)
+                proxy._proxyCancellables.delete(propertyName);
             if (proxy._proxyChangedProperties)
                 delete proxy._proxyChangedProperties[propertyName];
             throw e;
