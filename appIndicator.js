@@ -14,7 +14,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-/* exported AppIndicator, IconActor */
+/* exported AppIndicatorProxy, AppIndicator IconActor */
 
 const GdkPixbuf = imports.gi.GdkPixbuf;
 const Gio = imports.gi.Gio;
@@ -61,12 +61,8 @@ const SNIconType = {
     OVERLAY: 2,
 };
 
-/**
- * the AppIndicator class serves as a generic container for indicator information and functions common
- * for every displaying implementation (IndicatorMessageSource and IndicatorStatusIcon)
- */
-var AppIndicator = class AppIndicatorsAppIndicator {
-
+var AppIndicatorProxy = GObject.registerClass(
+class AppIndicatorProxy extends Gio.DBusProxy {
     static interfaceInfo() {
         if (!AppIndicator._interfaceInfo) {
             AppIndicator._interfaceInfo = Gio.DBusInterfaceInfo.new_for_xml(
@@ -78,6 +74,24 @@ var AppIndicator = class AppIndicatorsAppIndicator {
     static destroy() {
         delete AppIndicator._interfaceInfo;
     }
+
+    _init(busName, objectPath) {
+        super._init({
+            g_connection: Gio.DBus.session,
+            g_interface_name: AppIndicatorProxy.interfaceInfo().name,
+            g_interface_info: AppIndicatorProxy.interfaceInfo(),
+            g_name: busName,
+            g_object_path: objectPath,
+            g_flags: Gio.DBusProxyFlags.GET_INVALIDATED_PROPERTIES,
+        });
+    }
+});
+
+/**
+ * the AppIndicator class serves as a generic container for indicator information and functions common
+ * for every displaying implementation (IndicatorMessageSource and IndicatorStatusIcon)
+ */
+var AppIndicator = class AppIndicatorsAppIndicator {
 
     static get NEEDED_PROPERTIES() {
         return ['Id', 'Menu'];
@@ -109,17 +123,10 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         this._uniqueId = Util.indicatorId(service, busName, object);
         this._accumulatedSignals = new Set();
 
-        const interfaceInfo = AppIndicator.interfaceInfo();
-
         // HACK: we cannot use Gio.DBusProxy.makeProxyWrapper because we need
         //      to specify G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES
         this._cancellable = new Gio.Cancellable();
-        this._proxy = new Gio.DBusProxy({ g_connection: Gio.DBus.session,
-            g_interface_name: interfaceInfo.name,
-            g_interface_info: interfaceInfo,
-            g_name: busName,
-            g_object_path: object,
-            g_flags: Gio.DBusProxyFlags.GET_INVALIDATED_PROPERTIES });
+        this._proxy = new AppIndicatorProxy(busName, object);
 
         this._setupProxy();
         Util.connectSmart(this._proxy, 'g-properties-changed', this, this._onPropertiesChanged);

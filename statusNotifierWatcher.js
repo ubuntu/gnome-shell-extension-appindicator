@@ -275,7 +275,7 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
             Util.Logger.warn(`Failed to unexport watcher object: ${e}`);
         }
 
-        AppIndicator.AppIndicator.destroy();
+        AppIndicator.AppIndicatorProxy.destroy();
 
         this._dbusImpl.run_dispose();
         delete this._dbusImpl;
