@@ -247,6 +247,11 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
             this._updateStatus();
             this._updateLabel();
         });
+        Util.connectSmart(this.icon, 'requires-custom-image', this, () => {
+            this._setIconActor(new AppIndicator.CustomImageIconActor(
+                indicator, Panel.PANEL_ICON_SIZE));
+            this._box.add_child(this.icon);
+        });
         Util.connectSmart(this._indicator, 'accessible-name', this, () =>
             this.set_accessible_name(this._indicator.accessibleName));
         Util.connectSmart(this._indicator, 'destroy', this, () => this.destroy());

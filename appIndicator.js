@@ -636,7 +636,11 @@ var AppIndicator = class AppIndicatorsAppIndicator {
 };
 Signals.addSignalMethods(AppIndicator.prototype);
 
-var IconActor = GObject.registerClass(
+var IconActor = GObject.registerClass({
+    Signals: {
+        'requires-custom-image': {},
+    },
+},
 class AppIndicatorsIconActor extends St.Icon {
 
     _init(indicator, iconSize) {
@@ -695,16 +699,6 @@ class AppIndicatorsIconActor extends St.Icon {
             this._iconCache.destroy();
             this._cancelLoading();
         });
-    }
-
-    vfunc_paint(paintContext) {
-        if (this._customImage) {
-            this.paint_background(paintContext);
-            this._customImage.paint(paintContext);
-            return;
-        }
-
-        super.vfunc_paint(paintContext);
     }
 
     _updateIconClass() {
@@ -839,6 +833,12 @@ class AppIndicatorsIconActor extends St.Icon {
     }
 
     async _loadCustomImage(file, width, height, cancellable) {
+        if (!(this instanceof CustomImageIconActor)) {
+            this.emit('requires-custom-image');
+            throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED,
+                'Loading cancelled, need specific class');
+        }
+
         const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
         const textureCache = St.TextureCache.get_default();
         const resourceScale = this.get_resource_scale();
@@ -1210,5 +1210,18 @@ class AppIndicatorsIconActor extends St.Icon {
                 this._customIcons.set(SNIconType.ATTENTION, attentionIcon);
             }
         });
+    }
+});
+
+var CustomImageIconActor = GObject.registerClass(
+class CustomImageIconActor extends IconActor {
+    vfunc_paint(paintContext) {
+        if (this._customImage) {
+            this.paint_background(paintContext);
+            this._customImage.paint(paintContext);
+            return;
+        }
+
+        super.vfunc_paint(paintContext);
     }
 });
