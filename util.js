@@ -178,16 +178,22 @@ async function getBusNames(bus, cancellable) {
         'ListNames', null, new GLib.VariantType('(as)'), Gio.DBusCallFlags.NONE,
         -1, cancellable)).deep_unpack();
 
-    const uniqueNames = new Set();
+    const uniqueNames = new Map();
     const requests = names.map(name => getUniqueBusName(bus, name, cancellable));
     const results = await Promise.allSettled(requests);
 
     for (let i = 0; i < results.length; i++) {
         const result = results[i];
-        if (result.status === 'fulfilled')
-            uniqueNames.add(result.value);
-        else if (!result.reason.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+        if (result.status === 'fulfilled') {
+            let namesForBus = uniqueNames.get(result.value);
+            if (!namesForBus) {
+                namesForBus = new Set();
+                uniqueNames.set(result.value, namesForBus);
+            }
+            namesForBus.add(result.value !== names[i] ? names[i] : null);
+        } else if (!result.reason.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
             Logger.debug(`Impossible to get the unique name of ${names[i]}: ${result.reason}`);
+        }
     }
 
     return uniqueNames;

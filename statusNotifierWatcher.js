@@ -154,18 +154,19 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
         const uniqueNames = await Util.getBusNames(bus, cancellable);
         const introspectName = async name => {
             const nodes = await Util.introspectBusObject(bus, name, cancellable);
+            const service = [...uniqueNames.get(name)][0];
             nodes.forEach(({ nodeInfo, path }) => {
                 if (Util.dbusNodeImplementsInterfaces(nodeInfo, ['org.kde.StatusNotifierItem'])) {
                     Util.Logger.debug(`Found ${name} at ${path} implementing StatusNotifierItem iface`);
                     const id = Util.indicatorId(name, path);
                     if (!this._items.has(id)) {
                         Util.Logger.warn(`Using Brute-force mode for StatusNotifierItem ${id}`);
-                        this._registerItem(path, name, path);
+                        this._registerItem(service, name, path);
                     }
                 }
             });
         };
-        await Promise.allSettled([...uniqueNames].map(n => introspectName(n)));
+        await Promise.allSettled([...uniqueNames.keys()].map(n => introspectName(n)));
     }
 
     async RegisterStatusNotifierItemAsync(params, invocation) {
