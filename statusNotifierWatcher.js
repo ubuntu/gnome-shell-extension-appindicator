@@ -128,7 +128,7 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
         }
     }
 
-    _ensureItemRegistered(service, busName, objPath) {
+    async _ensureItemRegistered(service, busName, objPath) {
         const id = Util.indicatorId(service, busName, objPath);
         let item = this._items.get(id);
 
@@ -139,7 +139,7 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
             return;
         }
 
-        this._registerItem(service, busName, objPath);
+        await this._registerItem(service, busName, objPath);
     }
 
     async _seekStatusNotifierItems() {
@@ -203,9 +203,15 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
             return;
         }
 
-        this._ensureItemRegistered(service, busName, objPath);
-
-        invocation.return_value(null);
+        try {
+            await this._ensureItemRegistered(service, busName, objPath);
+            invocation.return_value(null);
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                logError(e);
+            invocation.return_dbus_error('org.gnome.gjs.JSError.ValueError',
+                e.message);
+        }
     }
 
     _onIndicatorDestroyed(indicator) {
