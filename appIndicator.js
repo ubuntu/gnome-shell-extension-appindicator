@@ -421,7 +421,9 @@ var AppIndicator = class AppIndicatorsAppIndicator {
             // such as snaps that's not accessible, so let's just use our own
             await Util.getProxyProperty(this._proxy, 'Status', cancellable);
         } catch (e) {
-            if (e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_OBJECT) ||
+            if (e.matches(Gio.DBusError, Gio.DBusError.NAME_HAS_NO_OWNER) ||
+                e.matches(Gio.DBusError, Gio.DBusError.SERVICE_UNKNOWN) ||
+                e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_OBJECT) ||
                 e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_INTERFACE) ||
                 e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD) ||
                 e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_PROPERTY)) {
