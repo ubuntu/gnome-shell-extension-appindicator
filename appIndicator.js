@@ -271,22 +271,25 @@ var AppIndicator = class AppIndicatorsAppIndicator {
     }
 
     // The Author of the spec didn't like the PropertiesChanged signal, so he invented his own
-    _translateNewSignals(signal) {
+    async _translateNewSignals(signal) {
         const prop = this._signalToPropertyName(signal);
 
         if (!prop)
             return;
 
-        [prop, `${prop}Name`, `${prop}Pixmap`, `${prop}AccessibleDesc`].filter(p =>
-            this._proxyPropertyList.includes(p)).forEach(p =>
-            Util.refreshPropertyOnProxy(this._proxy, p, {
-                skipEqualityCheck: p.endsWith('Pixmap'),
-            }).catch(e => {
-                if (!AppIndicator.OPTIONAL_PROPERTIES.includes(p) ||
-                    !e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_PROPERTY))
-                    logError(e);
-            }),
-        );
+        await Promise.all(
+            [prop, `${prop}Name`, `${prop}Pixmap`, `${prop}AccessibleDesc`].filter(p =>
+                this._proxyPropertyList.includes(p)).map(async p => {
+                try {
+                    await Util.refreshPropertyOnProxy(this._proxy, p, {
+                        skipEqualityCheck: p.endsWith('Pixmap'),
+                    });
+                } catch (e) {
+                    if (!AppIndicator.OPTIONAL_PROPERTIES.includes(p) ||
+                        !e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_PROPERTY))
+                        logError(e);
+                }
+            }));
     }
 
     async _onProxySignal(_proxy, _sender, signal, params) {
@@ -313,8 +316,10 @@ var AppIndicator = class AppIndicatorsAppIndicator {
             GLib.PRIORITY_DEFAULT_IDLE, MAX_UPDATE_FREQUENCY, this._cancellable);
         try {
             await this._signalsAccumulator;
-            this._accumulatedSignals.forEach(s => this._translateNewSignals(s));
+            const refreshPropertiesPromises =
+                [...this._accumulatedSignals].map(s => this._translateNewSignals(s));
             this._accumulatedSignals.clear();
+            await Promise.all(refreshPropertiesPromises);
         } finally {
             delete this._signalsAccumulator;
         }
