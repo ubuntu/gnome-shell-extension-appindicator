@@ -75,7 +75,7 @@ async function refreshPropertyOnProxy(proxy, propertyName, params) {
 
         proxy._proxyCancellables.delete(propertyName);
         await queueProxyPropertyUpdate(proxy, propertyName, valueVariant,
-            { ...params, cancellable });
+            Object.assign(params, { cancellable }));
     } catch (e) {
         if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
             // the property may not even exist, silently ignore it
