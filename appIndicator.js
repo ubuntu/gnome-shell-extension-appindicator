@@ -302,6 +302,12 @@ var AppIndicator = class AppIndicatorsAppIndicator {
     async _onProxySignal(_proxy, _sender, signal, params) {
         const property = this._signalToPropertyName(signal);
 
+        if (this.status === SNIStatus.PASSIVE &&
+            ![...AppIndicator.NEEDED_PROPERTIES, 'Status'].includes(property)) {
+            this._accumulatedSignals.add(signal);
+            return;
+        }
+
         if (property && !params.get_type().equal(GLib.VariantType.new('()'))) {
             // If the property includes arguments, we can just queue the signal emission
             const [value] = params.unpack();
@@ -311,10 +317,12 @@ var AppIndicator = class AppIndicatorsAppIndicator {
                 if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                     throw e;
             }
-            return;
-        }
 
-        this._accumulatedSignals.add(signal);
+            if (!this._accumulatedSignals.size)
+                return;
+        } else {
+            this._accumulatedSignals.add(signal);
+        }
 
         if (this._signalsAccumulator)
             return;
