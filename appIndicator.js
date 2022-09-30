@@ -281,7 +281,11 @@ var AppIndicator = class AppIndicatorsAppIndicator {
             this._proxyPropertyList.includes(p)).forEach(p =>
             Util.refreshPropertyOnProxy(this._proxy, p, {
                 skipEqualityCheck: p.endsWith('Pixmap'),
-            }).catch(e => logError(e)),
+            }).catch(e => {
+                if (!AppIndicator.OPTIONAL_PROPERTIES.includes(p) ||
+                    !e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_PROPERTY))
+                    logError(e);
+            }),
         );
     }
 
