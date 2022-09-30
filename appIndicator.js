@@ -40,7 +40,6 @@ PromiseUtils._promisify(GdkPixbuf.Pixbuf, 'new_from_stream_at_scale_async', 'new
 PromiseUtils._promisify(Gio.DBusProxy.prototype, 'init_async', 'init_finish');
 
 const MAX_UPDATE_FREQUENCY = 100; // In ms
-const NEEDED_PROPERTIES = ['Id', 'Menu'];
 
 // eslint-disable-next-line no-unused-vars
 const SNICategory = {
@@ -78,6 +77,31 @@ var AppIndicator = class AppIndicatorsAppIndicator {
 
     static destroy() {
         delete AppIndicator._interfaceInfo;
+    }
+
+    static get NEEDED_PROPERTIES() {
+        return ['Id', 'Menu'];
+    }
+
+    static get OPTIONAL_PROPERTIES() {
+        return [
+            'XAyatanaLabel',
+            'XAyatanaLabelGuide',
+            'XAyatanaOrderingIndex',
+            'IconAccessibleDesc',
+            'AttentionAccessibleDesc',
+        ];
+    }
+
+    static get OPTIONAL_METHODS() {
+        return [
+            'Activate',
+            'ContextMenu',
+            'Scroll',
+            'SecondaryActivate',
+            'ProvideXdgActivationToken',
+            'XAyatanaSecondaryActivate',
+        ];
     }
 
     constructor(service, busName, object) {
@@ -157,16 +181,12 @@ var AppIndicator = class AppIndicatorsAppIndicator {
     }
 
     _setupProxyAsyncMethods() {
-        Util.ensureProxyAsyncMethod(this._proxy, 'Activate');
-        Util.ensureProxyAsyncMethod(this._proxy, 'ContextMenu');
-        Util.ensureProxyAsyncMethod(this._proxy, 'Scroll');
-        Util.ensureProxyAsyncMethod(this._proxy, 'SecondaryActivate');
-        Util.ensureProxyAsyncMethod(this._proxy, 'ProvideXdgActivationToken');
-        Util.ensureProxyAsyncMethod(this._proxy, 'XAyatanaSecondaryActivate');
+        AppIndicator.OPTIONAL_METHODS.forEach(m =>
+            Util.ensureProxyAsyncMethod(this._proxy, m));
     }
 
     _resetNeededProperties() {
-        NEEDED_PROPERTIES.forEach(p =>
+        AppIndicator.NEEDED_PROPERTIES.forEach(p =>
             this._proxy.set_cached_property(p, null));
     }
 
@@ -181,7 +201,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
             // eslint-disable-next-line no-await-in-loop
             await this._delayCheck;
             // eslint-disable-next-line no-await-in-loop
-            await Promise.all(NEEDED_PROPERTIES.map(p =>
+            await Promise.all(AppIndicator.NEEDED_PROPERTIES.map(p =>
                 Util.refreshPropertyOnProxy(this._proxy, p)));
 
             if (this.id && this.menuPath)
@@ -236,11 +256,8 @@ var AppIndicator = class AppIndicatorsAppIndicator {
                 interfaceProps.some(propinfo => propinfo.name === p));
 
         if (this._proxyPropertyList.length) {
-            this._addExtraProperty('XAyatanaLabel');
-            this._addExtraProperty('XAyatanaLabelGuide');
-            this._addExtraProperty('XAyatanaOrderingIndex');
-            this._addExtraProperty('IconAccessibleDesc');
-            this._addExtraProperty('AttentionAccessibleDesc');
+            AppIndicator.OPTIONAL_PROPERTIES.forEach(
+                p => this._addExtraProperty(p));
         }
     }
 
