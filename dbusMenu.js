@@ -26,6 +26,9 @@ const DBusInterfaces = Extension.imports.interfaces;
 const PromiseUtils = Extension.imports.promiseUtils;
 const Util = Extension.imports.util;
 
+PromiseUtils._promisify(GdkPixbuf.Pixbuf, 'new_from_stream_async',
+    'new_from_stream_finish');
+
 // ////////////////////////////////////////////////////////////////////////
 // PART ONE: "ViewModel" backend implementation.
 // Both code and design are inspired by libdbusmenu
@@ -236,6 +239,10 @@ var DBusClient = class AppIndicatorsDBusClient {
 
     get isReady() {
         return this._layoutUpdated && !!this._proxy.g_name_owner;
+    }
+
+    get cancellable() {
+        return this._cancellable;
     }
 
     getRoot() {
@@ -663,16 +670,25 @@ const MenuItemFactory = {
             this.setOrnament(PopupMenu.Ornament.NONE);
     },
 
-    _updateImage() {
+    async _updateImage() {
         if (!this._icon)
             return; // might be missing on submenus / separators
 
         let iconName = this._dbusItem.propertyGet('icon-name');
         let iconData = this._dbusItem.propertyGetVariant('icon-data');
-        if (iconName)
+        if (iconName) {
             this._icon.icon_name = iconName;
-        else if (iconData)
-            this._icon.gicon = GdkPixbuf.Pixbuf.new_from_stream(Gio.MemoryInputStream.new_from_bytes(iconData.get_data_as_bytes()), null);
+        } else if (iconData) {
+            try {
+                const inputStream = Gio.MemoryInputStream.new_from_bytes(
+                    iconData.get_data_as_bytes());
+                this._icon.gicon = await GdkPixbuf.Pixbuf.new_from_stream_async(
+                    inputStream, this._dbusClient.cancellable);
+            } catch (e) {
+                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                    logError(e);
+            }
+        }
     },
 
     _updateVisible() {
@@ -753,6 +769,10 @@ var Client = class AppIndicatorsClient {
 
         Util.connectSmart(this._client, 'ready-changed', this,
             () => this.emit('ready-changed'));
+    }
+
+    get cancellable() {
+        return this._client.cancellable;
     }
 
     get isReady() {
