@@ -80,6 +80,9 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
         if (!super._onDestroy)
             this.connect('destroy', () => this._onDestroy());
 
+        this._box = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
+        this.add_child(this._box);
+
         this._setIconActor(iconActor);
         this._showIfReady();
     }
@@ -96,6 +99,7 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
         this._monitorIconEffects();
 
         if (this._icon) {
+            this._box.add_child(this._icon);
             const id = this._icon.connect('destroy', () => {
                 this._icon.disconnect(id);
                 this._icon = null;
@@ -233,11 +237,7 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
         this._lastClickX = -1;
         this._lastClickY = -1;
 
-        this._box = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
         this._box.add_style_class_name('appindicator-box');
-        this.add_child(this._box);
-
-        this._box.add_child(this._icon);
 
         Util.connectSmart(this._indicator, 'ready', this, this._showIfReady);
         Util.connectSmart(this._indicator, 'menu', this, this._updateMenu);
@@ -250,7 +250,6 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
         Util.connectSmart(this.icon, 'requires-custom-image', this, () => {
             this._setIconActor(new AppIndicator.CustomImageIconActor(
                 indicator, Panel.PANEL_ICON_SIZE));
-            this._box.add_child(this.icon);
         });
         Util.connectSmart(this._indicator, 'accessible-name', this, () =>
             this.set_accessible_name(this._indicator.accessibleName));
@@ -455,11 +454,7 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
     _init(icon) {
         super._init(0.5, icon.wm_class, icon, { dontCreateMenu: true });
         Util.Logger.debug(`Adding legacy tray icon ${this.uniqueId}`);
-        this._box = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
         this._box.add_style_class_name('appindicator-trayicons-box');
-        this.add_child(this._box);
-
-        this._box.add_child(this._icon);
         this.add_style_class_name('appindicator-icon');
         this.add_style_class_name('tray-icon');
 
