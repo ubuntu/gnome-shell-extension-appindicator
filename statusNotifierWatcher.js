@@ -103,7 +103,7 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
                     try {
                         await new PromiseUtils.TimeoutPromise(500,
                             GLib.PRIORITY_DEFAULT, this._cancellable);
-                        if (!indicator.hasNameOwner)
+                        if (this._items.has(id) && !indicator.hasNameOwner)
                             indicator.destroy();
                     } catch (e) {
                         if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
