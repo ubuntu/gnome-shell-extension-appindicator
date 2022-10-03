@@ -34,6 +34,8 @@ const ScrollType = {
 
 (() => {
 
+    const temporaryFiles = [];
+
     var app = new Gtk.Application({
         application_id: null,
     });
@@ -62,6 +64,7 @@ const ScrollType = {
             let newName = `${iconName}-${Math.floor(Math.random() * 100)}.${extension}`;
             let newFile = Gio.File.new_for_path(
                 `${GLib.dir_make_tmp('indicator-test-XXXXXX')}/${newName}`);
+            temporaryFiles.push(newFile, newFile.get_parent());
             iconFile.copy(newFile, Gio.FileCopyFlags.OVERWRITE, null, null);
 
             indicator.set_icon_theme_path(newFile.get_parent().get_path());
@@ -284,6 +287,15 @@ const ScrollType = {
             indicator.set_icon(iconsPool[iconIndex]);
         });
     });
+
+    app.connect('shutdown', () =>
+        temporaryFiles.forEach(file => file.delete(null)));
+
+    GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, /* SIGTERM */ 2, () => {
+        app.quit();
+        return GLib.SOURCE_CONTINUE;
+    });
+
     app.run(ARGV);
 
 })();
