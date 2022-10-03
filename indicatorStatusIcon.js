@@ -18,7 +18,7 @@
             addIconToPanel, getTrayIcons, getAppIndicatorIcons */
 
 const Clutter = imports.gi.Clutter;
-const GLib = imports.gi.GLib;
+const Gio = imports.gi.Gio;
 const GObject = imports.gi.GObject;
 const St = imports.gi.St;
 
@@ -379,6 +379,22 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
         return Clutter.EVENT_PROPAGATE;
     }
 
+    async _waitForDoubleClick() {
+        const { doubleClickTime } = Clutter.Settings.get_default();
+        this._waitDoubleClickPromise = new PromiseUtils.TimeoutPromise(
+            doubleClickTime);
+
+        try {
+            await this._waitDoubleClickPromise;
+            this.menu.toggle();
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                throw e;
+        } finally {
+            delete this._waitDoubleClickPromise;
+        }
+    }
+
     vfunc_event(event) {
         if (this.menu.numMenuItems && event.type() === Clutter.EventType.TOUCH_BEGIN)
             this.menu.toggle();
@@ -387,10 +403,8 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
     }
 
     vfunc_button_press_event(buttonEvent) {
-        if (this._waitDoubleClickId) {
-            GLib.source_remove(this._waitDoubleClickId);
-            this._waitDoubleClickId = 0;
-        }
+        if (this._waitDoubleClickPromise)
+            this._waitDoubleClickPromise.cancel();
 
         // if middle mouse button clicked send SecondaryActivate dbus event and do not show appindicator menu
         if (buttonEvent.button === Clutter.BUTTON_MIDDLE) {
@@ -409,17 +423,10 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
         if (doubleClickHandled === Clutter.EVENT_PROPAGATE &&
             buttonEvent.button === Clutter.BUTTON_PRIMARY &&
             this.menu.numMenuItems) {
-            if (this._indicator.supportsActivation) {
-                const { doubleClickTime } = Clutter.Settings.get_default();
-                this._waitDoubleClickId = GLib.timeout_add(GLib.PRIORITY_DEFAULT,
-                    doubleClickTime, () => {
-                        this.menu.toggle();
-                        this._waitDoubleClickId = 0;
-                        return GLib.SOURCE_REMOVE;
-                    });
-            } else {
+            if (this._indicator.supportsActivation)
+                this._waitForDoubleClick().catch(logError);
+            else
                 this.menu.toggle();
-            }
         }
 
         return Clutter.EVENT_PROPAGATE;
@@ -496,10 +503,8 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
     _onDestroy() {
         Util.Logger.debug(`Destroying legacy tray icon ${this.uniqueId}`);
 
-        if (this._waitDoubleClickId) {
-            GLib.source_remove(this._waitDoubleClickId);
-            this._waitDoubleClickId = 0;
-        }
+        if (this._waitDoubleClickPromise)
+            this._waitDoubleClickPromise.cancel();
 
         super._onDestroy();
     }
