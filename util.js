@@ -468,7 +468,8 @@ var Logger = class AppIndicatorsLogger {
 
         const allLevels = Object.values(GLib.LogLevelFlags);
         const domains = GLib.getenv('G_MESSAGES_DEBUG');
-        Logger._domain = domain.replaceAll(' ', '-');
+        Logger._domain = domain.replaceAll ? domain.replaceAll(' ', '-')
+            : domain.split(' ').join('-');
 
         if (domains === 'all' || (domains && domains.split(' ').includes(Logger._domain))) {
             Logger._levels = allLevels;
