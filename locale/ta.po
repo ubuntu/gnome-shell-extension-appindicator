@@ -1,0 +1,131 @@
+# Tamil translation of gnome-shell-extension-appindicator.
+# Copyright (C) 2022 AppIndicatorExtension Contributors
+# This file is distributed under the same license as the AppIndicatorExtension package.
+# K.B.Dharun Krishna <kbdharunkrishna@gmail.com>, 2022.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: AppIndicatorExtension\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-09-27 20:43+0200\n"
+"PO-Revision-Date: 2022-12-23 09:46+0530\n"
+"Last-Translator: K.B.Dharun Krishna <kbdharunkrishna@gmail.com>\n"
+"Language-Team: \n"
+"Language: ta\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.2.2\n"
+
+#: prefs.js:67
+msgid "Opacity (min: 0, max: 255)"
+msgstr "ஒளிபுகாநிலை (குறைந்தது: 0, அதிகபட்சம்: 255)"
+
+#: prefs.js:95
+msgid "Desaturation (min: 0.0, max: 1.0)"
+msgstr "தேய்மானம் (குறைந்தபட்சம்: 0.0, அதிகபட்சம்: 1.0)"
+
+#: prefs.js:123
+msgid "Brightness (min: -1.0, max: 1.0)"
+msgstr "பிரகாசம் (குறைந்தபட்சம்: -1.0, அதிகபட்சம்: 1.0)"
+
+#: prefs.js:151
+msgid "Contrast (min: -1.0, max: 1.0)"
+msgstr "மாறுபாடு (குறைந்தபட்சம்: -1.0, அதிகபட்சம்: 1.0)"
+
+#: prefs.js:179
+msgid "Icon size (min: 0, max: 96)"
+msgstr "ஐகான் அளவு (குறைந்தபட்சம்: 0, அதிகபட்சம்: 96)"
+
+#: prefs.js:207
+msgid "Tray horizontal alignment"
+msgstr "தட்டு கிடைமட்ட சீரமைப்பு"
+
+#: prefs.js:212
+msgid "Center"
+msgstr "மையம்"
+
+#: prefs.js:213
+msgid "Left"
+msgstr "இடதுபுறம்"
+
+#: prefs.js:214
+msgid "Right"
+msgstr "வலதுபுறம்"
+
+#: prefs.js:259
+msgid "Indicator ID"
+msgstr "குறிகாட்டி ஐடி"
+
+#: prefs.js:260
+msgid "Icon Name"
+msgstr "ஐகான் பெயர்"
+
+#: prefs.js:261
+msgid "Attention Icon Name"
+msgstr "கவனம் ஐகான் பெயர்"
+
+#: prefs.js:336
+msgid "Preferences"
+msgstr "விருப்பங்கள்"
+
+#: prefs.js:338
+msgid "Custom Icons"
+msgstr "தனிப்பயன் சின்னங்கள்"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
+msgid "Saturation"
+msgstr "செறிவூட்டல்"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
+msgid "Brightness"
+msgstr "பிரகாசம்"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
+msgid "Contrast"
+msgstr "மாறுபாடு"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
+msgid "Opacity"
+msgstr "ஒளிபுகாநிலை"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
+msgid "Icon size"
+msgstr "ஐகான் அளவு"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:22
+msgid "Icon size in pixel"
+msgstr "பிக்சலில் ஐகான் அளவு"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
+msgid "Icon spacing"
+msgstr "ஐகான் இடைவெளி"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:27
+msgid "Icon spacing within the tray"
+msgstr "தட்டுக்குள் ஐகான் இடைவெளி"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
+msgid "Position in tray"
+msgstr "தட்டில் நிலை"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:32
+msgid "Set where the Icon tray should appear in Gnome tray"
+msgstr "க்னோம் தட்டில் ஐகான் தட்டு எங்கு தோன்ற வேண்டும் என்பதை அமைக்கவும்"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
+msgid "Order in tray"
+msgstr "தட்டில் ஆர்டர் செய்யுங்கள்"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:37
+msgid "Set where the Icon tray should appear among other trays"
+msgstr "மற்ற தட்டுகளில் ஐகான் தட்டு எங்கு தோன்ற வேண்டும் என்பதை அமைக்கவும்"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
+msgid "Custom icons"
+msgstr "தனிப்பயன் சின்னங்கள்"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:42
+msgid "Replace any icons with custom icons from themes"
+msgstr "தீம்களிலிருந்து தனிப்பயன் ஐகான்களுடன் ஏதேனும் ஐகான்களை மாற்றவும்"
