@@ -97,9 +97,13 @@ async function queueProxyPropertyUpdate(proxy, propertyName, value, params) {
         cancellable: null,
     });
 
-    if (!params.skipEqualityCheck &&
-        value.equal(proxy.get_cached_property(propertyName)))
-        return;
+    if (!params.skipEqualityCheck) {
+        const cachedProperty = proxy.get_cached_property(propertyName);
+
+        if (value && cachedProperty &&
+            value.equal(proxy.get_cached_property(propertyName)))
+            return;
+    }
 
     proxy.set_cached_property(propertyName, value);
 
