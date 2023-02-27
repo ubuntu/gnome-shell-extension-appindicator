@@ -431,6 +431,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
     }
 
     constructor(service, busName, object) {
+        this.isReady = false;
         this.busName = busName;
         this._uniqueId = Util.indicatorId(service, busName, object);
 
@@ -559,7 +560,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
     }
 
     get label() {
-        return this._proxy.XAyatanaLabel;
+        return this._proxy.XAyatanaLabel || null;
     }
 
     get accessibleName() {
