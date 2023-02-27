@@ -330,23 +330,30 @@ _promisifySignals(GObject.Object.prototype);
 var _promisify = Gio._promisify;
 if (imports.system.version < 16501) {
     /* This is backported from upstream gjs, so that all the features are available */
-    _promisify = function (proto, asyncFunc,
-        finishFunc = `${asyncFunc.replace(/_(begin|async)$/, '')}_finish`) {
+    _promisify = function (proto, asyncFunc, finishFunc = undefined) {
         if (proto[asyncFunc] === undefined)
             throw new Error(`${proto} has no method named ${asyncFunc}`);
+
+        if (finishFunc === undefined) {
+            if (asyncFunc.endsWith('_begin') || asyncFunc.endsWith('_async'))
+                finishFunc = `${asyncFunc.slice(0, -5)}finish`;
+            else
+                finishFunc = `${asyncFunc}_finish`;
+        }
 
         if (proto[finishFunc] === undefined)
             throw new Error(`${proto} has no method named ${finishFunc}`);
 
-        if (proto[`_original_${asyncFunc}`] !== undefined)
+        const originalFuncName = `_original_${asyncFunc}`;
+        if (proto[originalFuncName] !== undefined)
             return;
-        proto[`_original_${asyncFunc}`] = proto[asyncFunc];
+        proto[originalFuncName] = proto[asyncFunc];
         proto[asyncFunc] = function (...args) {
             if (!args.every(arg => typeof arg !== 'function'))
-                return this[`_original_${asyncFunc}`](...args);
+                return this[originalFuncName](...args);
             return new Promise((resolve, reject) => {
-                const callStack = new Error().stack.split('\n').filter(line => !line.match(/promisify/)).join('\n');
-                this[`_original_${asyncFunc}`](...args, (source, res) => {
+                let { stack: callStack } = new Error();
+                this[originalFuncName](...args, (source, res) => {
                     try {
                         const result = source !== null && source[finishFunc] !== undefined
                             ? source[finishFunc](res)
@@ -355,6 +362,8 @@ if (imports.system.version < 16501) {
                             result.shift();
                         resolve(result);
                     } catch (error) {
+                        callStack = callStack.split('\n').filter(line =>
+                            line.indexOf('_promisify/') === -1).join('\n');
                         if (error.stack)
                             error.stack += `### Promise created here: ###\n${callStack}`;
                         else
