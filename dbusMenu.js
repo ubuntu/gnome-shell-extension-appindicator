@@ -524,7 +524,10 @@ const MenuItemFactory = {
         shellItem._dbusClient = client;
 
         if (shellItem instanceof PopupMenu.PopupMenuItem) {
-            shellItem._icon = new St.Icon({ style_class: 'popup-menu-icon', x_align: St.Align.END });
+            shellItem._icon = new St.Icon({
+                style_class: 'popup-menu-icon',
+                x_align: St.Align.END,
+            });
             shellItem.add_child(shellItem._icon);
             shellItem.label.x_expand = true;
         }
