@@ -872,6 +872,11 @@ class AppIndicatorsIconActor extends St.Icon {
             this._invalidateIcon();
         });
 
+        if (GObject.signal_lookup('resource-scale-changed', this))
+            this.connect('resource-scale-changed', () => this._invalidateIcon());
+        else
+            this.connect('notify::resource-scale', () => this._invalidateIcon());
+
         Util.connectSmart(themeContext, 'notify::scale-factor', this, tc => {
             this.height = iconSize * tc.scale_factor;
             this._invalidateIcon();
@@ -939,17 +944,28 @@ class AppIndicatorsIconActor extends St.Icon {
         this._loadingIcons[iconType].delete(loadingId);
     }
 
+    _getResourceScale() {
+        // Remove this when we remove support for versions earlier than 3.38
+        const resourceScale = this.get_resource_scale();
+        if (Array.isArray(resourceScale))
+            return resourceScale[0] ? resourceScale[1] : 1.0;
+
+        return resourceScale;
+    }
+
     // Will look the icon up in the cache, if it's found
     // it will return it. Otherwise, it will create it and cache it.
     async _cacheOrCreateIconByName(iconType, iconSize, iconName, themePath) {
-        let { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
-        const id = `${iconType}:${iconName}@${iconSize * scaleFactor}:${themePath || ''}`;
+        const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+        const resourceScale = this._getResourceScale();
+        const iconScaling = Math.ceil(resourceScale * scaleFactor);
+        const id = `${iconType}:${iconName}@${iconSize * iconScaling}:${themePath || ''}`;
         let gicon = this._iconCache.get(id);
 
         if (gicon)
             return gicon;
 
-        const path = this._getIconInfo(iconName, themePath, iconSize, scaleFactor);
+        const path = this._getIconInfo(iconName, themePath, iconSize, iconScaling);
         const loadingId = path || id;
 
         const cancellable = await this._getIconLoadingCancellable(iconType, id);
@@ -966,11 +982,13 @@ class AppIndicatorsIconActor extends St.Icon {
     async _createIconByPath(path, width, height, cancellable) {
         let file = Gio.File.new_for_path(path);
         try {
+            const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+            const resourceScale = this._getResourceScale();
+            const scale = resourceScale * scaleFactor;
+
             const inputStream = await file.read_async(GLib.PRIORITY_DEFAULT, cancellable);
-            const pixbuf = GdkPixbuf.Pixbuf.new_from_stream_at_scale_async(inputStream,
-                height, width, true, cancellable);
-            this.icon_size = width > 0 ? width : this._iconSize;
-            return pixbuf;
+            return GdkPixbuf.Pixbuf.new_from_stream_at_scale_async(inputStream,
+                Math.ceil(height * scale), Math.ceil(width * scale), true, cancellable);
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 Util.Logger.warn(`${this._indicator.id}, Impossible to read image from path '${path}': ${e}`);
@@ -1035,7 +1053,7 @@ class AppIndicatorsIconActor extends St.Icon {
 
         const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
         const textureCache = St.TextureCache.get_default();
-        const resourceScale = this.get_resource_scale();
+        const resourceScale = this._getResourceScale();
 
         const customImage = textureCache.load_file_async(file, -1,
             height, scaleFactor, resourceScale);
@@ -1150,7 +1168,8 @@ class AppIndicatorsIconActor extends St.Icon {
 
     async _createIconFromPixmap(iconType, iconSize, iconPixmapArray) {
         const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
-        iconSize *= scaleFactor;
+        const resourceScale = this._getResourceScale();
+        iconSize *= scaleFactor * resourceScale;
         // the pixmap actually is an array of pixmaps with different sizes
         // we use the one that is smaller or equal the iconSize
 
