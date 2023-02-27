@@ -120,6 +120,7 @@ var AppIndicatorProxy = GObject.registerClass({
     }
 
     async initAsync(cancellable) {
+        cancellable = new Util.CancellableChild(cancellable);
         await this.init_async(GLib.PRIORITY_DEFAULT, cancellable);
         this._cancellable = cancellable;
 
@@ -132,7 +133,11 @@ var AppIndicatorProxy = GObject.registerClass({
     destroy() {
         this.emit('destroy');
         this._signalIds.forEach(id => this.disconnect(id));
-        this._cancelRefreshProperties();
+
+        if (this._cancellable)
+            this._cancellable.cancel();
+
+        this._cancellables.clear();
     }
 
     _setupProxyPropertyList() {
@@ -396,7 +401,7 @@ var AppIndicatorProxy = GObject.registerClass({
             }
 
             if (params.addNew) {
-                cancellable = new Gio.Cancellable();
+                cancellable = new Util.CancellableChild(this._cancellable);
                 this._cancellables.set(params.propertyName, cancellable);
                 return cancellable;
             }
