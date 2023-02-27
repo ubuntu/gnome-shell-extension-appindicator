@@ -30,6 +30,7 @@ const Signals = imports.signals;
 const IconCache = Extension.imports.iconCache;
 const Util = Extension.imports.util;
 const Interfaces = Extension.imports.interfaces;
+const Params = imports.misc.params;
 const PromiseUtils = Extension.imports.promiseUtils;
 const SettingsManager = Extension.imports.settingsManager;
 
@@ -110,7 +111,7 @@ var AppIndicatorProxy = GObject.registerClass({
         this._signalIds.push(this.connect('notify::g-name-owner', () => {
             this._resetNeededProperties();
             if (!this.gNameOwner)
-                Util.cancelRefreshPropertyOnProxy(this);
+                this._cancelRefreshProperties();
             else
                 this._setupProxyPropertyList();
         }));
@@ -121,7 +122,7 @@ var AppIndicatorProxy = GObject.registerClass({
         this._cancellable = cancellable;
 
         this.gInterfaceInfo.methods.map(m => m.name).forEach(method =>
-            Util.ensureProxyAsyncMethod(this, method));
+            this._ensureAsyncMethod(method));
 
         this._setupProxyPropertyList();
     }
@@ -129,7 +130,7 @@ var AppIndicatorProxy = GObject.registerClass({
     destroy() {
         this.emit('destroy');
         this._signalIds.forEach(id => this.disconnect(id));
-        Util.cancelRefreshPropertyOnProxy(this);
+        this._cancelRefreshProperties();
     }
 
     _setupProxyPropertyList() {
@@ -176,7 +177,7 @@ var AppIndicatorProxy = GObject.registerClass({
             [prop, `${prop}Name`, `${prop}Pixmap`, `${prop}AccessibleDesc`].filter(p =>
                 this._propertiesList.includes(p)).map(async p => {
                 try {
-                    await Util.refreshPropertyOnProxy(this, p, {
+                    await this.refreshProperty(p, {
                         skipEqualityCheck: p.endsWith('Pixmap'),
                     });
                 } catch (e) {
@@ -202,7 +203,7 @@ var AppIndicatorProxy = GObject.registerClass({
             // If the property includes arguments, we can just queue the signal emission
             const [value] = params.unpack();
             try {
-                await Util.queueProxyPropertyUpdate(this, property, value);
+                await this._queuePropertyUpdate(property, value);
             } catch (e) {
                 if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                     throw e;
@@ -236,6 +237,181 @@ var AppIndicatorProxy = GObject.registerClass({
     _resetNeededProperties() {
         AppIndicator.NEEDED_PROPERTIES.forEach(p =>
             this.set_cached_property(p, null));
+    }
+
+    // This can be removed when we will have GNOME 43 as minimum version
+    _ensureAsyncMethod(method) {
+        if (this[`${method}Async`])
+            return;
+
+        if (!this[`${method}Remote`])
+            throw new Error(`Missing remote method '${method}'`);
+
+        this[`${method}Async`] = function (...args) {
+            return new Promise((resolve, reject) => {
+                this[`${method}Remote`](...args, (ret, e) => {
+                    if (e)
+                        reject(e);
+                    else
+                        resolve(ret);
+                });
+            });
+        };
+    }
+
+    getProperty(propertyName, cancellable) {
+        return this.g_connection.call(this.g_name,
+            this.g_object_path, 'org.freedesktop.DBus.Properties', 'Get',
+            GLib.Variant.new('(ss)', [this.g_interface_name, propertyName]),
+            GLib.VariantType.new('(v)'), Gio.DBusCallFlags.NONE, -1,
+            cancellable);
+    }
+
+    getProperties(cancellable) {
+        return this.g_connection.call(this.g_name,
+            this.g_object_path, 'org.freedesktop.DBus.Properties', 'GetAll',
+            GLib.Variant.new('(s)', [this.g_interface_name]),
+            GLib.VariantType.new('(a{sv})'), Gio.DBusCallFlags.NONE, -1,
+            cancellable);
+    }
+
+    async refreshAllProperties() {
+        const cancellableName = 'org.freedesktop.DBus.Properties.GetAll';
+        const cancellable = this._cancelRefreshProperties({
+            propertyName: cancellableName,
+            addNew: true,
+        });
+
+        try {
+            const [valuesVariant] = (await this.getProperties(
+                cancellable)).deep_unpack();
+
+            this._cancellables.delete(cancellableName);
+
+            await Promise.all(
+                Object.entries(valuesVariant).map(([propertyName, valueVariant]) =>
+                    this._queuePropertyUpdate(propertyName, valueVariant, {
+                        skipEqualityCheck: true,
+                        cancellable,
+                    })));
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+                // the property may not even exist, silently ignore it
+                Util.Logger.debug(`While refreshing all properties: ${e}`);
+
+                this.get_cached_property_names().forEach(propertyName =>
+                    this.set_cached_property(propertyName, null));
+
+                this._cancellables.delete(cancellableName);
+                throw e;
+            }
+        }
+    }
+
+    async refreshProperty(propertyName, params) {
+        params = Params.parse(params, {
+            skipEqualityCheck: false,
+        });
+
+        const cancellable = this._cancelRefreshProperties({
+            propertyName,
+            addNew: true,
+        });
+
+        try {
+            const [valueVariant] = (await this.getProperty(
+                propertyName, cancellable)).deep_unpack();
+
+            this._cancellables.delete(propertyName);
+            await this._queuePropertyUpdate(propertyName, valueVariant,
+                Object.assign(params, { cancellable }));
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+                // the property may not even exist, silently ignore it
+                Util.Logger.debug(`While refreshing property ${propertyName}: ${e}`);
+                this.set_cached_property(propertyName, null);
+                this._cancellables.delete(propertyName);
+                if (this._changedProperties)
+                    delete this._changedProperties[propertyName];
+                throw e;
+            }
+        }
+    }
+
+    async _queuePropertyUpdate(propertyName, value, params) {
+        params = Params.parse(params, {
+            skipEqualityCheck: false,
+            cancellable: null,
+        });
+
+        if (!params.skipEqualityCheck) {
+            const cachedProperty = this.get_cached_property(propertyName);
+
+            if (value && cachedProperty &&
+                value.equal(this.get_cached_property(propertyName)))
+                return;
+        }
+
+        this.set_cached_property(propertyName, value);
+
+        // synthesize a batched property changed event
+        if (!this._changedProperties)
+            this._changedProperties = {};
+        this._changedProperties[propertyName] = value;
+
+        if (!this._propertiesEmitTimeout || !this._propertiesEmitTimeout.pending()) {
+            if (!params.cancellable) {
+                params.cancellable = this._cancelRefreshProperties({
+                    propertyName,
+                    addNew: true,
+                });
+            }
+            this._propertiesEmitTimeout = new PromiseUtils.TimeoutPromise(16,
+                GLib.PRIORITY_DEFAULT_IDLE, params.cancellable);
+            await this._propertiesEmitTimeout;
+
+            if (this._changedProperties) {
+                this.emit('g-properties-changed', GLib.Variant.new('a{sv}',
+                    this._changedProperties), []);
+                delete this._changedProperties;
+            }
+        }
+    }
+
+    _cancelRefreshProperties(params) {
+        params = Params.parse(params, {
+            propertyName: undefined,
+            addNew: false,
+        });
+
+        if (!this._cancellables) {
+            if (!params.addNew)
+                return null;
+
+            this._cancellables = new Map();
+        }
+
+        if (params.propertyName !== undefined) {
+            let cancellable = this._cancellables.get(params.propertyName);
+            if (cancellable) {
+                cancellable.cancel();
+
+                if (!params.addNew)
+                    this._cancellables.delete(params.propertyName);
+            }
+
+            if (params.addNew) {
+                cancellable = new Gio.Cancellable();
+                this._cancellables.set(params.propertyName, cancellable);
+                return cancellable;
+            }
+        } else {
+            this._cancellables.forEach(c => c.cancel());
+            delete this._changedProperties;
+            delete this._cancellables;
+        }
+
+        return null;
     }
 });
 
@@ -330,7 +506,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
             try {
                 // eslint-disable-next-line no-await-in-loop
                 await Promise.all(AppIndicator.NEEDED_PROPERTIES.map(p =>
-                    Util.refreshPropertyOnProxy(this._proxy, p)));
+                    this._proxy.refreshProperty(p)));
             } catch (e) {
                 if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                     throw e;
@@ -459,7 +635,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
 
             // We should call the Ping method instead but in some containers
             // such as snaps that's not accessible, so let's just use our own
-            await Util.getProxyProperty(this._proxy, 'Status', cancellable);
+            await this._proxy.getProperty('Status', cancellable);
         } catch (e) {
             if (e.matches(Gio.DBusError, Gio.DBusError.NAME_HAS_NO_OWNER) ||
                 e.matches(Gio.DBusError, Gio.DBusError.SERVICE_UNKNOWN) ||

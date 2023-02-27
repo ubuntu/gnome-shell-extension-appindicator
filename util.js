@@ -14,12 +14,10 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-/* exported refreshPropertyOnProxy, getUniqueBusName, getBusNames,
+/* exported getUniqueBusName, getBusNames,
    introspectBusObject, dbusNodeImplementsInterfaces, waitForStartupCompletion,
    connectSmart, disconnectSmart, versionCheck, getDefaultTheme,
-   getProcessName, ensureProxyAsyncMethod, queueProxyPropertyUpdate,
-   getProxyProperty, indicatorId, tryCleanupOldIndicators,
-   refreshAllPropertiesOnProxy */
+   getProcessName, indicatorId, tryCleanupOldIndicators */
 
 const ByteArray = imports.byteArray;
 const Gio = imports.gi.Gio;
@@ -35,7 +33,6 @@ const Config = imports.misc.config;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Extension = ExtensionUtils.getCurrentExtension();
 const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon;
-const Params = imports.misc.params;
 const PromiseUtils = Extension.imports.promiseUtils;
 const Signals = imports.signals;
 
@@ -50,164 +47,6 @@ function indicatorId(service, busName, objectPath) {
         return service;
 
     return `${busName}@${objectPath}`;
-}
-
-function getProxyProperty(proxy, propertyName, cancellable) {
-    return proxy.g_connection.call(proxy.g_name,
-        proxy.g_object_path, 'org.freedesktop.DBus.Properties', 'Get',
-        GLib.Variant.new('(ss)', [proxy.g_interface_name, propertyName]),
-        GLib.VariantType.new('(v)'), Gio.DBusCallFlags.NONE, -1,
-        cancellable);
-}
-
-function getProxyProperties(proxy, cancellable) {
-    return proxy.g_connection.call(proxy.g_name,
-        proxy.g_object_path, 'org.freedesktop.DBus.Properties', 'GetAll',
-        GLib.Variant.new('(s)', [proxy.g_interface_name]),
-        GLib.VariantType.new('(a{sv})'), Gio.DBusCallFlags.NONE, -1,
-        cancellable);
-}
-
-async function refreshAllPropertiesOnProxy(proxy) {
-    const cancellableName = 'org.freedesktop.DBus.Properties.GetAll';
-    const cancellable = cancelRefreshPropertyOnProxy(proxy, {
-        propertyName: cancellableName,
-        addNew: true,
-    });
-
-    try {
-        const [valuesVariant] = (await getProxyProperties(
-            proxy, cancellable)).deep_unpack();
-
-        print('Refreshed',valuesVariant,Object.entries(valuesVariant))
-
-        if (proxy._proxyCancellables)
-            proxy._proxyCancellables.delete(cancellableName);
-
-        await Promise.all(
-            Object.entries(valuesVariant).map(([propertyName, valueVariant]) =>
-                queueProxyPropertyUpdate(proxy, propertyName, valueVariant, {
-                    skipEqualityCheck: true,
-                    cancellable,
-                })));
-    } catch (e) {
-        if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
-            // the property may not even exist, silently ignore it
-            Logger.debug(`While refreshing all properties: ${e}`);
-
-            proxy.get_cached_property_names().forEach(propertyName =>
-                proxy.set_cached_property(propertyName, null));
-
-            if (proxy._proxyCancellables)
-                proxy._proxyCancellables.delete(cancellableName);
-            throw e;
-        }
-    }
-}
-
-async function refreshPropertyOnProxy(proxy, propertyName, params) {
-    params = Params.parse(params, {
-        skipEqualityCheck: false,
-    });
-
-    const cancellable = cancelRefreshPropertyOnProxy(proxy, {
-        propertyName,
-        addNew: true,
-    });
-
-    try {
-        const [valueVariant] = (await getProxyProperty(
-            proxy, propertyName, cancellable)).deep_unpack();
-
-        if (proxy._proxyCancellables)
-            proxy._proxyCancellables.delete(propertyName);
-        await queueProxyPropertyUpdate(proxy, propertyName, valueVariant,
-            Object.assign(params, { cancellable }));
-    } catch (e) {
-        if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
-            // the property may not even exist, silently ignore it
-            Logger.debug(`While refreshing property ${propertyName}: ${e}`);
-            proxy.set_cached_property(propertyName, null);
-            if (proxy._proxyCancellables)
-                proxy._proxyCancellables.delete(propertyName);
-            if (proxy._proxyChangedProperties)
-                delete proxy._proxyChangedProperties[propertyName];
-            throw e;
-        }
-    }
-}
-
-async function queueProxyPropertyUpdate(proxy, propertyName, value, params) {
-    params = Params.parse(params, {
-        skipEqualityCheck: false,
-        cancellable: null,
-    });
-
-    if (!params.skipEqualityCheck) {
-        const cachedProperty = proxy.get_cached_property(propertyName);
-
-        if (value && cachedProperty &&
-            value.equal(proxy.get_cached_property(propertyName)))
-            return;
-    }
-
-    proxy.set_cached_property(propertyName, value);
-
-    // synthesize a batched property changed event
-    if (!proxy._proxyChangedProperties)
-        proxy._proxyChangedProperties = {};
-    proxy._proxyChangedProperties[propertyName] = value;
-
-    if (!proxy._proxyPropertiesEmit || !proxy._proxyPropertiesEmit.pending()) {
-        if (!params.cancellable) {
-            params.cancellable = cancelRefreshPropertyOnProxy(proxy, {
-                propertyName,
-                addNew: true,
-            });
-        }
-        proxy._proxyPropertiesEmit = new PromiseUtils.TimeoutPromise(16,
-            GLib.PRIORITY_DEFAULT_IDLE, params.cancellable);
-        await proxy._proxyPropertiesEmit;
-        proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}',
-            proxy._proxyChangedProperties), []);
-        delete proxy._proxyChangedProperties;
-    }
-}
-
-function cancelRefreshPropertyOnProxy(proxy, params) {
-    params = Params.parse(params, {
-        propertyName: undefined,
-        addNew: false,
-    });
-
-    if (!proxy._proxyCancellables) {
-        if (!params.addNew)
-            return null;
-
-        proxy._proxyCancellables = new Map();
-    }
-
-    if (params.propertyName !== undefined) {
-        let cancellable = proxy._proxyCancellables.get(params.propertyName);
-        if (cancellable) {
-            cancellable.cancel();
-
-            if (!params.addNew)
-                proxy._proxyCancellables.delete(params.propertyName);
-        }
-
-        if (params.addNew) {
-            cancellable = new Gio.Cancellable();
-            proxy._proxyCancellables.set(params.propertyName, cancellable);
-            return cancellable;
-        }
-    } else {
-        proxy._proxyCancellables.forEach(c => c.cancel());
-        delete proxy._proxyChangedProperties;
-        delete proxy._proxyCancellables;
-    }
-
-    return null;
 }
 
 async function getUniqueBusName(bus, name, cancellable) {
@@ -264,26 +103,6 @@ async function getProcessId(connectionName, cancellable = null, bus = Gio.DBus.s
         cancellable);
     const [pid] = res.deepUnpack();
     return pid;
-}
-
-// This can be removed when we will have GNOME 43 as minimum version
-function ensureProxyAsyncMethod(proxy, method) {
-    if (proxy[`${method}Async`])
-        return;
-
-    if (!proxy[`${method}Remote`])
-        throw new Error(`Missing remote method '${method}'`);
-
-    proxy[`${method}Async`] = function (...args) {
-        return new Promise((resolve, reject) => {
-            this[`${method}Remote`](...args, (ret, e) => {
-                if (e)
-                    reject(e);
-                else
-                    resolve(ret);
-            });
-        });
-    };
 }
 
 async function getProcessName(connectionName, cancellable = null,
