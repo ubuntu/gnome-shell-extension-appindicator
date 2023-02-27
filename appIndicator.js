@@ -1384,7 +1384,7 @@ class AppIndicatorsIconActor extends St.Icon {
             this._loadingIcons[iconType].clear());
 
         this._updateIcon().catch(e => logError(e));
-        this._updateOverlayIcon();
+        this._updateOverlayIcon().catch(e => logError(e));
     }
 
     _updateIconSize() {
