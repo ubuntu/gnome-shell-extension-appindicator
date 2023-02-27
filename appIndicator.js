@@ -104,6 +104,8 @@ var AppIndicatorProxy = GObject.registerClass({
 
         this._signalIds = [];
         this._accumulatedProperties = new Set();
+        this._cancellables = new Map();
+        this._changedProperties = Object.create(null);
 
         this._signalIds.push(this.connect('g-signal',
             (_proxy, ...args) => this._onSignal(...args).catch(logError)));
@@ -331,8 +333,7 @@ var AppIndicatorProxy = GObject.registerClass({
                 Util.Logger.debug(`While refreshing property ${propertyName}: ${e}`);
                 this.set_cached_property(propertyName, null);
                 this._cancellables.delete(propertyName);
-                if (this._changedProperties)
-                    delete this._changedProperties[propertyName];
+                delete this._changedProperties[propertyName];
                 throw e;
             }
         }
@@ -355,8 +356,6 @@ var AppIndicatorProxy = GObject.registerClass({
         this.set_cached_property(propertyName, value);
 
         // synthesize a batched property changed event
-        if (!this._changedProperties)
-            this._changedProperties = {};
         this._changedProperties[propertyName] = value;
 
         if (!this._propertiesEmitTimeout || !this._propertiesEmitTimeout.pending()) {
@@ -370,10 +369,10 @@ var AppIndicatorProxy = GObject.registerClass({
                 GLib.PRIORITY_DEFAULT_IDLE, params.cancellable);
             await this._propertiesEmitTimeout;
 
-            if (this._changedProperties) {
+            if (Object.keys(this._changedProperties).length) {
                 this.emit('g-properties-changed', GLib.Variant.new('a{sv}',
                     this._changedProperties), []);
-                delete this._changedProperties;
+                this._changedProperties = Object.create(null);
             }
         }
     }
@@ -384,12 +383,8 @@ var AppIndicatorProxy = GObject.registerClass({
             addNew: false,
         });
 
-        if (!this._cancellables) {
-            if (!params.addNew)
-                return null;
-
-            this._cancellables = new Map();
-        }
+        if (!this._cancellables.size && !params.addNew)
+            return null;
 
         if (params.propertyName !== undefined) {
             let cancellable = this._cancellables.get(params.propertyName);
@@ -407,8 +402,8 @@ var AppIndicatorProxy = GObject.registerClass({
             }
         } else {
             this._cancellables.forEach(c => c.cancel());
-            delete this._changedProperties;
-            delete this._cancellables;
+            this._cancellables.clear();
+            this._changedProperties = Object.create(null);
         }
 
         return null;
