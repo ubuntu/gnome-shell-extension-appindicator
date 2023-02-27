@@ -856,6 +856,7 @@ class AppIndicatorsIconActor extends St.Icon {
         this._customIcons   = new Map();
         this._iconSize      = iconSize;
         this._iconCache     = new IconCache.IconCache();
+        this._cancellable   = new Gio.Cancellable();
         this._loadingIcons  = {};
 
         Object.values(SNIconType).forEach(t => (this._loadingIcons[t] = new Map()));
@@ -891,17 +892,16 @@ class AppIndicatorsIconActor extends St.Icon {
 
         this.connect('destroy', () => {
             this._iconCache.destroy();
-            this._cancelLoading();
+            this._cancellable.cancel();
+            this._cancellable = null;
+            this._indicator = null;
+            this._loadingIcons = null;
         });
     }
 
     _updateIconClass() {
         this.add_style_class_name(
             `appindicator-icon-${this._indicator.id.toLowerCase().replace(/_|\s/g, '-')}`);
-    }
-
-    _cancelLoading() {
-        Object.values(SNIconType).forEach(iconType => this._cancelLoadingByType(iconType));
     }
 
     _cancelLoadingByType(iconType) {
@@ -929,7 +929,7 @@ class AppIndicatorsIconActor extends St.Icon {
             this._cancelLoadingByType(iconType);
         }
 
-        const cancellable = new Gio.Cancellable();
+        const cancellable = new Util.CancellableChild(this._cancellable);
         this._loadingIcons[iconType].set(loadingId, cancellable);
 
         return cancellable;
@@ -1373,7 +1373,10 @@ class AppIndicatorsIconActor extends St.Icon {
     // called when the icon theme changes
     _invalidateIcon() {
         this._iconCache.clear();
-        this._cancelLoading();
+        this._cancellable.cancel();
+        this._cancellable = new Gio.Cancellable();
+        Object.values(SNIconType).forEach(iconType =>
+            this._loadingIcons[iconType].clear());
 
         this._updateIcon().catch(e => logError(e));
         this._updateOverlayIcon();
