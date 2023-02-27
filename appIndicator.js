@@ -1131,34 +1131,20 @@ class AppIndicatorsIconActor extends St.Icon {
         return path;
     }
 
-    async argbToRgba(src, cancellable) {
-        const CHUNK_SIZE = 1024;
-        const ops = [];
+    async _argbToRgba(src, cancellable) {
         const dest = new Uint8Array(src.length);
 
-        for (let i = 0; i < src.length;) {
-            const chunkSize = Math.min(CHUNK_SIZE, src.length - i);
+        await new PromiseUtils.IdlePromise(GLib.PRIORITY_LOW, cancellable);
 
-            ops.push(new PromiseUtils.CancellablePromise(async resolve => {
-                const start = i;
-                const end = i + chunkSize;
-                await new PromiseUtils.IdlePromise(GLib.PRIORITY_LOW, cancellable);
+        for (let j = 0; j < src.length; j += 4) {
+            const srcAlpha = src[j];
 
-                for (let j = start; j < end; j += 4) {
-                    let srcAlpha = src[j];
-
-                    dest[j] = src[j + 1]; /* red */
-                    dest[j + 1] = src[j + 2]; /* green */
-                    dest[j + 2] = src[j + 3]; /* blue */
-                    dest[j + 3] = srcAlpha; /* alpha */
-                }
-                resolve();
-            }, cancellable));
-
-            i += chunkSize;
+            dest[j] = src[j + 1]; /* red */
+            dest[j + 1] = src[j + 2]; /* green */
+            dest[j + 2] = src[j + 3]; /* blue */
+            dest[j + 3] = srcAlpha; /* alpha */
         }
 
-        await Promise.all(ops);
         return dest;
     }
 
@@ -1195,7 +1181,7 @@ class AppIndicatorsIconActor extends St.Icon {
         const cancellable = this._getIconLoadingCancellable(iconType, id);
         try {
             return GdkPixbuf.Pixbuf.new_from_bytes(
-                await this.argbToRgba(bytes, cancellable),
+                await this._argbToRgba(bytes, cancellable),
                 GdkPixbuf.Colorspace.RGB, true,
                 8, width, height, rowStride);
         } catch (e) {
