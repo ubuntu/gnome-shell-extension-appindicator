@@ -239,6 +239,11 @@ var AppIndicatorProxy = GObject.registerClass({
     }
 });
 
+if (imports.system.version < 17101) {
+    /* In old versions wrappers are not applied to sub-classes, so let's do it */
+    AppIndicatorProxy.prototype.init_async = Gio.DBusProxy.prototype.init_async;
+}
+
 /**
  * the AppIndicator class serves as a generic container for indicator information and functions common
  * for every displaying implementation (IndicatorMessageSource and IndicatorStatusIcon)
