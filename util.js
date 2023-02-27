@@ -18,7 +18,8 @@
    introspectBusObject, dbusNodeImplementsInterfaces, waitForStartupCompletion,
    connectSmart, disconnectSmart, versionCheck, getDefaultTheme,
    getProcessName, ensureProxyAsyncMethod, queueProxyPropertyUpdate,
-   getProxyProperty, indicatorId, tryCleanupOldIndicators */
+   getProxyProperty, indicatorId, tryCleanupOldIndicators,
+   refreshAllPropertiesOnProxy */
 
 const ByteArray = imports.byteArray;
 const Gio = imports.gi.Gio;
@@ -57,6 +58,51 @@ function getProxyProperty(proxy, propertyName, cancellable) {
         GLib.Variant.new('(ss)', [proxy.g_interface_name, propertyName]),
         GLib.VariantType.new('(v)'), Gio.DBusCallFlags.NONE, -1,
         cancellable);
+}
+
+function getProxyProperties(proxy, cancellable) {
+    return proxy.g_connection.call(proxy.g_name,
+        proxy.g_object_path, 'org.freedesktop.DBus.Properties', 'GetAll',
+        GLib.Variant.new('(s)', [proxy.g_interface_name]),
+        GLib.VariantType.new('(a{sv})'), Gio.DBusCallFlags.NONE, -1,
+        cancellable);
+}
+
+async function refreshAllPropertiesOnProxy(proxy) {
+    const cancellableName = 'org.freedesktop.DBus.Properties.GetAll';
+    const cancellable = cancelRefreshPropertyOnProxy(proxy, {
+        propertyName: cancellableName,
+        addNew: true,
+    });
+
+    try {
+        const [valuesVariant] = (await getProxyProperties(
+            proxy, cancellable)).deep_unpack();
+
+        print('Refreshed',valuesVariant,Object.entries(valuesVariant))
+
+        if (proxy._proxyCancellables)
+            proxy._proxyCancellables.delete(cancellableName);
+
+        await Promise.all(
+            Object.entries(valuesVariant).map(([propertyName, valueVariant]) =>
+                queueProxyPropertyUpdate(proxy, propertyName, valueVariant, {
+                    skipEqualityCheck: true,
+                    cancellable,
+                })));
+    } catch (e) {
+        if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+            // the property may not even exist, silently ignore it
+            Logger.debug(`While refreshing all properties: ${e}`);
+
+            proxy.get_cached_property_names().forEach(propertyName =>
+                proxy.set_cached_property(propertyName, null));
+
+            if (proxy._proxyCancellables)
+                proxy._proxyCancellables.delete(cancellableName);
+            throw e;
+        }
+    }
 }
 
 async function refreshPropertyOnProxy(proxy, propertyName, params) {
