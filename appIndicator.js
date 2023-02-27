@@ -319,15 +319,27 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         if (this.id && this.menuPath)
             return true;
 
+        const MAX_RETRIES = 3;
         const cancellable = this._cancellable;
-        for (let checks = 0; checks < 3; ++checks) {
+        for (let checks = 0; checks < MAX_RETRIES; ++checks) {
             this._delayCheck = new PromiseUtils.TimeoutSecondsPromise(1,
                 GLib.PRIORITY_DEFAULT_IDLE, cancellable);
             // eslint-disable-next-line no-await-in-loop
             await this._delayCheck;
-            // eslint-disable-next-line no-await-in-loop
-            await Promise.all(AppIndicator.NEEDED_PROPERTIES.map(p =>
-                Util.refreshPropertyOnProxy(this._proxy, p)));
+
+            try {
+                // eslint-disable-next-line no-await-in-loop
+                await Promise.all(AppIndicator.NEEDED_PROPERTIES.map(p =>
+                    Util.refreshPropertyOnProxy(this._proxy, p)));
+            } catch (e) {
+                if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                    throw e;
+
+                if (checks < MAX_RETRIES - 1)
+                    continue;
+
+                throw e;
+            }
 
             if (this.id && this.menuPath)
                 break;
