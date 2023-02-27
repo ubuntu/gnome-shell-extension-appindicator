@@ -557,6 +557,7 @@ const MenuItemFactory = {
         shellItem.connect('destroy', () => {
             shellItem._dbusItem = null;
             shellItem._dbusClient = null;
+            shellItem._icon = null;
         });
 
         if (shellItem.menu) {
