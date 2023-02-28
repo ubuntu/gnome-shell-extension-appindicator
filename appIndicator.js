@@ -1247,10 +1247,8 @@ class AppIndicatorsIconActor extends St.Icon {
                     ? new StTextureCacheSkippingGIcon({ gicon })
                     : new Gio.EmblemedIcon({ gicon });
 
-                if (!isPixbuf) {
-                    this._iconCache.updateActive(SNIconType.NORMAL, gicon,
-                        this.gicon.get_icon() === gicon);
-                }
+                this._iconCache.updateActive(SNIconType.NORMAL, gicon,
+                    this.gicon.get_icon() === gicon);
 
                 this.set_icon_size(iconSize);
             } else {
@@ -1258,9 +1256,7 @@ class AppIndicatorsIconActor extends St.Icon {
             }
         } else if (gicon) {
             this._emblem = new Gio.Emblem({ icon: gicon });
-
-            if (!(gicon instanceof GdkPixbuf.Pixbuf))
-                this._iconCache.updateActive(iconType, gicon, true);
+            this._iconCache.updateActive(iconType, gicon, true);
         } else {
             this._emblem = null;
         }

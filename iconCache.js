@@ -71,10 +71,12 @@ var IconCache = class AppIndicatorsIconCache {
 
         const previousActive = this._activeIcons[iconType];
 
-        if (isActive)
+        if (isActive && [...this._cache.values()].some(icon => icon === gicon))
             this._activeIcons[iconType] = gicon;
         else if (previousActive === gicon)
             delete this._activeIcons[iconType];
+        else
+            return;
 
         if (previousActive) {
             this._cache.forEach((icon, id) => {
