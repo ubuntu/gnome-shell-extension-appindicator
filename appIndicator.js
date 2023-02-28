@@ -830,6 +830,26 @@ var AppIndicator = class AppIndicatorsAppIndicator {
 };
 Signals.addSignalMethods(AppIndicator.prototype);
 
+let StTextureCacheSkippingGIcon;
+
+if (imports.system.version >= 17501) {
+    try {
+        StTextureCacheSkippingGIcon = GObject.registerClass({
+            Implements: [Gio.Icon],
+        }, class StTextureCacheSkippingGIconClass extends Gio.EmblemedIcon {
+            vfunc_to_tokens() {
+                // Disables the to_tokens() vfunc so that the icon to_string()
+                // method won't work and thus can't be kept forever around by
+                // StTextureCache, see the awesome debugging session in this thread:
+                //   https://twitter.com/mild_sunrise/status/1458739604098621443
+                // upstream bug is at:
+                //   https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/4944
+                return [false, [], 0];
+            }
+        });
+    } catch (e) {}
+}
+
 var IconActor = GObject.registerClass({
     Signals: {
         'requires-custom-image': {},
@@ -1033,6 +1053,9 @@ class AppIndicatorsIconActor extends St.Icon {
                 /* Hello indicator-multiload! */
                 await this._loadCustomImage(file, width, height, cancellable);
                 return null;
+            } else if (StTextureCacheSkippingGIcon) {
+                /* We'll wrap the icon so that it won't be cached forever by the shell */
+                return new Gio.FileIcon({ file });
             } else {
                 return this._createIconByFile(file, width, height, cancellable);
             }
@@ -1219,8 +1242,10 @@ class AppIndicatorsIconActor extends St.Icon {
     _setGicon(iconType, gicon, iconSize) {
         if (iconType !== SNIconType.OVERLAY) {
             if (gicon) {
-                this.gicon = new Gio.EmblemedIcon({ gicon });
                 const isPixbuf = gicon instanceof GdkPixbuf.Pixbuf;
+                this.gicon = StTextureCacheSkippingGIcon && !isPixbuf
+                    ? new StTextureCacheSkippingGIcon({ gicon })
+                    : new Gio.EmblemedIcon({ gicon });
 
                 if (!isPixbuf) {
                     this._iconCache.updateActive(SNIconType.NORMAL, gicon,
