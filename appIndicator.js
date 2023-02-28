@@ -857,7 +857,7 @@ class AppIndicatorsIconActor extends St.Icon {
         this._iconSize      = iconSize;
         this._iconCache     = new IconCache.IconCache();
         this._cancellable   = new Gio.Cancellable();
-        this._loadingIcons  = {};
+        this._loadingIcons  = Object.create(null);
 
         Object.values(SNIconType).forEach(t => (this._loadingIcons[t] = new Map()));
 
