@@ -29,8 +29,8 @@ const Util = Extension.imports.util;
 // If the lifetime of an icon is over, the cache will destroy the icon. (!)
 // The presence of active icons will extend the lifetime.
 
-const GC_INTERVAL = 60; // seconds
-const LIFETIME_TIMESPAN = 10; // seconds
+const GC_INTERVAL = 100; // seconds
+const LIFETIME_TIMESPAN = 120; // seconds
 
 // how to use: see IconCache.add, IconCache.get
 var IconCache = class AppIndicatorsIconCache {
