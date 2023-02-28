@@ -979,8 +979,7 @@ class AppIndicatorsIconActor extends St.Icon {
         return gicon;
     }
 
-    async _createIconByPath(path, width, height, cancellable) {
-        let file = Gio.File.new_for_path(path);
+    async _createIconByFile(file, width, height, cancellable) {
         try {
             const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
             const resourceScale = this._getResourceScale();
@@ -991,7 +990,7 @@ class AppIndicatorsIconActor extends St.Icon {
                 Math.ceil(height * scale), Math.ceil(width * scale), true, cancellable);
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                Util.Logger.warn(`${this._indicator.id}, Impossible to read image from path '${path}': ${e}`);
+                Util.Logger.warn(`${this._indicator.id}, Impossible to read image from path '${file.get_path()}': ${e}`);
             throw e;
         }
     }
@@ -1035,7 +1034,7 @@ class AppIndicatorsIconActor extends St.Icon {
                 await this._loadCustomImage(file, width, height, cancellable);
                 return null;
             } else {
-                return new Gio.FileIcon({ file });
+                return this._createIconByFile(file, width, height, cancellable);
             }
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
