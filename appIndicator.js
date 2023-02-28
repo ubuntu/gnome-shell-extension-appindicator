@@ -1213,17 +1213,20 @@ class AppIndicatorsIconActor extends St.Icon {
         }
     }
 
-    // The .inUse flag will be set to true if the used gicon matches the cached
-    // one (as in some cases it may be equal, but not the same object).
-    // So when it's not need anymore we make sure to check the .inUse property
+    // The icon cache Active flag will be set to true if the used gicon matches
+    // the cached one (as in some cases it may be equal, but not the same object).
+    // So when it's not need anymore we make sure to check the active state
     // and set it to false so that it can be picked up by the garbage collector.
     _setGicon(iconType, gicon, iconSize) {
         if (iconType !== SNIconType.OVERLAY) {
             if (gicon) {
                 this.gicon = new Gio.EmblemedIcon({ gicon });
+                const isPixbuf = gicon instanceof GdkPixbuf.Pixbuf;
 
-                if (!(gicon instanceof GdkPixbuf.Pixbuf))
-                    gicon.inUse = this.gicon.get_icon() === gicon;
+                if (!isPixbuf) {
+                    this._iconCache.updateActive(SNIconType.NORMAL, gicon,
+                        this.gicon.get_icon() === gicon);
+                }
 
                 this.set_icon_size(iconSize);
             } else {
@@ -1233,7 +1236,7 @@ class AppIndicatorsIconActor extends St.Icon {
             this._emblem = new Gio.Emblem({ icon: gicon });
 
             if (!(gicon instanceof GdkPixbuf.Pixbuf))
-                gicon.inUse = true;
+                this._iconCache.updateActive(iconType, gicon, true);
         } else {
             this._emblem = null;
         }
@@ -1329,10 +1332,8 @@ class AppIndicatorsIconActor extends St.Icon {
             return;
 
         if (this.gicon instanceof Gio.EmblemedIcon) {
-            let { gicon } = this.gicon;
-
-            if (gicon.inUse)
-                gicon.inUse = false;
+            const { gicon } = this.gicon;
+            this._iconCache.updateActive(SNIconType.NORMAL, gicon, false);
         }
 
         // we might need to use the AttentionIcon*, which have precedence over the normal icons
@@ -1355,10 +1356,8 @@ class AppIndicatorsIconActor extends St.Icon {
             return;
 
         if (this._emblem) {
-            let { icon } = this._emblem;
-
-            if (icon.inUse)
-                icon.inUse = false;
+            const { icon } = this._emblem;
+            this._iconCache.updateActive(SNIconType.OVERLAY, icon, false);
         }
 
         // KDE hardcodes the overlay icon size to 10px (normal icon size 16px)
