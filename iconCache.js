@@ -115,6 +115,7 @@ var IconCache = class AppIndicatorsIconCache {
                 GLib.PRIORITY_LOW);
             try {
                 await this._gcTimeout;
+                this._gc();
             } catch (e) {
                 if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                     logError(e, 'IconCache: garbage collector');
