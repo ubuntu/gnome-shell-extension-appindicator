@@ -107,38 +107,47 @@ var IconCache = class AppIndicatorsIconCache {
     }
 
     async _checkGC() {
-        let cacheIsEmpty = this._cache.size === 0;
+        const cacheIsEmpty = this._cache.size === 0;
 
         if (!cacheIsEmpty && !this._gcTimeout) {
             Util.Logger.debug('IconCache: garbage collector started');
+            let anyUnusedInCache = false;
             this._gcTimeout = new PromiseUtils.TimeoutSecondsPromise(GC_INTERVAL,
                 GLib.PRIORITY_LOW);
             try {
                 await this._gcTimeout;
-                this._gc();
+                anyUnusedInCache = this._gc();
             } catch (e) {
                 if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                     logError(e, 'IconCache: garbage collector');
+            } finally {
+                delete this._gcTimeout;
             }
+
+            if (anyUnusedInCache)
+                this._checkGC();
         } else if (cacheIsEmpty && this._gcTimeout) {
             Util.Logger.debug('IconCache: garbage collector stopped');
             this._gcTimeout.cancel();
-            delete this._gcTimeout;
         }
     }
 
     _gc() {
-        let time = new Date().getTime();
+        const time = new Date().getTime();
+        let anyUnused = false;
+
         this._cache.forEach((icon, id) => {
-            if (icon.inUse)
+            if (icon.inUse) {
                 Util.Logger.debug(`IconCache: ${id} is in use.`);
-            else if (this._lifetime.get(id) < time)
+            } else if (this._lifetime.get(id) < time) {
                 this._remove(id);
-            else
+            } else {
+                anyUnused = true;
                 Util.Logger.debug(`IconCache: ${id} survived this round.`);
+            }
         });
 
-        return true;
+        return anyUnused;
     }
 
     destroy() {
