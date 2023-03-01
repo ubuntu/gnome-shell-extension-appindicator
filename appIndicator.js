@@ -44,24 +44,24 @@ PromiseUtils._promisify(Gio.DBusProxy.prototype, 'init_async', 'init_finish');
 const MAX_UPDATE_FREQUENCY = 100; // In ms
 
 // eslint-disable-next-line no-unused-vars
-const SNICategory = {
+const SNICategory = Object.freeze({
     APPLICATION: 'ApplicationStatus',
     COMMUNICATIONS: 'Communications',
     SYSTEM: 'SystemServices',
     HARDWARE: 'Hardware',
-};
+});
 
-var SNIStatus = {
+var SNIStatus = Object.freeze({
     PASSIVE: 'Passive',
     ACTIVE: 'Active',
     NEEDS_ATTENTION: 'NeedsAttention',
-};
+});
 
-const SNIconType = {
+const SNIconType = Object.freeze({
     NORMAL: 0,
     ATTENTION: 1,
     OVERLAY: 2,
-};
+});
 
 var AppIndicatorProxy = GObject.registerClass({
     Signals: { 'destroy': {} },
