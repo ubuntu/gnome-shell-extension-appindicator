@@ -31,6 +31,7 @@ const IconCache = Extension.imports.iconCache;
 const Util = Extension.imports.util;
 const Interfaces = Extension.imports.interfaces;
 const Params = imports.misc.params;
+const PixmapsUtils = Extension.imports.pixmapsUtils;
 const PromiseUtils = Extension.imports.promiseUtils;
 const SettingsManager = Extension.imports.settingsManager;
 
@@ -1189,20 +1190,9 @@ class AppIndicatorsIconActor extends St.Icon {
     }
 
     async _argbToRgba(src, cancellable) {
-        const dest = new Uint8Array(src.length);
-
         await new PromiseUtils.IdlePromise(GLib.PRIORITY_LOW, cancellable);
 
-        for (let j = 0; j < src.length; j += 4) {
-            const srcAlpha = src[j];
-
-            dest[j] = src[j + 1]; /* red */
-            dest[j + 1] = src[j + 2]; /* green */
-            dest[j + 2] = src[j + 3]; /* blue */
-            dest[j + 3] = srcAlpha; /* alpha */
-        }
-
-        return dest;
+        return PixmapsUtils.argbToRgba(src);
     }
 
     async _createIconFromPixmap(iconType, iconSize, pixmapsVariant) {
@@ -1210,48 +1200,15 @@ class AppIndicatorsIconActor extends St.Icon {
         const resourceScale = this._getResourceScale();
         iconSize *= scaleFactor * resourceScale;
 
-        // maybe it's empty? that's bad.
-        if (!pixmapsVariant)
-            throw TypeError('Empty Icon found');
-
-        // the pixmap variant actually is an array of pixmaps with different
-        // sizes, we use the one that is smaller or equal the iconSize
-        const pixmapsVariantsArray = new Array(pixmapsVariant.n_children());
-        if (!pixmapsVariantsArray.length)
-            throw TypeError('Empty Icon found');
-
-        for (let i = 0; i < pixmapsVariantsArray.length; ++i)
-            pixmapsVariantsArray[i] = pixmapsVariant.get_child_value(i);
-
-        const pixmapsSizedArray = pixmapsVariantsArray.map((pixmapVariant, index) => ({
-            width: pixmapVariant.get_child_value(0).unpack(),
-            height: pixmapVariant.get_child_value(1).unpack(),
-            index,
-        }));
-
-        const sortedIconPixmapArray = pixmapsSizedArray.sort((pixmapA, pixmapB) => {
-            const areaA = pixmapA.width * pixmapA.height;
-            const areaB = pixmapB.width * pixmapB.height;
-
-            return areaA - areaB;
-        });
-
-        // we prefer any pixmap that is equal or bigger than our requested size
-        const qualifiedIconPixmapArray = sortedIconPixmapArray.filter(({width, height}) =>
-            width >= iconSize && height >= iconSize);
-
-        const {width, height, index} = qualifiedIconPixmapArray.length > 0
-            ? qualifiedIconPixmapArray[0] : sortedIconPixmapArray.pop();
-
-        const bytes = pixmapsVariantsArray[index].get_child_value(2).deep_unpack();
-        const rowStride = width * 4; // hopefully this is correct
+        const { pixmapVariant, width, height, rowStride } =
+            PixmapsUtils.getBestPixmap(pixmapsVariant, iconSize);
 
         const id = `__PIXMAP_ICON_${width}x${height}`;
 
         const cancellable = this._getIconLoadingCancellable(iconType, id);
         try {
             return GdkPixbuf.Pixbuf.new_from_bytes(
-                await this._argbToRgba(bytes, cancellable),
+                await this._argbToRgba(pixmapVariant.deep_unpack(), cancellable),
                 GdkPixbuf.Colorspace.RGB, true,
                 8, width, height, rowStride);
         } catch (e) {
