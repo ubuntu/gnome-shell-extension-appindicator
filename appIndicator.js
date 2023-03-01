@@ -151,6 +151,12 @@ var AppIndicatorProxy = GObject.registerClass({
         this.emit('destroy');
         this._signalIds.forEach(id => this.disconnect(id));
 
+        const cachedProperties = this.get_cached_property_names();
+        if (cachedProperties) {
+            cachedProperties.forEach(propertyName =>
+                this.set_cached_property(propertyName, null));
+        }
+
         if (this._cancellable)
             this._cancellable.cancel();
 
