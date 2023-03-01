@@ -195,7 +195,7 @@ var AppIndicatorProxy = GObject.registerClass({
     }
 
     // The Author of the spec didn't like the PropertiesChanged signal, so he invented his own
-    async _refreshProperty(prop) {
+    async _refreshOwnProperties(prop) {
         await Promise.all(
             [prop, `${prop}Name`, `${prop}Pixmap`, `${prop}AccessibleDesc`].filter(p =>
                 this._propertiesList.includes(p)).map(async p => {
@@ -246,7 +246,8 @@ var AppIndicatorProxy = GObject.registerClass({
         try {
             await this._signalsAccumulator;
             const refreshPropertiesPromises =
-                [...this._accumulatedProperties].map(p => this._refreshProperty(p));
+                [...this._accumulatedProperties].map(p =>
+                    this._refreshOwnProperties(p));
             this._accumulatedProperties.clear();
             await Promise.all(refreshPropertiesPromises);
         } catch (e) {
