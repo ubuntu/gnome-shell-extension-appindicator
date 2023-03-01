@@ -61,6 +61,17 @@ const SNIconType = Object.freeze({
     NORMAL: 0,
     ATTENTION: 1,
     OVERLAY: 2,
+
+    toPropertyName: (iconType, params = { isPixbuf: false }) => {
+        let propertyName = 'Icon';
+
+        if (iconType === SNIconType.OVERLAY)
+            propertyName = 'OverlayIcon';
+        else if (iconType === SNIconType.ATTENTION)
+            propertyName = 'AttentionIcon';
+
+        return `${propertyName}${params.isPixbuf ? 'Pixmap' : 'Name'}`;
+    },
 });
 
 var AppIndicatorProxy = GObject.registerClass({
@@ -461,6 +472,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
 
         this._cancellable = new Gio.Cancellable();
         this._proxy = new AppIndicatorProxy(busName, object);
+        this._invalidatedPixmapsIcons = new Set();
 
         this._setupProxy().catch(logError);
         Util.connectSmart(this._proxy, 'g-properties-changed', this, this._onPropertiesChanged);
@@ -605,7 +617,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         return {
             theme: this._proxy.IconThemePath,
             name: this._proxy.AttentionIconName,
-            pixmap: this._proxy.get_cached_property('AttentionIconPixmap'),
+            pixmap: this._getPixmapProperty(SNIconType.ATTENTION),
         };
     }
 
@@ -613,7 +625,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         return {
             theme: this._proxy.IconThemePath,
             name: this._proxy.IconName,
-            pixmap: this._proxy.get_cached_property('IconPixmap'),
+            pixmap: this._getPixmapProperty(SNIconType.NORMAL),
         };
     }
 
@@ -621,7 +633,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         return {
             theme: this._proxy.IconThemePath,
             name: this._proxy.OverlayIconName,
-            pixmap: this._proxy.get_cached_property('OverlayIconPixmap'),
+            pixmap: this._getPixmapProperty(SNIconType.OVERLAY),
         };
     }
 
@@ -746,12 +758,37 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         this.disconnectAll();
         this._proxy.destroy();
         this._cancellable.cancel();
+        this._invalidatedPixmapsIcons.clear();
 
         if (this._nameWatcher)
             this._nameWatcher.destroy();
         delete this._cancellable;
         delete this._proxy;
         delete this._nameWatcher;
+    }
+
+    _getPixmapProperty(iconType) {
+        const propertyName = SNIconType.toPropertyName(iconType,
+            { isPixbuf: true });
+        const pixmap = this._proxy.get_cached_property(propertyName);
+        const wasInvalidated = this._invalidatedPixmapsIcons.delete(iconType);
+
+        if (!pixmap && wasInvalidated) {
+            this._proxy.refreshProperty(propertyName, {
+                skipEqualityCheck: true,
+            }).catch(e => {
+                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                    logError(e);
+            });
+        }
+
+        return pixmap;
+    }
+
+    invalidatePixmapProperty(iconType) {
+        this._invalidatedPixmapsIcons.add(iconType);
+        this._proxy.set_cached_property(
+            SNIconType.toPropertyName(iconType, { isPixbuf: true }), null);
     }
 
     _getActivationToken(timestamp) {
@@ -1312,6 +1349,12 @@ class AppIndicatorsIconActor extends St.Icon {
 
         try {
             this._setGicon(iconType, gicon, iconSize);
+
+            if (pixmap && this.gicon) {
+                // The pixmap has been saved, we can free the variants memory
+                this._indicator.invalidatePixmapProperty(iconType);
+            }
+
             return gicon;
         } catch (e) {
             logError(e, 'Setting GIcon failed');
