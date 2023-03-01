@@ -598,7 +598,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         return {
             theme: this._proxy.IconThemePath,
             name: this._proxy.AttentionIconName,
-            pixmap: this._proxy.AttentionIconPixmap,
+            pixmap: this._proxy.get_cached_property('AttentionIconPixmap'),
         };
     }
 
@@ -606,7 +606,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         return {
             theme: this._proxy.IconThemePath,
             name: this._proxy.IconName,
-            pixmap: this._proxy.IconPixmap,
+            pixmap: this._proxy.get_cached_property('IconPixmap'),
         };
     }
 
@@ -614,7 +614,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         return {
             theme: this._proxy.IconThemePath,
             name: this._proxy.OverlayIconName,
-            pixmap: this._proxy.OverlayIconPixmap,
+            pixmap: this._proxy.get_cached_property('OverlayIconPixmap'),
         };
     }
 
@@ -1205,33 +1205,45 @@ class AppIndicatorsIconActor extends St.Icon {
         return dest;
     }
 
-    async _createIconFromPixmap(iconType, iconSize, iconPixmapArray) {
+    async _createIconFromPixmap(iconType, iconSize, pixmapsVariant) {
         const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
         const resourceScale = this._getResourceScale();
         iconSize *= scaleFactor * resourceScale;
-        // the pixmap actually is an array of pixmaps with different sizes
-        // we use the one that is smaller or equal the iconSize
 
         // maybe it's empty? that's bad.
-        if (!iconPixmapArray || iconPixmapArray.length < 1)
+        if (!pixmapsVariant)
             throw TypeError('Empty Icon found');
 
-        const sortedIconPixmapArray = iconPixmapArray.sort((pixmapA, pixmapB) => {
-            // we sort smallest to biggest
-            const areaA = pixmapA[0] * pixmapA[1];
-            const areaB = pixmapB[0] * pixmapB[1];
+        // the pixmap variant actually is an array of pixmaps with different
+        // sizes, we use the one that is smaller or equal the iconSize
+        const pixmapsVariantsArray = new Array(pixmapsVariant.n_children());
+        if (!pixmapsVariantsArray.length)
+            throw TypeError('Empty Icon found');
+
+        for (let i = 0; i < pixmapsVariantsArray.length; ++i)
+            pixmapsVariantsArray[i] = pixmapsVariant.get_child_value(i);
+
+        const pixmapsSizedArray = pixmapsVariantsArray.map((pixmapVariant, index) => ({
+            width: pixmapVariant.get_child_value(0).unpack(),
+            height: pixmapVariant.get_child_value(1).unpack(),
+            index,
+        }));
+
+        const sortedIconPixmapArray = pixmapsSizedArray.sort((pixmapA, pixmapB) => {
+            const areaA = pixmapA.width * pixmapA.height;
+            const areaB = pixmapB.width * pixmapB.height;
 
             return areaA - areaB;
         });
 
-        const qualifiedIconPixmapArray = sortedIconPixmapArray.filter(pixmap =>
-            // we prefer any pixmap that is equal or bigger than our requested size
-            pixmap[0] >= iconSize && pixmap[1] >= iconSize);
+        // we prefer any pixmap that is equal or bigger than our requested size
+        const qualifiedIconPixmapArray = sortedIconPixmapArray.filter(({width, height}) =>
+            width >= iconSize && height >= iconSize);
 
-        const iconPixmap = qualifiedIconPixmapArray.length > 0
+        const {width, height, index} = qualifiedIconPixmapArray.length > 0
             ? qualifiedIconPixmapArray[0] : sortedIconPixmapArray.pop();
 
-        const [width, height, bytes] = iconPixmap;
+        const bytes = pixmapsVariantsArray[index].get_child_value(2).deep_unpack();
         const rowStride = width * 4; // hopefully this is correct
 
         const id = `__PIXMAP_ICON_${width}x${height}`;
@@ -1357,7 +1369,7 @@ class AppIndicatorsIconActor extends St.Icon {
                 return gicon;
         }
 
-        if (pixmap && pixmap.length)
+        if (pixmap && pixmap.n_children())
             return this._createIconFromPixmap(iconType, iconSize, pixmap);
 
         return null;
