@@ -595,27 +595,27 @@ var AppIndicator = class AppIndicatorsAppIndicator {
     }
 
     get attentionIcon() {
-        return [
-            this._proxy.AttentionIconName,
-            this._proxy.AttentionIconPixmap,
-            this._proxy.IconThemePath,
-        ];
+        return {
+            theme: this._proxy.IconThemePath,
+            name: this._proxy.AttentionIconName,
+            pixmap: this._proxy.AttentionIconPixmap,
+        };
     }
 
     get icon() {
-        return [
-            this._proxy.IconName,
-            this._proxy.IconPixmap,
-            this._proxy.IconThemePath,
-        ];
+        return {
+            theme: this._proxy.IconThemePath,
+            name: this._proxy.IconName,
+            pixmap: this._proxy.IconPixmap,
+        };
     }
 
     get overlayIcon() {
-        return [
-            this._proxy.OverlayIconName,
-            this._proxy.OverlayIconPixmap,
-            this._proxy.IconThemePath,
-        ];
+        return {
+            theme: this._proxy.IconThemePath,
+            name: this._proxy.OverlayIconName,
+            pixmap: this._proxy.OverlayIconPixmap,
+        };
     }
 
     get hasNameOwner() {
@@ -1301,7 +1301,7 @@ class AppIndicatorsIconActor extends St.Icon {
             break;
         }
 
-        const [name, pixmap, theme] = icon;
+        const { theme, name, pixmap } = icon;
         const commonArgs = [theme, iconType, iconSize];
 
         if (this._customIcons.size) {
