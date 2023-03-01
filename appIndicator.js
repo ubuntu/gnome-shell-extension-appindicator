@@ -66,11 +66,11 @@ var AppIndicatorProxy = GObject.registerClass({
     Signals: { 'destroy': {} },
 }, class AppIndicatorProxy extends Gio.DBusProxy {
     static get interfaceInfo() {
-        if (!AppIndicator._interfaceInfo) {
-            AppIndicator._interfaceInfo = Gio.DBusInterfaceInfo.new_for_xml(
+        if (!this._interfaceInfo) {
+            this._interfaceInfo = Gio.DBusInterfaceInfo.new_for_xml(
                 Interfaces.StatusNotifierItem);
         }
-        return AppIndicator._interfaceInfo;
+        return this._interfaceInfo;
     }
 
     static get OPTIONAL_PROPERTIES() {
@@ -83,8 +83,24 @@ var AppIndicatorProxy = GObject.registerClass({
         ];
     }
 
+    static get TUPLE_TYPE() {
+        if (!this._tupleType)
+            this._tupleType = new GLib.VariantType('()');
+
+        return this._tupleType;
+    }
+
+    static get TUPLE_VARIANT_TYPE() {
+        if (!this._tupleVariantType)
+            this._tupleVariantType = new GLib.VariantType('(v)');
+
+        return this._tupleVariantType;
+    }
+
     static destroy() {
-        delete AppIndicator._interfaceInfo;
+        delete this._interfaceInfo;
+        delete this._tupleVariantType;
+        delete this._tupleType;
     }
 
     _init(busName, objectPath) {
@@ -206,7 +222,7 @@ var AppIndicatorProxy = GObject.registerClass({
             return;
         }
 
-        if (property && !params.get_type().equal(GLib.VariantType.new('()'))) {
+        if (!params.get_type().equal(AppIndicatorProxy.TUPLE_TYPE)) {
             // If the property includes arguments, we can just queue the signal emission
             const [value] = params.unpack();
             try {
@@ -270,7 +286,7 @@ var AppIndicatorProxy = GObject.registerClass({
         return this.g_connection.call(this.g_name,
             this.g_object_path, 'org.freedesktop.DBus.Properties', 'Get',
             GLib.Variant.new('(ss)', [this.g_interface_name, propertyName]),
-            GLib.VariantType.new('(v)'), Gio.DBusCallFlags.NONE, -1,
+            AppIndicatorProxy.TUPLE_VARIANT_TYPE, Gio.DBusCallFlags.NONE, -1,
             cancellable);
     }
 
