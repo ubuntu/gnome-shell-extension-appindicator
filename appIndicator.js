@@ -16,6 +16,7 @@
 
 /* exported AppIndicatorProxy, AppIndicator IconActor */
 
+const ByteArray = imports.byteArray;
 const Clutter = imports.gi.Clutter;
 const GdkPixbuf = imports.gi.GdkPixbuf;
 const Gio = imports.gi.Gio;
@@ -42,6 +43,8 @@ PromiseUtils._promisify(Gio._LocalFilePrototype, 'read_async', 'read_finish');
 PromiseUtils._promisify(GdkPixbuf.Pixbuf, 'get_file_info_async', 'get_file_info_finish');
 PromiseUtils._promisify(GdkPixbuf.Pixbuf, 'new_from_stream_at_scale_async', 'new_from_stream_finish');
 PromiseUtils._promisify(Gio.DBusProxy.prototype, 'init_async', 'init_finish');
+PromiseUtils._promisify(Gio.Subprocess.prototype, 'communicate_async', 'communicate_finish');
+PromiseUtils._promisify(Gio.Subprocess.prototype, 'wait_check_async', 'wait_check_finish');
 
 if (St.IconInfo)
     PromiseUtils._promisify(St.IconInfo.prototype, 'load_symbolic_async', 'load_symbolic_finish');
@@ -102,6 +105,13 @@ var AppIndicatorProxy = GObject.registerClass({
         ];
     }
 
+    static get GJS_BINARY_PATH() {
+        if (!this._gjsBinaryPath)
+            this._gjsBinaryPath = GLib.find_program_in_path('gjs');
+
+        return this._gjsBinaryPath;
+    }
+
     static get TUPLE_TYPE() {
         if (!this._tupleType)
             this._tupleType = new GLib.VariantType('()');
@@ -117,6 +127,7 @@ var AppIndicatorProxy = GObject.registerClass({
     }
 
     static destroy() {
+        delete this._gjsBinaryPath;
         delete this._interfaceInfo;
         delete this._tupleVariantType;
         delete this._tupleType;
@@ -652,6 +663,14 @@ var AppIndicator = class AppIndicatorsAppIndicator {
 
     get cancellable() {
         return this._cancellable;
+    }
+
+    get gNameOwner() {
+        return this._proxy.gNameOwner;
+    }
+
+    get gObjectPath() {
+        return this._proxy.gObjectPath;
     }
 
     async checkAlive() {
@@ -1304,24 +1323,81 @@ class AppIndicatorsIconActor extends St.Icon {
         return { iconInfo: null, path: null };
     }
 
-    async _argbToRgba(src, cancellable) {
-        await new PromiseUtils.IdlePromise(GLib.PRIORITY_LOW, cancellable);
+    async _argbToRgba(src, params = { useIdle: true, cancellable: null }) {
+        if (params.useIdle) {
+            await new PromiseUtils.IdlePromise(GLib.PRIORITY_LOW,
+                params.cancellable);
+        }
 
         return PixmapsUtils.argbToRgba(src);
+    }
+
+    async _loadPixmapOffProcess(iconType, iconSize, cancellable) {
+        if (!AppIndicatorProxy.GJS_BINARY_PATH) {
+            throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_SUPPORTED,
+                'No gjs binary found');
+        }
+
+        const pixmapLoader = GLib.build_filenamev([Extension.path,
+            'pixmapLoader.js']);
+        const pixmapLoaderArgs = [AppIndicatorProxy.GJS_BINARY_PATH, pixmapLoader,
+            this._indicator.gNameOwner, this._indicator.gObjectPath,
+            SNIconType.toPropertyName(iconType, { isPixbuf: true }),
+            `${iconSize}`];
+        Util.Logger.debug(`${this._indicator.id}, calling ${pixmapLoaderArgs}`);
+
+        const subProcess = Gio.Subprocess.new(pixmapLoaderArgs,
+            Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
+
+        const [stdOut, stdErr] = await subProcess.communicate_async(
+            null, cancellable);
+        const controlBytes = stdErr.get_data();
+        const iconBytes = stdOut;
+
+        await subProcess.wait_check_async(cancellable);
+
+        const controlFields = ByteArray.toString(controlBytes).split(',').map(
+            v => Number(v));
+        const [iconBytesSize, width, height, rowStride] = controlFields;
+
+        if (iconBytes.get_size() !== iconBytesSize) {
+            throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.INVALID_DATA,
+                `Unexpected data size: ${iconBytes.get_size()} of expected ${iconBytesSize}`);
+        }
+
+        return { width, height, rowStride, iconBytes };
     }
 
     async _createIconFromPixmap(iconType, iconSize, iconScaling, pixmapsVariant) {
         iconSize *= iconScaling;
 
-        const { pixmapVariant, width, height, rowStride } =
-            PixmapsUtils.getBestPixmap(pixmapsVariant, iconSize);
-
-        const id = `__PIXMAP_ICON_${width}x${height}`;
-
+        const id = `__PIXMAP_ICON_${iconType}`;
         const cancellable = this._getIconLoadingCancellable(iconType, id);
+        let width, height, rowStride, iconBytes;
+
         try {
-            return GdkPixbuf.Pixbuf.new_from_bytes(
-                await this._argbToRgba(pixmapVariant.deep_unpack(), cancellable),
+            ({ width, height, rowStride, iconBytes } =
+                await this._loadPixmapOffProcess(iconType, iconSize, cancellable));
+        } catch (e) {
+            if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+                this._cleanupIconLoadingCancellable(iconType, id);
+                throw e;
+            }
+
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_SUPPORTED))
+                logError(e, 'Failed to load pixmap off-process');
+        }
+
+        try {
+            if (!iconBytes) {
+                ({ pixmapVariant, width, height, rowStride } =
+                    PixmapsUtils.getBestPixmap(pixmapsVariant, iconSize));
+
+                iconBytes = await this._argbToRgba(pixmapVariant.deep_unpack(),
+                    { cancellable, useIdle: true });
+            }
+
+            return GdkPixbuf.Pixbuf.new_from_bytes(iconBytes,
                 GdkPixbuf.Colorspace.RGB, true,
                 8, width, height, rowStride);
         } catch (e) {
