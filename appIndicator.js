@@ -16,10 +16,12 @@
 
 /* exported AppIndicatorProxy, AppIndicator IconActor */
 
+const Clutter = imports.gi.Clutter;
 const GdkPixbuf = imports.gi.GdkPixbuf;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
 const GObject = imports.gi.GObject;
+const Gdk = imports.gi.Gdk;
 const Gtk = imports.gi.Gtk;
 const Meta = imports.gi.Meta;
 const St = imports.gi.St;
@@ -39,6 +41,7 @@ PromiseUtils._promisify(Gio.File.prototype, 'read_async', 'read_finish');
 PromiseUtils._promisify(Gio._LocalFilePrototype, 'read_async', 'read_finish');
 PromiseUtils._promisify(GdkPixbuf.Pixbuf, 'get_file_info_async', 'get_file_info_finish');
 PromiseUtils._promisify(GdkPixbuf.Pixbuf, 'new_from_stream_at_scale_async', 'new_from_stream_finish');
+PromiseUtils._promisify(Gtk.IconInfo.prototype, 'load_symbolic_async', 'load_symbolic_finish');
 PromiseUtils._promisify(Gio.DBusProxy.prototype, 'init_async', 'init_finish');
 
 const MAX_UPDATE_FREQUENCY = 100; // In ms
@@ -1057,8 +1060,68 @@ class AppIndicatorsIconActor extends St.Icon {
         return gicon;
     }
 
+    _getIconLookupFlags(themeNode) {
+        // FIXME: Use St version if available (>= 44)
+        let lookupFlags = 0;
+
+        if (!themeNode)
+            return lookupFlags;
+
+        const iconStyle = themeNode.get_icon_style();
+        if (iconStyle === St.IconStyle.REGULAR)
+            lookupFlags |= Gtk.IconLookupFlags.FORCE_REGULAR;
+        else if (iconStyle === St.IconStyle.SYMBOLIC)
+            lookupFlags |= Gtk.IconLookupFlags.FORCE_SYMBOLIC;
+
+        if (Clutter.get_default_text_direction() === Clutter.TextDirection.RTL)
+            lookupFlags |= Gtk.IconLookupFlags.DIR_RTL;
+        else
+            lookupFlags |= Gtk.IconLookupFlags.DIR_LTR;
+
+        return lookupFlags;
+    }
+
+    _getIconLoadingColors(themeNode) {
+        if (!themeNode)
+            return null;
+
+        const iconColors = themeNode.get_icon_colors();
+        if (!iconColors)
+            return iconColors;
+
+        const rgbaFromClutter = color => new Gdk.RGBA({
+            red: color.red / 255.0,
+            green: color.green / 255.0,
+            blue: color.blue / 255.0,
+            alpha: color.alpha / 255.0,
+        });
+
+        return {
+            foreground: rgbaFromClutter(iconColors.foreground),
+            warning: rgbaFromClutter(iconColors.warning),
+            error: rgbaFromClutter(iconColors.error),
+            success: rgbaFromClutter(iconColors.success),
+        };
+    }
+
     async _createIconByFile(file, iconSize, iconScaling, cancellable) {
         try {
+            const themeNode = this.get_theme_node();
+            const iconColors = this._getIconLoadingColors(themeNode);
+
+            if (iconColors) {
+                const fileIcon = new Gio.FileIcon({ file });
+                const defaultTheme = Util.getDefaultTheme();
+
+                const iconInfo = defaultTheme.lookup_by_gicon_for_scale(fileIcon,
+                    iconSize, iconScaling, this._getIconLookupFlags(themeNode));
+
+                const [pixbuf] = await iconInfo.load_symbolic_async(
+                    iconColors.foreground, iconColors.success,
+                    iconColors.warning, iconColors.error, cancellable);
+                return pixbuf;
+            }
+
             const inputStream = await file.read_async(GLib.PRIORITY_DEFAULT, cancellable);
             return GdkPixbuf.Pixbuf.new_from_stream_at_scale_async(inputStream,
                 -1, Math.ceil(iconSize * iconScaling), true, cancellable);
