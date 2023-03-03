@@ -1051,7 +1051,7 @@ class AppIndicatorsIconActor extends St.Icon {
 
         const cancellable = await this._getIconLoadingCancellable(iconType, id);
         try {
-            gicon = await this._createIconByName(path, cancellable);
+            gicon = await this._createIconByName(path, iconSize, cancellable);
         } finally {
             this._cleanupIconLoadingCancellable(iconType, loadingId);
         }
@@ -1060,7 +1060,7 @@ class AppIndicatorsIconActor extends St.Icon {
         return gicon;
     }
 
-    async _createIconByFile(file, width, height, cancellable) {
+    async _createIconByFile(file, iconSize, cancellable) {
         try {
             const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
             const resourceScale = this._getResourceScale();
@@ -1068,7 +1068,7 @@ class AppIndicatorsIconActor extends St.Icon {
 
             const inputStream = await file.read_async(GLib.PRIORITY_DEFAULT, cancellable);
             return GdkPixbuf.Pixbuf.new_from_stream_at_scale_async(inputStream,
-                Math.ceil(height * scale), Math.ceil(width * scale), true, cancellable);
+                -1, Math.ceil(iconSize * scale), true, cancellable);
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 Util.Logger.warn(`${this._indicator.id}, Impossible to read image from path '${file.get_path()}': ${e}`);
@@ -1076,7 +1076,7 @@ class AppIndicatorsIconActor extends St.Icon {
         }
     }
 
-    async _createIconByName(path, cancellable) {
+    async _createIconByName(path, iconSize, cancellable) {
         if (!path) {
             if (this._createIconIdle) {
                 throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING,
@@ -1118,7 +1118,7 @@ class AppIndicatorsIconActor extends St.Icon {
                 /* We'll wrap the icon so that it won't be cached forever by the shell */
                 return new Gio.FileIcon({ file });
             } else {
-                return this._createIconByFile(file, width, height, cancellable);
+                return this._createIconByFile(file, iconSize, cancellable);
             }
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
