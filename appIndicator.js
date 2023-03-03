@@ -1332,40 +1332,45 @@ class AppIndicatorsIconActor extends St.Icon {
         return PixmapsUtils.argbToRgba(src);
     }
 
-    async _loadPixmapOffProcess(iconType, iconSize, cancellable) {
+    async _argbToRgbaOffProcess(iconType, pixmapVariant, cancellable) {
         if (!AppIndicatorProxy.GJS_BINARY_PATH) {
             throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_SUPPORTED,
                 'No gjs binary found');
         }
 
-        const pixmapLoader = GLib.build_filenamev([Extension.path,
-            'pixmapLoader.js']);
-        const pixmapLoaderArgs = [AppIndicatorProxy.GJS_BINARY_PATH, pixmapLoader,
-            this._indicator.gNameOwner, this._indicator.gObjectPath,
-            SNIconType.toPropertyName(iconType, { isPixbuf: true }),
-            `${iconSize}`];
-        Util.Logger.debug(`${this._indicator.id}, calling ${pixmapLoaderArgs}`);
+        const pixmapVariantBytes = pixmapVariant.get_data_as_bytes();
+        const pixmapArgbToRgba = GLib.build_filenamev([Extension.path,
+            'pixmapArgbToRgba.js']);
+        const argbToRgbaArgs = [AppIndicatorProxy.GJS_BINARY_PATH,
+            pixmapArgbToRgba, `${pixmapVariantBytes.get_size()}`];
+        Util.Logger.debug(`${this._indicator.id}, calling ${argbToRgbaArgs}`);
 
-        const subProcess = Gio.Subprocess.new(pixmapLoaderArgs,
-            Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
+        const subProcess = Gio.Subprocess.new(argbToRgbaArgs,
+            Gio.SubprocessFlags.STDIN_PIPE | Gio.SubprocessFlags.STDOUT_PIPE |
+            Gio.SubprocessFlags.STDERR_PIPE);
 
-        const [stdOut, stdErr] = await subProcess.communicate_async(
-            null, cancellable);
-        const controlBytes = stdErr.get_data();
-        const iconBytes = stdOut;
+        try {
+            const [stdOut, stdErr] = await subProcess.communicate_async(
+                pixmapVariantBytes, cancellable);
+            const controlBytes = stdErr.get_data();
+            const iconBytes = stdOut;
 
-        await subProcess.wait_check_async(cancellable);
+            await subProcess.wait_check_async(cancellable);
 
-        const controlFields = ByteArray.toString(controlBytes).split(',').map(
-            v => Number(v));
-        const [iconBytesSize, width, height, rowStride] = controlFields;
+            const controlFields = ByteArray.toString(controlBytes).split(',').map(
+                v => Number(v));
+            const [iconBytesSize] = controlFields;
 
-        if (iconBytes.get_size() !== iconBytesSize) {
-            throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.INVALID_DATA,
-                `Unexpected data size: ${iconBytes.get_size()} of expected ${iconBytesSize}`);
+            if (iconBytes.get_size() !== iconBytesSize) {
+                throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.INVALID_DATA,
+                    `Unexpected data size: ${iconBytes.get_size()} of expected ${iconBytesSize}`);
+            }
+
+            return iconBytes;
+        } catch (e) {
+            subProcess.force_exit();
+            throw e;
         }
-
-        return { width, height, rowStride, iconBytes };
     }
 
     async _createIconFromPixmap(iconType, iconSize, iconScaling, pixmapsVariant) {
@@ -1373,11 +1378,14 @@ class AppIndicatorsIconActor extends St.Icon {
 
         const id = `__PIXMAP_ICON_${iconType}`;
         const cancellable = this._getIconLoadingCancellable(iconType, id);
-        let width, height, rowStride, iconBytes;
+        let iconBytes;
+
+        const { pixmapVariant, width, height, rowStride } =
+            PixmapsUtils.getBestPixmap(pixmapsVariant, iconSize);
 
         try {
-            ({ width, height, rowStride, iconBytes } =
-                await this._loadPixmapOffProcess(iconType, iconSize, cancellable));
+            iconBytes = await this._argbToRgbaOffProcess(iconType,
+                pixmapVariant, cancellable);
         } catch (e) {
             if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
                 this._cleanupIconLoadingCancellable(iconType, id);
@@ -1385,14 +1393,11 @@ class AppIndicatorsIconActor extends St.Icon {
             }
 
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_SUPPORTED))
-                logError(e, 'Failed to load pixmap off-process');
+                logError(e, `${this._indicator.id}, Failed to load pixmap off-process`);
         }
 
         try {
             if (!iconBytes) {
-                ({ pixmapVariant, width, height, rowStride } =
-                    PixmapsUtils.getBestPixmap(pixmapsVariant, iconSize));
-
                 iconBytes = await this._argbToRgba(pixmapVariant.deep_unpack(),
                     { cancellable, useIdle: true });
             }
