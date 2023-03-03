@@ -1274,6 +1274,7 @@ class AppIndicatorsIconActor extends St.Icon {
             if (iconTheme) {
                 // try to look up the icon in the icon theme
                 iconInfo = iconTheme.lookup_icon_for_scale(name, size, scale,
+                    this._getIconLookupFlags(this.get_theme_node()) |
                     Gtk.IconLookupFlags.GENERIC_FALLBACK);
                 // no icon? that's bad!
                 if (iconInfo === null) {
