@@ -262,7 +262,10 @@ function disconnectSmart(...args) {
 }
 
 function getDefaultTheme() {
-    if (Gdk.Screen.get_default()) {
+    if (St.IconTheme)
+        return new St.IconTheme();
+
+    if (Gdk.Screen && Gdk.Screen.get_default()) {
         const defaultTheme = Gtk.IconTheme.get_default();
         if (defaultTheme)
             return defaultTheme;

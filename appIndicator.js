@@ -41,8 +41,12 @@ PromiseUtils._promisify(Gio.File.prototype, 'read_async', 'read_finish');
 PromiseUtils._promisify(Gio._LocalFilePrototype, 'read_async', 'read_finish');
 PromiseUtils._promisify(GdkPixbuf.Pixbuf, 'get_file_info_async', 'get_file_info_finish');
 PromiseUtils._promisify(GdkPixbuf.Pixbuf, 'new_from_stream_at_scale_async', 'new_from_stream_finish');
-PromiseUtils._promisify(Gtk.IconInfo.prototype, 'load_symbolic_async', 'load_symbolic_finish');
 PromiseUtils._promisify(Gio.DBusProxy.prototype, 'init_async', 'init_finish');
+
+if (St.IconInfo)
+    PromiseUtils._promisify(St.IconInfo.prototype, 'load_symbolic_async', 'load_symbolic_finish');
+else
+    PromiseUtils._promisify(Gtk.IconInfo.prototype, 'load_symbolic_async', 'load_symbolic_finish');
 
 const MAX_UPDATE_FREQUENCY = 100; // In ms
 
@@ -1068,16 +1072,17 @@ class AppIndicatorsIconActor extends St.Icon {
         if (!themeNode)
             return lookupFlags;
 
+        const lookupFlagsEnum = St.IconLookupFlags || Gtk.IconLookupFlags;
         const iconStyle = themeNode.get_icon_style();
         if (iconStyle === St.IconStyle.REGULAR)
-            lookupFlags |= Gtk.IconLookupFlags.FORCE_REGULAR;
+            lookupFlags |= lookupFlagsEnum.FORCE_REGULAR;
         else if (iconStyle === St.IconStyle.SYMBOLIC)
-            lookupFlags |= Gtk.IconLookupFlags.FORCE_SYMBOLIC;
+            lookupFlags |= lookupFlagsEnum.FORCE_SYMBOLIC;
 
         if (Clutter.get_default_text_direction() === Clutter.TextDirection.RTL)
-            lookupFlags |= Gtk.IconLookupFlags.DIR_RTL;
+            lookupFlags |= lookupFlagsEnum.DIR_RTL;
         else
-            lookupFlags |= Gtk.IconLookupFlags.DIR_LTR;
+            lookupFlags |= lookupFlagsEnum.DIR_LTR;
 
         return lookupFlags;
     }
@@ -1087,6 +1092,9 @@ class AppIndicatorsIconActor extends St.Icon {
             return null;
 
         const iconColors = themeNode.get_icon_colors();
+        if (St.IconTheme)
+            return iconColors;
+
         if (!iconColors)
             return iconColors;
 
@@ -1122,9 +1130,11 @@ class AppIndicatorsIconActor extends St.Icon {
         const iconColors = this._getIconLoadingColors(themeNode);
 
         if (iconColors) {
-            const [pixbuf] = await iconInfo.load_symbolic_async(
-                iconColors.foreground, iconColors.success,
-                iconColors.warning, iconColors.error, cancellable);
+            const args = St.IconInfo && iconInfo instanceof St.IconInfo
+                ? [iconColors] : [iconColors.foreground, iconColors.success,
+                    iconColors.warning, iconColors.error];
+
+            const [pixbuf] = await iconInfo.load_symbolic_async(...args, cancellable);
             return pixbuf;
         }
 
@@ -1261,12 +1271,12 @@ class AppIndicatorsIconActor extends St.Icon {
             let iconTheme = null;
             const defaultTheme = Util.getDefaultTheme();
             if (themePath) {
-                iconTheme = new Gtk.IconTheme();
+                iconTheme = St.IconTheme ? new St.IconTheme() : new Gtk.IconTheme();
                 defaultTheme.get_search_path().forEach(p =>
                     iconTheme.append_search_path(p));
                 iconTheme.append_search_path(themePath);
 
-                if (!Meta.is_wayland_compositor()) {
+                if (!Meta.is_wayland_compositor() && !St.IconTheme) {
                     const defaultScreen = imports.gi.Gdk.Screen.get_default();
                     if (defaultScreen)
                         iconTheme.set_screen(defaultScreen);
@@ -1278,7 +1288,9 @@ class AppIndicatorsIconActor extends St.Icon {
                 // try to look up the icon in the icon theme
                 iconInfo = iconTheme.lookup_icon_for_scale(name, size, scale,
                     this._getIconLookupFlags(this.get_theme_node()) |
-                    Gtk.IconLookupFlags.GENERIC_FALLBACK);
+                    (St.IconLookupFlags
+                        ? St.IconLookupFlags.GENERIC_FALLBACK
+                        : Gtk.IconLookupFlags.GENERIC_FALLBACK));
                 // no icon? that's bad!
                 if (iconInfo === null) {
                     let msg = `${this._indicator.id}, Impossible to lookup icon for '${name}' in`;
