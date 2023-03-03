@@ -1046,12 +1046,13 @@ class AppIndicatorsIconActor extends St.Icon {
         if (gicon)
             return gicon;
 
-        const path = this._getIconInfo(iconName, themePath, iconSize, iconScaling);
-        const loadingId = path || id;
+        const iconInfo = this._getIconInfo(iconName, themePath, iconSize, iconScaling);
+        const loadingId = iconInfo.path || id;
 
         const cancellable = await this._getIconLoadingCancellable(iconType, id);
         try {
-            gicon = await this._createIconByName(path, iconSize, iconScaling, cancellable);
+            gicon = await this._createIconByIconData(iconInfo, iconSize,
+                iconScaling, cancellable);
         } finally {
             this._cleanupIconLoadingCancellable(iconType, loadingId);
         }
@@ -1106,22 +1107,6 @@ class AppIndicatorsIconActor extends St.Icon {
 
     async _createIconByFile(file, iconSize, iconScaling, cancellable) {
         try {
-            const themeNode = this.get_theme_node();
-            const iconColors = this._getIconLoadingColors(themeNode);
-
-            if (iconColors) {
-                const fileIcon = new Gio.FileIcon({ file });
-                const defaultTheme = Util.getDefaultTheme();
-
-                const iconInfo = defaultTheme.lookup_by_gicon_for_scale(fileIcon,
-                    iconSize, iconScaling, this._getIconLookupFlags(themeNode));
-
-                const [pixbuf] = await iconInfo.load_symbolic_async(
-                    iconColors.foreground, iconColors.success,
-                    iconColors.warning, iconColors.error, cancellable);
-                return pixbuf;
-            }
-
             const inputStream = await file.read_async(GLib.PRIORITY_DEFAULT, cancellable);
             return GdkPixbuf.Pixbuf.new_from_stream_at_scale_async(inputStream,
                 -1, Math.ceil(iconSize * iconScaling), true, cancellable);
@@ -1132,8 +1117,23 @@ class AppIndicatorsIconActor extends St.Icon {
         }
     }
 
-    async _createIconByName(path, iconSize, iconScaling, cancellable) {
-        if (!path) {
+    async _createIconByIconInfo(iconInfo, iconSize, iconScaling, cancellable) {
+        const themeNode = this.get_theme_node();
+        const iconColors = this._getIconLoadingColors(themeNode);
+
+        if (iconColors) {
+            const [pixbuf] = await iconInfo.load_symbolic_async(
+                iconColors.foreground, iconColors.success,
+                iconColors.warning, iconColors.error, cancellable);
+            return pixbuf;
+        }
+
+        return this._createIconByFile(Gio.File.new_for_path(iconInfo.get_filename()),
+            iconSize, iconScaling, cancellable);
+    }
+
+    async _createIconByIconData({ iconInfo, path }, iconSize, iconScaling, cancellable) {
+        if (!path && !iconInfo) {
             if (this._createIconIdle) {
                 throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING,
                     'Already in progress');
@@ -1165,16 +1165,20 @@ class AppIndicatorsIconActor extends St.Icon {
                 return null;
             }
 
-            const file = Gio.File.new_for_path(path);
             if (width >= height * 1.5) {
                 /* Hello indicator-multiload! */
-                await this._loadCustomImage(file, width, height, cancellable);
+                await this._loadCustomImage(Gio.File.new_for_path(path),
+                    width, height, cancellable);
                 return null;
             } else if (StTextureCacheSkippingGIcon) {
                 /* We'll wrap the icon so that it won't be cached forever by the shell */
-                return new Gio.FileIcon({ file });
+                return new Gio.FileIcon({ file: Gio.File.new_for_path(path) });
+            } else if (iconInfo) {
+                return this._createIconByIconInfo(iconInfo, iconSize,
+                    iconScaling, cancellable);
             } else {
-                return this._createIconByFile(file, iconSize, iconScaling, cancellable);
+                return this._createIconByFile(Gio.File.new_for_path(path),
+                    iconSize, iconScaling, cancellable);
             }
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
@@ -1240,10 +1244,9 @@ class AppIndicatorsIconActor extends St.Icon {
     }
 
     _getIconInfo(name, themePath, size, scale) {
-        let path = null;
         if (name && name[0] === '/') {
             // HACK: icon is a path name. This is not specified by the api but at least inidcator-sensors uses it.
-            path = name;
+            return { iconInfo: null, path: name };
         } else if (name) {
             // we manually look up the icon instead of letting st.icon do it for us
             // this allows us to sneak in an indicator provided search path and to avoid ugly upscaled icons
@@ -1282,11 +1285,11 @@ class AppIndicatorsIconActor extends St.Icon {
                     Util.Logger.warn(`${msg} ${themePath ? `path ${themePath}` : 'default theme'}`);
                 } else { // we have an icon
                     // get the icon path
-                    path = iconInfo.get_filename();
+                    return { iconInfo, path: iconInfo.get_filename() };
                 }
             }
         }
-        return path;
+        return { iconInfo: null, path: null };
     }
 
     async _argbToRgba(src, cancellable) {
