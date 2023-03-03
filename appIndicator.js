@@ -1036,10 +1036,7 @@ class AppIndicatorsIconActor extends St.Icon {
 
     // Will look the icon up in the cache, if it's found
     // it will return it. Otherwise, it will create it and cache it.
-    async _cacheOrCreateIconByName(iconType, iconSize, iconName, themePath) {
-        const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
-        const resourceScale = this._getResourceScale();
-        const iconScaling = Math.ceil(resourceScale * scaleFactor);
+    async _cacheOrCreateIconByName(iconType, iconSize, iconScaling, iconName, themePath) {
         const id = `${iconType}:${iconName}@${iconSize * iconScaling}:${themePath || ''}`;
         let gicon = this._iconCache.get(id);
 
@@ -1051,7 +1048,7 @@ class AppIndicatorsIconActor extends St.Icon {
 
         const cancellable = await this._getIconLoadingCancellable(iconType, id);
         try {
-            gicon = await this._createIconByName(path, iconSize, cancellable);
+            gicon = await this._createIconByName(path, iconSize, iconScaling, cancellable);
         } finally {
             this._cleanupIconLoadingCancellable(iconType, loadingId);
         }
@@ -1060,15 +1057,11 @@ class AppIndicatorsIconActor extends St.Icon {
         return gicon;
     }
 
-    async _createIconByFile(file, iconSize, cancellable) {
+    async _createIconByFile(file, iconSize, iconScaling, cancellable) {
         try {
-            const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
-            const resourceScale = this._getResourceScale();
-            const scale = resourceScale * scaleFactor;
-
             const inputStream = await file.read_async(GLib.PRIORITY_DEFAULT, cancellable);
             return GdkPixbuf.Pixbuf.new_from_stream_at_scale_async(inputStream,
-                -1, Math.ceil(iconSize * scale), true, cancellable);
+                -1, Math.ceil(iconSize * iconScaling), true, cancellable);
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 Util.Logger.warn(`${this._indicator.id}, Impossible to read image from path '${file.get_path()}': ${e}`);
@@ -1076,7 +1069,7 @@ class AppIndicatorsIconActor extends St.Icon {
         }
     }
 
-    async _createIconByName(path, iconSize, cancellable) {
+    async _createIconByName(path, iconSize, iconScaling, cancellable) {
         if (!path) {
             if (this._createIconIdle) {
                 throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING,
@@ -1118,7 +1111,7 @@ class AppIndicatorsIconActor extends St.Icon {
                 /* We'll wrap the icon so that it won't be cached forever by the shell */
                 return new Gio.FileIcon({ file });
             } else {
-                return this._createIconByFile(file, iconSize, cancellable);
+                return this._createIconByFile(file, iconSize, iconScaling, cancellable);
             }
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
@@ -1238,10 +1231,8 @@ class AppIndicatorsIconActor extends St.Icon {
         return PixmapsUtils.argbToRgba(src);
     }
 
-    async _createIconFromPixmap(iconType, iconSize, pixmapsVariant) {
-        const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
-        const resourceScale = this._getResourceScale();
-        iconSize *= scaleFactor * resourceScale;
+    async _createIconFromPixmap(iconType, iconSize, iconScaling, pixmapsVariant) {
+        iconSize *= iconScaling;
 
         const { pixmapVariant, width, height, rowStride } =
             PixmapsUtils.getBestPixmap(pixmapsVariant, iconSize);
@@ -1364,19 +1355,23 @@ class AppIndicatorsIconActor extends St.Icon {
 
     // updates the base icon
     async _createIcon(name, pixmap, theme, iconType, iconSize) {
+        const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+        const resourceScale = this._getResourceScale();
+        const iconScaling = Math.ceil(resourceScale * scaleFactor);
+
         // From now on we consider them the same thing, as one replaces the other
         if (iconType === SNIconType.ATTENTION)
             iconType = SNIconType.NORMAL;
 
         if (name) {
             const gicon = await this._cacheOrCreateIconByName(
-                iconType, iconSize, name, theme);
+                iconType, iconSize, iconScaling, name, theme);
             if (gicon)
                 return gicon;
         }
 
         if (pixmap && pixmap.n_children())
-            return this._createIconFromPixmap(iconType, iconSize, pixmap);
+            return this._createIconFromPixmap(iconType, iconSize, iconScaling, pixmap);
 
         return null;
     }
