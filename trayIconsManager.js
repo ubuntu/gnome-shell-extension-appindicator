@@ -25,6 +25,7 @@ const ExtensionUtils = imports.misc.extensionUtils;
 const Extension = ExtensionUtils.getCurrentExtension();
 const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon;
 const Util = Extension.imports.util;
+const SettingsManager = Extension.imports.settingsManager;
 
 let trayIconsManager;
 
@@ -43,11 +44,43 @@ var TrayIconsManager = class TrayIconsManager {
         if (trayIconsManager)
             throw new Error('TrayIconsManager is already constructed');
 
+        this._changedId = SettingsManager.getDefaultGSettings().connect(
+            'changed::legacy-tray-enabled', () => this._toggle());
+
+        this._toggle();
+    }
+
+    _toggle() {
+        if (SettingsManager.getDefaultGSettings().get_boolean('legacy-tray-enabled'))
+            this._enable();
+        else
+            this._disable();
+    }
+
+    _enable() {
+        if (this._tray)
+            return;
+
         this._tray = new Shell.TrayManager();
         Util.connectSmart(this._tray, 'tray-icon-added', this, this.onTrayIconAdded);
         Util.connectSmart(this._tray, 'tray-icon-removed', this, this.onTrayIconRemoved);
 
         this._tray.manage_screen(Main.panel);
+    }
+
+    _disable() {
+        if (!this._tray)
+            return;
+
+        IndicatorStatusIcon.getTrayIcons().forEach(i => i.destroy());
+        if (this._tray.unmanage_screen) {
+            this._tray.unmanage_screen();
+            this._tray = null;
+        } else {
+            // FIXME: This is very ugly, but it's needed by old shell versions
+            this._tray = null;
+            imports.system.gc(); // force finalizing tray to unmanage screen
+        }
     }
 
     onTrayIconAdded(_tray, icon) {
@@ -66,15 +99,8 @@ var TrayIconsManager = class TrayIconsManager {
 
     destroy() {
         this.emit('destroy');
-        IndicatorStatusIcon.getTrayIcons().forEach(i => i.destroy());
-        if (this._tray.unmanage_screen) {
-            this._tray.unmanage_screen();
-            this._tray = null;
-        } else {
-            // FIXME: This is very ugly, but it's needed by old shell versions
-            this._tray = null;
-            imports.system.gc(); // force finalizing tray to unmanage screen
-        }
+        SettingsManager.getDefaultGSettings().disconnect(this._changedId);
+        this._disable();
         trayIconsManager = null;
     }
 };

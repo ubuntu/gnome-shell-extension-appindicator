@@ -1,5 +1,9 @@
 <schemalist gettext-domain="AppIndicatorExtension">
   <schema id="org.gnome.shell.extensions.appindicator" path="/org/gnome/shell/extensions/appindicator/">
+    <key name="legacy-tray-enabled" type="b">
+      <default>true</default>
+      <summary>Enable legacy tray icons support</summary>
+    </key>
     <key name="icon-saturation" type="d">
       <default>0.0</default>
       <summary>Saturation</summary>

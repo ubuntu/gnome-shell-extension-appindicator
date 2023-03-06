@@ -55,6 +55,30 @@ class AppIndicatorPreferences extends Gtk.Box {
             margin_top: 10,
             margin_bottom: 10 });
 
+        label = new Gtk.Label({
+            label: _('Enable Legacy Tray Icons support'),
+            hexpand: true,
+            halign: Gtk.Align.START,
+        });
+        widget = new Gtk.Switch({ halign: Gtk.Align.END });
+
+        this._settings.bind('legacy-tray-enabled', widget, 'active',
+            Gio.SettingsBindFlags.DEFAULT);
+
+        this.legacy_tray_hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 10,
+            margin_start: 10,
+            margin_end: 10,
+            margin_top: 10,
+            margin_bottom: 10 });
+
+        if (imports.gi.versions.Gtk === '4.0') {
+            this.legacy_tray_hbox.append(label);
+            this.legacy_tray_hbox.append(widget);
+        } else {
+            this.legacy_tray_hbox.pack_start(label, true, true, 0);
+            this.legacy_tray_hbox.pack_start(widget, false, false, 0);
+        }
 
         // Icon opacity
         this.opacity_hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL,
@@ -68,6 +92,7 @@ class AppIndicatorPreferences extends Gtk.Box {
             hexpand: true,
             halign: Gtk.Align.START,
         });
+
         widget = new Gtk.SpinButton({ halign: Gtk.Align.END });
         widget.set_sensitive(true);
         widget.set_range(0, 255);
@@ -218,6 +243,7 @@ class AppIndicatorPreferences extends Gtk.Box {
             this.tray_position_hbox.append(label);
             this.tray_position_hbox.append(widget);
 
+            this.preferences_vbox.append(this.legacy_tray_hbox);
             this.preferences_vbox.append(this.opacity_hbox);
             this.preferences_vbox.append(this.saturation_hbox);
             this.preferences_vbox.append(this.brightness_hbox);
@@ -228,6 +254,7 @@ class AppIndicatorPreferences extends Gtk.Box {
             this.tray_position_hbox.pack_start(label, true, true, 0);
             this.tray_position_hbox.pack_start(widget, false, false, 0);
 
+            this.preferences_vbox.pack_start(this.legacy_tray_hbox, true, false, 0);
             this.preferences_vbox.pack_start(this.opacity_hbox, true, false, 0);
             this.preferences_vbox.pack_start(this.saturation_hbox, true, false, 0);
             this.preferences_vbox.pack_start(this.brightness_hbox, true, false, 0);
