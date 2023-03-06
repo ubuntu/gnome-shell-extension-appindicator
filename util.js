@@ -285,9 +285,11 @@ async function waitForStartupCompletion(cancellable) {
     if (Main.layoutManager._startingUp)
         await Main.layoutManager.connect_once('startup-complete', cancellable);
 
-    const displayManager = Gdk.DisplayManager.get();
-    if (!Meta.is_wayland_compositor() && !displayManager.get_default_display())
-        await displayManager.connect_once('display-opened', cancellable);
+    if (!St.IconTheme && !Meta.is_wayland_compositor()) {
+        const displayManager = Gdk.DisplayManager.get();
+        if (displayManager && !displayManager.get_default_display())
+            await displayManager.connect_once('display-opened', cancellable);
+    }
 }
 
 /**
