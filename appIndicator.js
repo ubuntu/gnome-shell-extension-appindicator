@@ -980,7 +980,17 @@ class AppIndicatorsIconActor extends St.Icon {
 
         if (indicator.isReady) {
             this._updateCustomIcons();
-            this._invalidateIcon();
+
+            if (this.get_stage()) {
+                this._invalidateIcon();
+            } else {
+                const id = this.connect('parent-set', () => {
+                    if (this.get_stage()) {
+                        this.disconnect(id);
+                        this._invalidateIcon();
+                    }
+                });
+            }
         }
 
         this.connect('destroy', () => {
