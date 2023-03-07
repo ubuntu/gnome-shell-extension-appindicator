@@ -1084,7 +1084,6 @@ class AppIndicatorsIconActor extends St.Icon {
     }
 
     _getIconLookupFlags(themeNode) {
-        // FIXME: Use St version if available (>= 44)
         let lookupFlags = 0;
 
         if (!themeNode)
