@@ -951,10 +951,10 @@ class AppIndicatorsIconActor extends St.Icon {
 
         Util.connectSmart(this._indicator, 'icon', this, () => this._updateIcon().catch(logError));
         Util.connectSmart(this._indicator, 'overlay-icon', this, this._updateOverlayIcon);
-        Util.connectSmart(this._indicator, 'reset', this, this._invalidateIcon);
+        Util.connectSmart(this._indicator, 'reset', this, () => this._invalidateIcon());
 
         const settings = SettingsManager.getDefaultGSettings();
-        Util.connectSmart(settings, 'changed::icon-size', this, this._invalidateIcon);
+        Util.connectSmart(settings, 'changed::icon-size', this, () => this._invalidateIcon());
         Util.connectSmart(settings, 'changed::custom-icons', this, () => {
             this._updateCustomIcons();
             this._invalidateIcon();
@@ -992,7 +992,14 @@ class AppIndicatorsIconActor extends St.Icon {
         });
     }
 
+    get debugId() {
+        return this._indicator ? this._indicator.id : this.toString();
+    }
+
     _updateIconClass() {
+        if (!this._indicator)
+            return;
+
         this.add_style_class_name(
             `appindicator-icon-${this._indicator.id.toLowerCase().replace(/_|\s/g, '-')}`);
     }
@@ -1004,7 +1011,7 @@ class AppIndicatorsIconActor extends St.Icon {
 
     _ensureNoIconIsLoading(iconType, id) {
         if (this._loadingIcons[iconType].has(id)) {
-            Util.Logger.debug(`${this._indicator.id}, Icon ${id} Is still loading, ignoring the request`);
+            Util.Logger.debug(`${this.debugId}, Icon ${id} Is still loading, ignoring the request`);
             throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING,
                 'Already in progress');
         } else if (this._loadingIcons[iconType].size > 0) {
@@ -1029,7 +1036,8 @@ class AppIndicatorsIconActor extends St.Icon {
     }
 
     _cleanupIconLoadingCancellable(iconType, loadingId) {
-        this._loadingIcons[iconType].delete(loadingId);
+        if (this._loadingIcons)
+            this._loadingIcons[iconType].delete(loadingId);
     }
 
     _getResourceScale() {
@@ -1119,8 +1127,10 @@ class AppIndicatorsIconActor extends St.Icon {
             return GdkPixbuf.Pixbuf.new_from_stream_at_scale_async(inputStream,
                 -1, Math.ceil(iconSize * iconScaling), true, cancellable);
         } catch (e) {
-            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                Util.Logger.warn(`${this._indicator.id}, Impossible to read image from path '${file.get_path()}': ${e}`);
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+                Util.Logger.warn(
+                    `${this.debugId}, Impossible to read image from path '${file.get_path()}': ${e}`);
+            }
             throw e;
         }
     }
@@ -1171,7 +1181,7 @@ class AppIndicatorsIconActor extends St.Icon {
                 path, cancellable);
 
             if (!format) {
-                Util.Logger.critical(`${this._indicator.id}, Invalid image format: ${path}`);
+                Util.Logger.critical(`${this.debugId}, Invalid image format: ${path}`);
                 return null;
             }
 
@@ -1191,8 +1201,10 @@ class AppIndicatorsIconActor extends St.Icon {
                     iconSize, iconScaling, cancellable);
             }
         } catch (e) {
-            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                Util.Logger.warn(`${this._indicator.id}, Impossible to read image info from path '${path}': ${e}`);
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+                Util.Logger.warn(
+                    `${this.debugId}, Impossible to read image info from path '${path}': ${e}`);
+            }
             throw e;
         }
     }
@@ -1293,7 +1305,7 @@ class AppIndicatorsIconActor extends St.Icon {
                         : Gtk.IconLookupFlags.GENERIC_FALLBACK));
                 // no icon? that's bad!
                 if (iconInfo === null) {
-                    let msg = `${this._indicator.id}, Impossible to lookup icon for '${name}' in`;
+                    const msg = `${this.debugId}, Impossible to lookup icon for '${name}' in`;
                     Util.Logger.warn(`${msg} ${themePath ? `path ${themePath}` : 'default theme'}`);
                 } else { // we have an icon
                     // get the icon path
@@ -1327,7 +1339,7 @@ class AppIndicatorsIconActor extends St.Icon {
         } catch (e) {
             // the image data was probably bogus. We don't really know why, but it _does_ happen.
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                Util.Logger.warn(`${this._indicator.id}, Impossible to create image from data: ${e}`);
+                Util.Logger.warn(`${this.debugId}, Impossible to create image from data: ${e}`);
             throw e;
         } finally {
             this._cleanupIconLoadingCancellable(iconType, id);
@@ -1406,15 +1418,14 @@ class AppIndicatorsIconActor extends St.Icon {
             gicon = await this._createIcon(name, pixmap, theme, iconType, iconSize);
         } catch (e) {
             if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED) ||
-                e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING)) {
-                Util.Logger.debug(`${this._indicator.uniqueId}, Impossible to load icon: ${e}`);
+                e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING))
                 return null;
-            }
+
 
             if (iconType === SNIconType.OVERLAY)
-                logError(e, `unable to update icon emblem for ${this._indicator.id}`);
+                logError(e, `${this.debugId} unable to update icon emblem`);
             else
-                logError(e, `unable to update icon for ${this._indicator.id}`);
+                logError(e, `${this.debugId} unable to update icon`);
         }
 
         try {
@@ -1476,7 +1487,7 @@ class AppIndicatorsIconActor extends St.Icon {
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED) &&
                 !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING))
-                logError(e, `${this._indicator.id}: Updating icon type ${iconType} failed`);
+                logError(e, `${this.debugId}: Updating icon type ${iconType} failed`);
         }
     }
 
@@ -1499,7 +1510,7 @@ class AppIndicatorsIconActor extends St.Icon {
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED) &&
                 !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING))
-                logError(e, `${this._indicator.id}: Updating overlay icon failed`);
+                logError(e, `${this.debugId}: Updating overlay icon failed`);
         }
     }
 
