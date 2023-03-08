@@ -984,11 +984,12 @@ class AppIndicatorsIconActor extends St.Icon {
             if (this.get_stage()) {
                 this._invalidateIcon();
             } else {
-                const id = this.connect('parent-set', () => {
-                    if (this.get_stage()) {
-                        this.disconnect(id);
-                        this._invalidateIcon();
-                    }
+                const waitStyleChange = new PromiseUtils.SignalConnectionPromise(
+                    this, 'style-changed', this._cancellable);
+
+                waitStyleChange.then(() => this._invalidateIcon()).catch(e => {
+                    if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                        logError(e);
                 });
             }
         }
