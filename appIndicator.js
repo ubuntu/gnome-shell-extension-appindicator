@@ -49,6 +49,8 @@ else
     PromiseUtils._promisify(Gtk.IconInfo.prototype, 'load_symbolic_async', 'load_symbolic_finish');
 
 const MAX_UPDATE_FREQUENCY = 100; // In ms
+const FALLBACK_ICON_NAME = 'image-loading-symbolic';
+const PIXMAPS_FORMAT = imports.gi.Cogl.PixelFormat.ARGB_8888;
 
 // eslint-disable-next-line no-unused-vars
 const SNICategory = Object.freeze({
@@ -644,6 +646,12 @@ var AppIndicator = class AppIndicatorsAppIndicator {
         };
     }
 
+    get hasOverlayIcon() {
+        const { name, pixmap } = this.overlayIcon;
+
+        return name || (pixmap && pixmap.n_children());
+    }
+
     get hasNameOwner() {
         if (this._nameWatcher && !this._nameWatcher.nameOnBus)
             return false;
@@ -929,7 +937,7 @@ class AppIndicatorsIconActor extends St.Icon {
         super._init({
             reactive: true,
             style_class: 'system-status-icon',
-            fallback_icon_name: 'image-loading-symbolic',
+            fallbackIconName: FALLBACK_ICON_NAME,
         });
 
         this.name = this.constructor.name;
@@ -1326,26 +1334,42 @@ class AppIndicatorsIconActor extends St.Icon {
         return { iconInfo: null, path: null };
     }
 
-    async _argbToRgba(src, cancellable) {
-        await new PromiseUtils.IdlePromise(GLib.PRIORITY_LOW, cancellable);
-
-        return PixmapsUtils.argbToRgba(src);
+    _setImageContent(content, width, height) {
+        this.set({
+            content,
+            width,
+            height,
+            contentGravity: Clutter.ContentGravity.RESIZE_ASPECT,
+            fallbackIconName: null,
+        });
     }
 
-    async _createIconFromPixmap(iconType, iconSize, iconScaling, pixmapsVariant) {
-        iconSize *= iconScaling;
-
+    async _createIconFromPixmap(iconType, iconSize, iconScaling, scaleFactor, pixmapsVariant) {
         const { pixmapVariant, width, height, rowStride } =
-            PixmapsUtils.getBestPixmap(pixmapsVariant, iconSize);
+            PixmapsUtils.getBestPixmap(pixmapsVariant, iconSize * iconScaling);
 
         const id = `__PIXMAP_ICON_${width}x${height}`;
 
+        const imageContent = new St.ImageContent({
+            preferredWidth: width,
+            preferredHeight: height,
+        });
+
+        imageContent.set_bytes(pixmapVariant.get_data_as_bytes(), PIXMAPS_FORMAT,
+            width, height, rowStride);
+
+        if (iconType !== SNIconType.OVERLAY && !this._indicator.hasOverlayIcon) {
+            const scaledSize = iconSize * scaleFactor;
+            this._setImageContent(imageContent, scaledSize, scaledSize);
+            return null;
+        }
+
         const cancellable = this._getIconLoadingCancellable(iconType, id);
         try {
-            return GdkPixbuf.Pixbuf.new_from_bytes(
-                await this._argbToRgba(pixmapVariant.deep_unpack(), cancellable),
-                GdkPixbuf.Colorspace.RGB, true,
-                8, width, height, rowStride);
+            // FIXME: async API results in a gray icon for some reason
+            const [inputStream] = imageContent.load(iconSize, cancellable);
+            return await GdkPixbuf.Pixbuf.new_from_stream_at_scale_async(
+                inputStream, -1, iconSize * iconScaling, true, cancellable);
         } catch (e) {
             // the image data was probably bogus. We don't really know why, but it _does_ happen.
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
@@ -1431,11 +1455,12 @@ class AppIndicatorsIconActor extends St.Icon {
                 e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING))
                 return null;
 
-
-            if (iconType === SNIconType.OVERLAY)
+            if (iconType === SNIconType.OVERLAY) {
                 logError(e, `${this.debugId} unable to update icon emblem`);
-            else
+            } else {
+                this.fallbackIconName = FALLBACK_ICON_NAME;
                 logError(e, `${this.debugId} unable to update icon`);
+            }
         }
 
         try {
@@ -1470,8 +1495,10 @@ class AppIndicatorsIconActor extends St.Icon {
                 return gicon;
         }
 
-        if (pixmap && pixmap.n_children())
-            return this._createIconFromPixmap(iconType, iconSize, iconScaling, pixmap);
+        if (pixmap && pixmap.n_children()) {
+            return this._createIconFromPixmap(iconType,
+                iconSize, iconScaling, scaleFactor, pixmap);
+        }
 
         return null;
     }
