@@ -1234,8 +1234,8 @@ class AppIndicatorsIconActor extends St.Icon {
             height, scaleFactor, resourceScale);
 
         customImage.set({
-            xAlign: imports.gi.Clutter.ActorAlign.CENTER,
-            yAlign: imports.gi.Clutter.ActorAlign.CENTER,
+            xAlign: Clutter.ActorAlign.CENTER,
+            yAlign: Clutter.ActorAlign.CENTER,
         });
 
         if (customImage.content) {
@@ -1299,7 +1299,7 @@ class AppIndicatorsIconActor extends St.Icon {
                 iconTheme.append_search_path(themePath);
 
                 if (!Meta.is_wayland_compositor() && !St.IconTheme) {
-                    const defaultScreen = imports.gi.Gdk.Screen.get_default();
+                    const defaultScreen = Gdk.Screen.get_default();
                     if (defaultScreen)
                         iconTheme.set_screen(defaultScreen);
                 }
