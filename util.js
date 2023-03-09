@@ -16,7 +16,7 @@
 
 /* exported CancellableChild, getUniqueBusName, getBusNames,
    introspectBusObject, dbusNodeImplementsInterfaces, waitForStartupCompletion,
-   connectSmart, disconnectSmart, versionCheck, getDefaultTheme,
+   connectSmart, disconnectSmart, versionCheck, getDefaultTheme, destroyDefaultTheme,
    getProcessName, indicatorId, tryCleanupOldIndicators, DBusProxy */
 
 const ByteArray = imports.byteArray;
@@ -260,19 +260,29 @@ function disconnectSmart(...args) {
     throw new TypeError('Unexpected number of arguments');
 }
 
+let _defaultTheme;
 function getDefaultTheme() {
-    if (St.IconTheme)
-        return new St.IconTheme();
+    if (_defaultTheme)
+        return _defaultTheme;
 
-    if (Gdk.Screen && Gdk.Screen.get_default()) {
-        const defaultTheme = Gtk.IconTheme.get_default();
-        if (defaultTheme)
-            return defaultTheme;
+    if (St.IconTheme) {
+        _defaultTheme = new St.IconTheme();
+        return _defaultTheme;
     }
 
-    const defaultTheme = new Gtk.IconTheme();
-    defaultTheme.set_custom_theme(St.Settings.get().gtk_icon_theme);
-    return defaultTheme;
+    if (Gdk.Screen && Gdk.Screen.get_default()) {
+        _defaultTheme = Gtk.IconTheme.get_default();
+        if (_defaultTheme)
+            return _defaultTheme;
+    }
+
+    _defaultTheme = new Gtk.IconTheme();
+    _defaultTheme.set_custom_theme(St.Settings.get().gtk_icon_theme);
+    return _defaultTheme;
+}
+
+function destroyDefaultTheme() {
+    _defaultTheme = null;
 }
 
 // eslint-disable-next-line valid-jsdoc

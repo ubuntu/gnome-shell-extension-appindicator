@@ -279,6 +279,7 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
         DBusMenu.DBusClient.destroy();
         AppIndicator.AppIndicatorProxy.destroy();
         Util.DBusProxy.destroy();
+        Util.destroyDefaultTheme();
 
         this._dbusImpl.run_dispose();
         delete this._dbusImpl;
