@@ -895,13 +895,17 @@ class AppIndicatorsIconActor extends St.Icon {
         this._loadingIcons  = Object.create(null);
 
         Object.values(SNIconType).forEach(t => (this._loadingIcons[t] = new Map()));
+        this._updateIconSize();
 
         Util.connectSmart(this._indicator, 'icon', this, () => this._updateIcon().catch(logError));
         Util.connectSmart(this._indicator, 'overlay-icon', this, this._updateOverlayIcon);
         Util.connectSmart(this._indicator, 'reset', this, () => this._invalidateIcon());
 
         const settings = SettingsManager.getDefaultGSettings();
-        Util.connectSmart(settings, 'changed::icon-size', this, () => this._invalidateIcon());
+        Util.connectSmart(settings, 'changed::icon-size', this, () => {
+            this._updateIconSize();
+            this._invalidateIcon();
+        });
         Util.connectSmart(settings, 'changed::custom-icons', this, () => {
             this._updateCustomIcons();
             this._invalidateIcon();
@@ -913,7 +917,9 @@ class AppIndicatorsIconActor extends St.Icon {
             this.connect('notify::resource-scale', () => this._invalidateIcon());
 
         Util.connectSmart(themeContext, 'notify::scale-factor', this, tc => {
-            this.height = iconSize * tc.scale_factor;
+            this._updateIconSize();
+            this.height = this._iconSize * tc.scale_factor;
+            this.width = -1;
             this._invalidateIcon();
         });
 
@@ -1306,7 +1312,7 @@ class AppIndicatorsIconActor extends St.Icon {
     // the cached one (as in some cases it may be equal, but not the same object).
     // So when it's not need anymore we make sure to check the active state
     // and set it to false so that it can be picked up by the garbage collector.
-    _setGicon(iconType, gicon, iconSize) {
+    _setGicon(iconType, gicon) {
         if (iconType !== SNIconType.OVERLAY) {
             if (gicon) {
                 const isPixbuf = gicon instanceof GdkPixbuf.Pixbuf;
@@ -1316,8 +1322,6 @@ class AppIndicatorsIconActor extends St.Icon {
 
                 this._iconCache.updateActive(SNIconType.NORMAL, gicon,
                     this.gicon.get_icon() === gicon);
-
-                this.set_icon_size(iconSize);
             } else {
                 this.gicon = null;
             }
@@ -1386,7 +1390,7 @@ class AppIndicatorsIconActor extends St.Icon {
         }
 
         try {
-            this._setGicon(iconType, gicon, iconSize);
+            this._setGicon(iconType, gicon);
 
             if (pixmap && this.gicon) {
                 // The pixmap has been saved, we can free the variants memory
@@ -1438,8 +1442,6 @@ class AppIndicatorsIconActor extends St.Icon {
         // we might need to use the AttentionIcon*, which have precedence over the normal icons
         let iconType = this._indicator.status === SNIStatus.NEEDS_ATTENTION
             ? SNIconType.ATTENTION : SNIconType.NORMAL;
-
-        this._updateIconSize();
 
         try {
             await this._updateIconByType(iconType, this._iconSize);
@@ -1497,6 +1499,8 @@ class AppIndicatorsIconActor extends St.Icon {
             this._iconSize = this._defaultIconSize;
             delete this._defaultIconSize;
         }
+
+        this.set_icon_size(this._iconSize);
     }
 
     _updateCustomIcons() {
