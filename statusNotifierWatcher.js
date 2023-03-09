@@ -22,6 +22,7 @@ const GLib = imports.gi.GLib;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 
 const AppIndicator = Extension.imports.appIndicator;
+const DBusMenu = Extension.imports.dbusMenu;
 const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon;
 const Interfaces = Extension.imports.interfaces;
 const PromiseUtils = Extension.imports.promiseUtils;
@@ -275,6 +276,7 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
             Util.Logger.warn(`Failed to unexport watcher object: ${e}`);
         }
 
+        DBusMenu.DBusClient.destroy();
         AppIndicator.AppIndicatorProxy.destroy();
         Util.DBusProxy.destroy();
 

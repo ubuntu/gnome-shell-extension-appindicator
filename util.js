@@ -32,7 +32,6 @@ const St = imports.gi.St;
 const Config = imports.misc.config;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Extension = ExtensionUtils.getCurrentExtension();
-const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon;
 const PromiseUtils = Extension.imports.promiseUtils;
 const Signals = imports.signals;
 
@@ -393,6 +392,7 @@ function versionCheck(required) {
 }
 
 function tryCleanupOldIndicators() {
+    const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon;
     const indicatorType = IndicatorStatusIcon.BaseStatusIcon;
     const indicators = Object.values(Main.panel.statusArea).filter(i => i instanceof indicatorType);
 
@@ -555,7 +555,7 @@ var DBusProxy = GObject.registerClass({
     }
 
     getProperties(cancellable) {
-        return this.gConnection.call(this.g_name,
+        return this.gConnection.call(this.gName,
             this.gObjectPath, 'org.freedesktop.DBus.Properties', 'GetAll',
             GLib.Variant.new('(s)', [this.gInterfaceName]),
             GLib.VariantType.new('(a{sv})'), Gio.DBusCallFlags.NONE, -1,
