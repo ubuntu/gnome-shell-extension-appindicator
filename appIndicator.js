@@ -248,7 +248,7 @@ class AppIndicatorProxy extends Util.DBusProxy {
             return;
 
         this._signalsAccumulator = new PromiseUtils.TimeoutPromise(
-            GLib.PRIORITY_DEFAULT_IDLE, MAX_UPDATE_FREQUENCY, this._cancellable);
+            MAX_UPDATE_FREQUENCY, GLib.PRIORITY_DEFAULT_IDLE, this._cancellable);
         try {
             await this._signalsAccumulator;
             const refreshPropertiesPromises =
