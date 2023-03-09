@@ -591,9 +591,11 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
             iconSize = Panel.PANEL_ICON_SIZE;
 
         this.height = -1;
-        this._icon.set_width(iconSize * scaleFactor);
-        this._icon.set_height(iconSize * scaleFactor);
-        this._icon.set_y_align(Clutter.ActorAlign.CENTER);
-        this._icon.set_x_align(Clutter.ActorAlign.CENTER);
+        this._icon.set({
+            width: iconSize * scaleFactor,
+            height: iconSize * scaleFactor,
+            xAlign: Clutter.ActorAlign.CENTER,
+            yAlign: Clutter.ActorAlign.CENTER,
+        });
     }
 });
