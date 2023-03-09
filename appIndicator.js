@@ -872,6 +872,10 @@ if (imports.system.version >= 17501) {
 var IconActor = GObject.registerClass(
 class AppIndicatorsIconActor extends St.Icon {
 
+    static get DEFAULT_STYLE() {
+        return 'padding: 0';
+    }
+
     _init(indicator, iconSize) {
         super._init({
             reactive: true,
@@ -882,7 +886,7 @@ class AppIndicatorsIconActor extends St.Icon {
         this.name = this.constructor.name;
         this.add_style_class_name('appindicator-icon');
         this.add_style_class_name('status-notifier-icon');
-        this.set_style('padding:0');
+        this.set_style(AppIndicatorsIconActor.DEFAULT_STYLE);
 
         let themeContext = St.ThemeContext.get_for_stage(global.stage);
         this.height = iconSize * themeContext.scale_factor;
@@ -895,7 +899,6 @@ class AppIndicatorsIconActor extends St.Icon {
         this._loadingIcons  = Object.create(null);
 
         Object.values(SNIconType).forEach(t => (this._loadingIcons[t] = new Map()));
-        this._updateIconSize();
 
         Util.connectSmart(this._indicator, 'icon', this, () => {
             if (this.is_mapped())
@@ -909,10 +912,8 @@ class AppIndicatorsIconActor extends St.Icon {
             () => this._invalidateIconWhenFullyReady());
 
         const settings = SettingsManager.getDefaultGSettings();
-        Util.connectSmart(settings, 'changed::icon-size', this, () => {
-            this._updateIconSize();
-            this._invalidateIcon();
-        });
+        Util.connectSmart(settings, 'changed::icon-size', this, () =>
+            this._updateWhenFullyReady());
         Util.connectSmart(settings, 'changed::custom-icons', this, () => {
             this._updateCustomIcons();
             this._invalidateIconWhenFullyReady();
@@ -981,6 +982,7 @@ class AppIndicatorsIconActor extends St.Icon {
             this._waitingReady = true;
             await this._waitForFullyReady();
 
+            this._updateIconSize();
             this._updateIconClass();
             this._updateCustomIcons();
             this._invalidateIcon();
@@ -1538,6 +1540,7 @@ class AppIndicatorsIconActor extends St.Icon {
     _updateIconSize() {
         const settings = SettingsManager.getDefaultGSettings();
         const sizeValue = settings.get_int('icon-size');
+
         if (sizeValue > 0) {
             if (!this._defaultIconSize)
                 this._defaultIconSize = this._iconSize;
@@ -1548,6 +1551,20 @@ class AppIndicatorsIconActor extends St.Icon {
             delete this._defaultIconSize;
         }
 
+        const themeIconSize = Math.round(
+            this.get_theme_node().get_length('icon-size'));
+        let iconStyle = AppIndicatorsIconActor.DEFAULT_STYLE;
+
+        if (themeIconSize > 0) {
+            const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+
+            if (themeIconSize / scaleFactor !== this._iconSize) {
+                iconStyle = `${AppIndicatorsIconActor.DEFAULT_STYLE};` +
+                    'icon-size: 0';
+            }
+        }
+
+        this.set_style(iconStyle);
         this.set_icon_size(this._iconSize);
     }
 
