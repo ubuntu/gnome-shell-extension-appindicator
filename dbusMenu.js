@@ -14,6 +14,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 const Gio = imports.gi.Gio;
+const GObject = imports.gi.GObject;
 const GLib = imports.gi.GLib;
 const GdkPixbuf = imports.gi.GdkPixbuf;
 const PopupMenu = imports.ui.popupMenu;
@@ -199,26 +200,44 @@ var DbusMenuItem = class AppIndicatorsDbusMenuItem {
 Signals.addSignalMethods(DbusMenuItem.prototype);
 
 
-const BusClientProxy = Gio.DBusProxy.makeProxyWrapper(DBusInterfaces.DBusMenu);
-
 /**
  * The client does the heavy lifting of actually reading layouts and distributing events
  */
-var DBusClient = class AppIndicatorsDBusClient {
 
-    constructor(busName, busPath) {
-        this._cancellable = new Gio.Cancellable();
-        this._proxy = new BusClientProxy(Gio.DBus.session,
-            busName,
-            busPath,
-            this._clientReady.bind(this),
-            this._cancellable);
+var DBusClient = GObject.registerClass({
+    Signals: { 'ready-changed': {} },
+}, class AppIndicatorsDBusClient extends Util.DBusProxy {
+    static get interfaceInfo() {
+        if (!this._interfaceInfo) {
+            this._interfaceInfo = Gio.DBusInterfaceInfo.new_for_xml(
+                DBusInterfaces.DBusMenu);
+        }
+        return this._interfaceInfo;
+    }
+
+    static get baseItems() {
+        if (!this._baseItems) {
+            this._baseItems = {
+                'children-display': GLib.Variant.new_string('submenu'),
+            };
+        }
+        return this._baseItems;
+    }
+
+    static destroy() {
+        delete this._interfaceInfo;
+    }
+
+    _init(busName, objectPath) {
+        const { interfaceInfo } = AppIndicatorsDBusClient;
+
+        super._init(busName, objectPath, interfaceInfo,
+            Gio.DBusProxyFlags.DO_NOT_LOAD_PROPERTIES);
+
         this._items = new Map([
             [
                 0,
-                new DbusMenuItem(this, 0, {
-                    'children-display': GLib.Variant.new_string('submenu'),
-                }, []),
+                new DbusMenuItem(this, 0, DBusClient.baseItems, []),
             ],
         ]);
 
@@ -231,14 +250,21 @@ var DBusClient = class AppIndicatorsDBusClient {
         this._propertiesRequestedFor = new Set(/* ids */);
 
         this._layoutUpdated = false;
-        Util.connectSmart(this._proxy, 'notify::g-name-owner', this, () => {
-            if (this.isReady)
-                this._requestLayoutUpdate();
-        });
+    }
+
+    async initAsync(cancellable) {
+        await super.initAsync(cancellable);
+
+        this._requestLayoutUpdate();
+    }
+
+    _onNameOwnerChanged() {
+        if (this.isReady)
+            this._requestLayoutUpdate();
     }
 
     get isReady() {
-        return this._layoutUpdated && !!this._proxy.g_name_owner;
+        return this._layoutUpdated && !!this.gNameOwner;
     }
 
     get cancellable() {
@@ -269,7 +295,7 @@ var DBusClient = class AppIndicatorsDBusClient {
     }
 
     _beginRequestProperties() {
-        this._proxy.GetGroupPropertiesRemote(
+        this.GetGroupPropertiesRemote(
             Array.from(this._propertiesRequestedFor),
             [],
             this._cancellable,
@@ -320,7 +346,7 @@ var DBusClient = class AppIndicatorsDBusClient {
     _beginLayoutUpdate() {
         // we only read the type property, because if the type changes after reading all properties,
         // the view would have to replace the item completely which we try to avoid
-        this._proxy.GetLayoutRemote(0, -1,
+        this.GetLayoutRemote(0, -1,
             ['type', 'children-display'],
             this._cancellable,
             this._endLayoutUpdate.bind(this));
@@ -339,7 +365,7 @@ var DBusClient = class AppIndicatorsDBusClient {
     _endLayoutUpdate(result, error) {
         if (error) {
             if (!error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
-                Util.Logger.warn(`While reading menu layout on proxy ${this._proxy.g_name_owner}: ${error}`);
+                Util.Logger.warn(`While reading menu layout on proxy ${this.gNameOwner}: ${error}`);
                 this._updateLayoutState(false);
             }
             return;
@@ -408,18 +434,11 @@ var DBusClient = class AppIndicatorsDBusClient {
         return id;
     }
 
-    _clientReady(result, error) {
-        if (error) {
-            if (!error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                Util.Logger.warn(`Could not initialize menu proxy: ${error}`);
-            return;
-        }
-
-        this._requestLayoutUpdate();
-
-        // listen for updated layouts and properties
-        this._proxy.connectSignal('LayoutUpdated', this._onLayoutUpdated.bind(this));
-        this._proxy.connectSignal('ItemsPropertiesUpdated', this._onPropertiesUpdated.bind(this));
+    _onSignal(_sender, signal, params) {
+        if (signal === 'LayoutUpdated')
+            this._requestLayoutUpdate();
+        else if (signal === 'ItemsPropertiesUpdated')
+            this._onPropertiesUpdated(params.deep_unpack());
     }
 
     getItem(id) {
@@ -433,9 +452,9 @@ var DBusClient = class AppIndicatorsDBusClient {
     sendAboutToShow(id) {
         /* Some indicators (you, dropbox!) don't use the right signature
          * and don't return a boolean, so we need to support both cases */
-        let connection = this._proxy.get_connection();
-        connection.call(this._proxy.get_name(), this._proxy.get_object_path(),
-            this._proxy.get_interface_name(), 'AboutToShow',
+        const connection = this.get_connection();
+        connection.call(this.get_name(), this.get_object_path(),
+            this.get_interface_name(), 'AboutToShow',
             new GLib.Variant('(i)', [id]), null,
             Gio.DBusCallFlags.NONE, -1, null, (proxy, res) => {
                 try {
@@ -452,18 +471,14 @@ var DBusClient = class AppIndicatorsDBusClient {
     }
 
     sendEvent(id, event, params, timestamp) {
-        if (!this._proxy)
+        if (!this.gNameOwner)
             return;
 
-        this._proxy.EventRemote(id, event, params, timestamp, this._cancellable,
+        this.EventRemote(id, event, params, timestamp, this._cancellable,
             () => { /* we don't care */ });
     }
 
-    _onLayoutUpdated() {
-        this._requestLayoutUpdate();
-    }
-
-    _onPropertiesUpdated(proxy, name, [changed, removed]) {
+    _onPropertiesUpdated([changed, removed]) {
         changed.forEach(([id, props]) => {
             let item = this._items.get(id);
             if (!item)
@@ -480,17 +495,12 @@ var DBusClient = class AppIndicatorsDBusClient {
             propNames.forEach(propName => item.propertySet(propName, null));
         });
     }
+});
 
-    destroy() {
-        this.emit('destroy');
-
-        this._cancellable.cancel();
-        Signals._disconnectAll.apply(this._proxy);
-
-        this._proxy = null;
-    }
-};
-Signals.addSignalMethods(DBusClient.prototype);
+if (imports.system.version < 17101) {
+    /* In old versions wrappers are not applied to sub-classes, so let's do it */
+    DBusClient.prototype.init_async = Gio.DBusProxy.prototype.init_async;
+}
 
 // ////////////////////////////////////////////////////////////////////////
 // PART TWO: "View" frontend implementation.
@@ -770,13 +780,15 @@ var Client = class AppIndicatorsClient {
         this._rootMenu = null; // the shell menu
         this._rootItem = null; // the DbusMenuItem for the root
         this.indicator = indicator;
+        this.cancellable = new Util.CancellableChild(this.indicator.cancellable);
+
+        this._client.initAsync(this.cancellable).catch(e => {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                logError(e);
+        });
 
         Util.connectSmart(this._client, 'ready-changed', this,
             () => this.emit('ready-changed'));
-    }
-
-    get cancellable() {
-        return this._client.cancellable;
     }
 
     get isReady() {
