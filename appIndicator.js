@@ -849,13 +849,18 @@ var AppIndicator = class AppIndicatorsAppIndicator {
 };
 Signals.addSignalMethods(AppIndicator.prototype);
 
-let StTextureCacheSkippingGIcon;
+let StTextureCacheSkippingFileIcon;
 
 if (imports.system.version >= 17501) {
     try {
-        StTextureCacheSkippingGIcon = GObject.registerClass({
+        StTextureCacheSkippingFileIcon = GObject.registerClass({
             Implements: [Gio.Icon],
-        }, class StTextureCacheSkippingGIconClass extends Gio.EmblemedIcon {
+        }, class StTextureCacheSkippingFileIconImpl extends Gio.EmblemedIcon {
+            _init(params) {
+                // FIXME: We can't just inherit from Gio.FileIcon for some reason
+                super._init({ gicon: new Gio.FileIcon(params) });
+            }
+
             vfunc_to_tokens() {
                 // Disables the to_tokens() vfunc so that the icon to_string()
                 // method won't work and thus can't be kept forever around by
@@ -874,6 +879,24 @@ class AppIndicatorsIconActor extends St.Icon {
 
     static get DEFAULT_STYLE() {
         return 'padding: 0';
+    }
+
+    static get USER_WRITABLE_PATHS() {
+        if (!this._userWritablePaths) {
+            this._userWritablePaths = [
+                GLib.get_user_cache_dir(),
+                GLib.get_user_data_dir(),
+                GLib.get_user_config_dir(),
+                GLib.get_user_runtime_dir(),
+                GLib.get_home_dir(),
+                GLib.get_tmp_dir(),
+            ];
+
+            this._userWritablePaths.push(Object.values(GLib.UserDirectory).slice(
+                0, -1).map(dirId => GLib.get_user_special_dir(dirId)));
+        }
+
+        return this._userWritablePaths;
     }
 
     _init(indicator, iconSize) {
@@ -947,6 +970,7 @@ class AppIndicatorsIconActor extends St.Icon {
             this._cancellable = null;
             this._indicator = null;
             this._loadingIcons = null;
+            this._iconTheme = null;
         });
     }
 
@@ -1056,12 +1080,12 @@ class AppIndicatorsIconActor extends St.Icon {
         if (gicon)
             return gicon;
 
-        const iconInfo = this._getIconInfo(iconName, themePath, iconSize, iconScaling);
-        const loadingId = iconInfo.path || id;
+        const iconData = this._getIconData(iconName, themePath, iconSize, iconScaling);
+        const loadingId = iconData.file ? iconData.file.get_path() : id;
 
         const cancellable = await this._getIconLoadingCancellable(iconType, id);
         try {
-            gicon = await this._createIconByIconData(iconInfo, iconSize,
+            gicon = await this._createIconByIconData(iconData, iconSize,
                 iconScaling, cancellable);
         } finally {
             this._cleanupIconLoadingCancellable(iconType, loadingId);
@@ -1092,7 +1116,9 @@ class AppIndicatorsIconActor extends St.Icon {
         return lookupFlags;
     }
 
-    _getIconLoadingColors(themeNode) {
+    _getIconLoadingColors() {
+        const themeNode = this.get_theme_node();
+
         if (!themeNode)
             return null;
 
@@ -1132,10 +1158,7 @@ class AppIndicatorsIconActor extends St.Icon {
         }
     }
 
-    async _createIconByIconInfo(iconInfo, iconSize, iconScaling, cancellable) {
-        const themeNode = this.get_theme_node();
-        const iconColors = this._getIconLoadingColors(themeNode);
-
+    async _createIconByIconInfo(iconInfo, iconSize, iconScaling, iconColors, cancellable) {
         if (iconColors) {
             const args = St.IconInfo && iconInfo instanceof St.IconInfo
                 ? [iconColors] : [iconColors.foreground, iconColors.success,
@@ -1149,8 +1172,10 @@ class AppIndicatorsIconActor extends St.Icon {
             iconSize, iconScaling, cancellable);
     }
 
-    async _createIconByIconData({ iconInfo, path }, iconSize, iconScaling, cancellable) {
-        if (!path && !iconInfo) {
+    async _createIconByIconData(iconData, iconSize, iconScaling, cancellable) {
+        const { file, iconInfo, name } = iconData;
+
+        if (!file && !name) {
             if (this._createIconIdle) {
                 throw new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING,
                     'Already in progress');
@@ -1173,34 +1198,59 @@ class AppIndicatorsIconActor extends St.Icon {
             delete this._createIconIdle;
         }
 
+        if (name)
+            return new Gio.ThemedIcon({ name });
+
+        if (!file)
+            throw new Error('Neither file or name are set');
+
+        if (!this._isFileInWritableArea(file))
+            return new Gio.FileIcon({ file });
+
         try {
             const [format, width, height] = await GdkPixbuf.Pixbuf.get_file_info_async(
-                path, cancellable);
+                file.get_path(), cancellable);
 
             if (!format) {
-                Util.Logger.critical(`${this.debugId}, Invalid image format: ${path}`);
+                Util.Logger.critical(`${this.debugId}, Invalid image format: ${file.get_path()}`);
                 return null;
             }
 
             if (width >= height * 1.5) {
                 /* Hello indicator-multiload! */
-                await this._loadCustomImage(Gio.File.new_for_path(path),
+                await this._loadCustomImage(file,
                     width, height, iconSize, iconScaling, cancellable);
                 return null;
-            } else if (StTextureCacheSkippingGIcon) {
+            } else if (StTextureCacheSkippingFileIcon) {
                 /* We'll wrap the icon so that it won't be cached forever by the shell */
-                return new Gio.FileIcon({ file: Gio.File.new_for_path(path) });
+                return new StTextureCacheSkippingFileIcon({ file });
             } else if (iconInfo) {
                 return this._createIconByIconInfo(iconInfo, iconSize,
-                    iconScaling, cancellable);
-            } else {
-                return this._createIconByFile(Gio.File.new_for_path(path),
-                    iconSize, iconScaling, cancellable);
+                    iconScaling, this._getIconLoadingColors(), cancellable);
+            } else if (format.name === 'svg') {
+                const iconColors = this._getIconLoadingColors();
+
+                if (iconColors) {
+                    const fileIcon = new Gio.FileIcon({ file });
+                    const iconTheme = this._iconTheme || this._createIconTheme();
+                    const fileIconInfo = iconTheme.lookup_by_gicon_for_scale(
+                        fileIcon, iconSize, iconScaling,
+                        this._getIconLookupFlags(this.get_theme_node()));
+
+                    if (fileIconInfo) {
+                        return this._createIconByIconInfo(fileIconInfo,
+                            iconSize, iconScaling, iconColors, cancellable);
+                    }
+                }
             }
+
+            return this._createIconByFile(file,
+                iconSize, iconScaling, cancellable);
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
                 Util.Logger.warn(
-                    `${this.debugId}, Impossible to read image info from path '${path}': ${e}`);
+                    `${this.debugId}, Impossible to read image info from ` +
+                    `path '${file ? file.get_path() : null}' or name '${name}': ${e}`);
             }
             throw e;
         }
@@ -1245,55 +1295,101 @@ class AppIndicatorsIconActor extends St.Icon {
         }
     }
 
-    _getIconInfo(name, themePath, size, scale) {
-        if (name && name[0] === '/') {
-            // HACK: icon is a path name. This is not specified by the api but at least inidcator-sensors uses it.
-            return { iconInfo: null, path: name };
-        } else if (name) {
-            // we manually look up the icon instead of letting st.icon do it for us
-            // this allows us to sneak in an indicator provided search path and to avoid ugly upscaled icons
+    _isFileInWritableArea(file) {
+        // No need to use IO here, we can just do some assumptions
+        // print('Writable paths', IconActor.USER_WRITABLE_PATHS)
+        const path = file.get_path();
+        return IconActor.USER_WRITABLE_PATHS.some(writablePath =>
+            path.startsWith(writablePath));
+    }
 
-            // indicator-application looks up a special "panel" variant, we just replicate that here
-            name += '-panel';
+    _createIconTheme(searchPath = []) {
+        if (St.IconTheme) {
+            const iconTheme = new St.IconTheme();
+            iconTheme.set_search_path(searchPath);
 
-            // icon info as returned by the lookup
-            let iconInfo = null;
-
-            // we try to avoid messing with the default icon theme, so we'll create a new one if needed
-            let iconTheme = null;
-            const defaultTheme = Util.getDefaultTheme();
-            if (themePath) {
-                iconTheme = St.IconTheme ? new St.IconTheme() : new Gtk.IconTheme();
-                defaultTheme.get_search_path().forEach(p =>
-                    iconTheme.append_search_path(p));
-                iconTheme.append_search_path(themePath);
-
-                if (!Meta.is_wayland_compositor() && !St.IconTheme) {
-                    const defaultScreen = Gdk.Screen.get_default();
-                    if (defaultScreen)
-                        iconTheme.set_screen(defaultScreen);
-                }
-            } else {
-                iconTheme = defaultTheme;
-            }
-            if (iconTheme) {
-                // try to look up the icon in the icon theme
-                iconInfo = iconTheme.lookup_icon_for_scale(name, size, scale,
-                    this._getIconLookupFlags(this.get_theme_node()) |
-                    (St.IconLookupFlags
-                        ? St.IconLookupFlags.GENERIC_FALLBACK
-                        : Gtk.IconLookupFlags.GENERIC_FALLBACK));
-                // no icon? that's bad!
-                if (iconInfo === null) {
-                    const msg = `${this.debugId}, Impossible to lookup icon for '${name}' in`;
-                    Util.Logger.warn(`${msg} ${themePath ? `path ${themePath}` : 'default theme'}`);
-                } else { // we have an icon
-                    // get the icon path
-                    return { iconInfo, path: iconInfo.get_filename() };
-                }
-            }
+            return iconTheme;
         }
-        return { iconInfo: null, path: null };
+
+        const iconTheme = new Gtk.IconTheme();
+        iconTheme.set_search_path(searchPath);
+
+        if (!Meta.is_wayland_compositor()) {
+            const defaultScreen = Gdk.Screen.get_default();
+            if (defaultScreen)
+                iconTheme.set_screen(defaultScreen);
+        }
+
+        return iconTheme;
+    }
+
+    _getIconData(name, themePath, size, scale) {
+        const emptyIconData = { iconInfo: null, file: null, name: null };
+
+        if (!name) {
+            delete this._iconTheme;
+            return emptyIconData;
+        }
+
+        // HACK: icon is a path name. This is not specified by the API,
+        // but at least indicator-sensors uses it.
+        if (name[0] === '/') {
+            delete this._iconTheme;
+
+            const file = Gio.File.new_for_path(name);
+            return { file, iconInfo: null, name: null };
+        }
+
+        if (name.includes('.')) {
+            const splits = name.split('.');
+
+            if (['svg', 'png'].includes(splits[splits.length - 1]))
+                name = splits.slice(0, -1).join('');
+        }
+
+        if (themePath && Util.getDefaultTheme().get_search_path().includes(themePath))
+            themePath = null;
+
+        if (themePath) {
+            // If a theme path is provided, we need to lookup the icon ourself
+            // as St won't be able to do it unless we mess with default theme
+            // that is something we prefer not to do, as it would imply lots of
+            // St.TextureCache cleanups.
+
+            const newSearchPath = [themePath];
+            if (!this._iconTheme) {
+                this._iconTheme = this._createIconTheme(newSearchPath);
+            } else {
+                const currentSearchPath = this._iconTheme.get_search_path();
+
+                if (!currentSearchPath.includes(newSearchPath))
+                    this._iconTheme.set_search_path(newSearchPath);
+            }
+
+            // try to look up the icon in the icon theme
+            const iconInfo = this._iconTheme.lookup_icon_for_scale(`${name}`,
+                size, scale, this._getIconLookupFlags(this.get_theme_node()) |
+                (St.IconLookupFlags
+                    ? St.IconLookupFlags.GENERIC_FALLBACK
+                    : Gtk.IconLookupFlags.GENERIC_FALLBACK));
+
+            if (iconInfo) {
+                return {
+                    iconInfo,
+                    file: Gio.File.new_for_path(iconInfo.get_filename()),
+                    name: null,
+                };
+            }
+
+            const logger = this.gicon ? Util.Logger.debug : Util.Logger.warn;
+            logger(`${this.debugId}, Impossible to lookup icon ` +
+                `for '${name}' in ${themePath}`);
+
+            return emptyIconData;
+        }
+
+        delete this._iconTheme;
+        return { name, iconInfo: null, file: null };
     }
 
     _setImageContent(content, width, height) {
@@ -1349,10 +1445,14 @@ class AppIndicatorsIconActor extends St.Icon {
     _setGicon(iconType, gicon) {
         if (iconType !== SNIconType.OVERLAY) {
             if (gicon) {
-                const isPixbuf = gicon instanceof GdkPixbuf.Pixbuf;
-                this.gicon = StTextureCacheSkippingGIcon && !isPixbuf
-                    ? new StTextureCacheSkippingGIcon({ gicon })
-                    : new Gio.EmblemedIcon({ gicon });
+                if (this.gicon === gicon ||
+                    (this.gicon && this.gicon.get_icon() === gicon))
+                    return;
+
+                if (gicon instanceof Gio.EmblemedIcon)
+                    this.gicon = gicon;
+                else
+                    this.gicon = new Gio.EmblemedIcon({ gicon });
 
                 this._iconCache.updateActive(SNIconType.NORMAL, gicon,
                     this.gicon.get_icon() === gicon);
