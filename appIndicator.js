@@ -48,7 +48,7 @@ if (St.IconInfo)
 else
     PromiseUtils._promisify(Gtk.IconInfo.prototype, 'load_symbolic_async', 'load_symbolic_finish');
 
-const MAX_UPDATE_FREQUENCY = 100; // In ms
+const MAX_UPDATE_FREQUENCY = 30; // In ms
 const FALLBACK_ICON_NAME = 'image-loading-symbolic';
 const PIXMAPS_FORMAT = imports.gi.Cogl.PixelFormat.ARGB_8888;
 
@@ -357,8 +357,8 @@ class AppIndicatorProxy extends Util.DBusProxy {
                     addNew: true,
                 });
             }
-            this._propertiesEmitTimeout = new PromiseUtils.TimeoutPromise(16,
-                GLib.PRIORITY_DEFAULT_IDLE, params.cancellable);
+            this._propertiesEmitTimeout = new PromiseUtils.TimeoutPromise(
+                MAX_UPDATE_FREQUENCY * 2, GLib.PRIORITY_DEFAULT_IDLE, params.cancellable);
             await this._propertiesEmitTimeout;
 
             if (Object.keys(this._changedProperties).length) {
