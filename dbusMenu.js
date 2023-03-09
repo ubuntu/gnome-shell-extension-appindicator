@@ -282,38 +282,23 @@ var DBusClient = GObject.registerClass({
             this._beginLayoutUpdate();
     }
 
-    async _requestProperties(id) {
-        this._propertiesRequestedFor.add(id);
+    async _requestProperties(propertyId) {
+        this._propertiesRequestedFor.add(propertyId);
+
+        if (this._propertiesRequest && this._propertiesRequest.pending())
+            return;
 
         // if we don't have any requests queued, we'll need to add one
-        if (!this._propertiesRequest || !this._propertiesRequest.pending()) {
-            this._propertiesRequest = new PromiseUtils.IdlePromise(
-                GLib.PRIORITY_DEFAULT_IDLE, this._cancellable);
-            await this._propertiesRequest;
-            this._beginRequestProperties();
-        }
-    }
+        this._propertiesRequest = new PromiseUtils.IdlePromise(
+            GLib.PRIORITY_DEFAULT_IDLE, this._cancellable);
+        await this._propertiesRequest;
 
-    _beginRequestProperties() {
-        this.GetGroupPropertiesRemote(
-            Array.from(this._propertiesRequestedFor),
-            [],
-            this._cancellable,
-            this._endRequestProperties.bind(this));
-
+        const requestedProperties = Array.from(this._propertiesRequestedFor);
         this._propertiesRequestedFor.clear();
-        return false;
-    }
+        const [result] = await this.GetGroupPropertiesAsync(requestedProperties,
+            [], this._cancellable);
 
-    _endRequestProperties(result, error) {
-        if (error) {
-            if (!error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                Util.Logger.warn(`Could not retrieve properties: ${error}`);
-            return;
-        }
-
-        // for some funny reason, the result array is hidden in an array
-        result[0].forEach(([id, properties]) => {
+        result.forEach(([id, properties]) => {
             let item = this._items.get(id);
             if (!item)
                 return;
@@ -344,15 +329,36 @@ var DBusClient = GObject.registerClass({
     // the original implementation will only request partial layouts if somehow possible
     // we try to save us from multiple kinds of race conditions by always requesting a full layout
     _beginLayoutUpdate() {
+        this._layoutUpdateUpdateAsync().catch(e => {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                logError(e);
+        });
+    }
+
+    // the original implementation will only request partial layouts if somehow possible
+    // we try to save us from multiple kinds of race conditions by always requesting a full layout
+    async _layoutUpdateUpdateAsync() {
         // we only read the type property, because if the type changes after reading all properties,
         // the view would have to replace the item completely which we try to avoid
-        this.GetLayoutRemote(0, -1,
-            ['type', 'children-display'],
-            this._cancellable,
-            this._endLayoutUpdate.bind(this));
-
         this._flagLayoutUpdateRequired = false;
         this._flagLayoutUpdateInProgress = true;
+
+        try {
+            const [revision_, root] = await this.GetLayoutAsync(0, -1,
+                ['type', 'children-display'], this._cancellable);
+
+            this._updateLayoutState(true);
+            this._doLayoutUpdate(root);
+            this._gcItems();
+            this._flagLayoutUpdateInProgress = false;
+
+            if (this._flagLayoutUpdateRequired)
+                this._beginLayoutUpdate();
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                this._updateLayoutState(false);
+            throw e;
+        }
     }
 
     _updateLayoutState(state) {
@@ -360,26 +366,6 @@ var DBusClient = GObject.registerClass({
         this._layoutUpdated = state;
         if (this.isReady !== wasReady)
             this.emit('ready-changed');
-    }
-
-    _endLayoutUpdate(result, error) {
-        if (error) {
-            if (!error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
-                Util.Logger.warn(`While reading menu layout on proxy ${this.gNameOwner}: ${error}`);
-                this._updateLayoutState(false);
-            }
-            return;
-        }
-
-        let [revision_, root] = result;
-        this._updateLayoutState(true);
-        this._doLayoutUpdate(root);
-        this._gcItems();
-
-        if (this._flagLayoutUpdateRequired)
-            this._beginLayoutUpdate();
-        else
-            this._flagLayoutUpdateInProgress = false;
     }
 
     _doLayoutUpdate(item) {
@@ -449,33 +435,32 @@ var DBusClient = GObject.registerClass({
     }
 
     // we don't need to cache and burst-send that since it will not happen that frequently
-    sendAboutToShow(id) {
+    async sendAboutToShow(id) {
         /* Some indicators (you, dropbox!) don't use the right signature
          * and don't return a boolean, so we need to support both cases */
-        const connection = this.get_connection();
-        connection.call(this.get_name(), this.get_object_path(),
-            this.get_interface_name(), 'AboutToShow',
-            new GLib.Variant('(i)', [id]), null,
-            Gio.DBusCallFlags.NONE, -1, null, (proxy, res) => {
-                try {
-                    let ret = proxy.call_finish(res);
-                    if ((ret.is_of_type(new GLib.VariantType('(b)')) &&
-                     ret.get_child_value(0).get_boolean()) ||
-                    ret.is_of_type(new GLib.VariantType('()')))
-                        this._requestLayoutUpdate();
+        try {
+            const ret = await this.gConnection.call(this.gName, this.gObjectPath,
+                this.gInterfaceName, 'AboutToShow', new GLib.Variant('(i)', [id]),
+                null, Gio.DBusCallFlags.NONE, -1, this._cancellable);
 
-                } catch (e) {
-                    Util.Logger.warn(`Impossible to send about-to-show to menu: ${e}`);
-                }
-            });
+            if ((ret.is_of_type(new GLib.VariantType('(b)')) &&
+                 ret.get_child_value(0).get_boolean()) ||
+                ret.is_of_type(new GLib.VariantType('()')))
+                this._requestLayoutUpdate();
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                logError(e);
+        }
     }
 
     sendEvent(id, event, params, timestamp) {
         if (!this.gNameOwner)
             return;
 
-        this.EventRemote(id, event, params, timestamp, this._cancellable,
-            () => { /* we don't care */ });
+        this.EventAsync(id, event, params, timestamp, this._cancellable).catch(e => {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                logError(e);
+        });
     }
 
     _onPropertiesUpdated([changed, removed]) {
