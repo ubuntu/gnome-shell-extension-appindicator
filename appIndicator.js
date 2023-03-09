@@ -1167,7 +1167,7 @@ class AppIndicatorsIconActor extends St.Icon {
             } finally {
                 delete this._createIconIdle;
             }
-            return null;
+            return this.gicon;
         } else if (this._createIconIdle) {
             this._createIconIdle.cancel();
             delete this._createIconIdle;
