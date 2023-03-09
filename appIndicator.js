@@ -83,9 +83,8 @@ const SNIconType = Object.freeze({
     },
 });
 
-var AppIndicatorProxy = GObject.registerClass({
-    Signals: { 'destroy': {} },
-}, class AppIndicatorProxy extends Gio.DBusProxy {
+var AppIndicatorProxy = GObject.registerClass(
+class AppIndicatorProxy extends Util.DBusProxy {
     static get interfaceInfo() {
         if (!this._interfaceInfo) {
             this._interfaceInfo = Gio.DBusInterfaceInfo.new_for_xml(
@@ -111,76 +110,49 @@ var AppIndicatorProxy = GObject.registerClass({
         return this._tupleType;
     }
 
-    static get TUPLE_VARIANT_TYPE() {
-        if (!this._tupleVariantType)
-            this._tupleVariantType = new GLib.VariantType('(v)');
-
-        return this._tupleVariantType;
-    }
-
     static destroy() {
         delete this._interfaceInfo;
-        delete this._tupleVariantType;
         delete this._tupleType;
     }
 
     _init(busName, objectPath) {
         const { interfaceInfo } = AppIndicatorProxy;
 
-        super._init({
-            g_connection: Gio.DBus.session,
-            g_interface_name: interfaceInfo.name,
-            g_interface_info: interfaceInfo,
-            g_name: busName,
-            g_object_path: objectPath,
-            g_flags: Gio.DBusProxyFlags.GET_INVALIDATED_PROPERTIES,
-        });
+        super._init(busName, objectPath, interfaceInfo,
+            Gio.DBusProxyFlags.GET_INVALIDATED_PROPERTIES);
 
         this.set_cached_property('Status',
             new GLib.Variant('s', SNIStatus.PASSIVE));
 
-        this._signalIds = [];
+
         this._accumulatedProperties = new Set();
         this._cancellables = new Map();
         this._changedProperties = Object.create(null);
-
-        this._signalIds.push(this.connect('g-signal',
-            (_proxy, ...args) => this._onSignal(...args).catch(logError)));
-
-        this._signalIds.push(this.connect('notify::g-name-owner', () => {
-            this._resetNeededProperties();
-            if (!this.gNameOwner)
-                this._cancelRefreshProperties();
-            else
-                this._setupProxyPropertyList();
-        }));
     }
 
     async initAsync(cancellable) {
-        cancellable = new Util.CancellableChild(cancellable);
-        await this.init_async(GLib.PRIORITY_DEFAULT, cancellable);
-        this._cancellable = cancellable;
-
-        this.gInterfaceInfo.methods.map(m => m.name).forEach(method =>
-            this._ensureAsyncMethod(method));
+        await super.initAsync(cancellable);
 
         this._setupProxyPropertyList();
     }
 
     destroy() {
-        this.emit('destroy');
-        this._signalIds.forEach(id => this.disconnect(id));
-
         const cachedProperties = this.get_cached_property_names();
         if (cachedProperties) {
             cachedProperties.forEach(propertyName =>
                 this.set_cached_property(propertyName, null));
         }
 
-        if (this._cancellable)
-            this._cancellable.cancel();
+        super.destroy();
+    }
 
-        this._cancellables.clear();
+    _onNameOwnerChanged() {
+        this._resetNeededProperties();
+
+        if (!this.gNameOwner)
+            this._cancelRefreshProperties();
+        else
+            this._setupProxyPropertyList();
     }
 
     _setupProxyPropertyList() {
@@ -238,7 +210,14 @@ var AppIndicatorProxy = GObject.registerClass({
             }));
     }
 
-    async _onSignal(_sender, signal, params) {
+    _onSignal(...args) {
+        this._onSignalAsync(...args).catch(e => {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                logError(e);
+        });
+    }
+
+    async _onSignalAsync(_sender, signal, params) {
         const property = this._signalToPropertyName(signal);
         if (!property)
             return;
@@ -288,42 +267,6 @@ var AppIndicatorProxy = GObject.registerClass({
     _resetNeededProperties() {
         AppIndicator.NEEDED_PROPERTIES.forEach(p =>
             this.set_cached_property(p, null));
-    }
-
-    // This can be removed when we will have GNOME 43 as minimum version
-    _ensureAsyncMethod(method) {
-        if (this[`${method}Async`])
-            return;
-
-        if (!this[`${method}Remote`])
-            throw new Error(`Missing remote method '${method}'`);
-
-        this[`${method}Async`] = function (...args) {
-            return new Promise((resolve, reject) => {
-                this[`${method}Remote`](...args, (ret, e) => {
-                    if (e)
-                        reject(e);
-                    else
-                        resolve(ret);
-                });
-            });
-        };
-    }
-
-    getProperty(propertyName, cancellable) {
-        return this.g_connection.call(this.g_name,
-            this.g_object_path, 'org.freedesktop.DBus.Properties', 'Get',
-            GLib.Variant.new('(ss)', [this.g_interface_name, propertyName]),
-            AppIndicatorProxy.TUPLE_VARIANT_TYPE, Gio.DBusCallFlags.NONE, -1,
-            cancellable);
-    }
-
-    getProperties(cancellable) {
-        return this.g_connection.call(this.g_name,
-            this.g_object_path, 'org.freedesktop.DBus.Properties', 'GetAll',
-            GLib.Variant.new('(s)', [this.g_interface_name]),
-            GLib.VariantType.new('(a{sv})'), Gio.DBusCallFlags.NONE, -1,
-            cancellable);
     }
 
     async refreshAllProperties() {
