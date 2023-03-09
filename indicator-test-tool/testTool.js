@@ -61,14 +61,14 @@ const ScrollType = {
                 16, Gtk.IconLookupFlags.GENERIC_FALLBACK);
             let iconFile = Gio.File.new_for_path(iconInfo.get_filename());
             let [, extension] = iconFile.get_basename().split('.');
-            let newName = `${iconName}-${Math.floor(Math.random() * 100)}.${extension}`;
+            let newName = `${Math.floor(Math.random() * 100)}${iconName}.${extension}`;
             let newFile = Gio.File.new_for_path(
                 `${GLib.dir_make_tmp('indicator-test-XXXXXX')}/${newName}`);
             temporaryFiles.push(newFile, newFile.get_parent());
             iconFile.copy(newFile, Gio.FileCopyFlags.OVERWRITE, null, null);
 
             indicator.set_icon_theme_path(newFile.get_parent().get_path());
-            indicator.set_icon(newFile.get_basename());
+            indicator.set_icon(newFile.get_basename().split('.').slice(0, -1).join(''));
         };
 
         var menu = new Gtk.Menu();
