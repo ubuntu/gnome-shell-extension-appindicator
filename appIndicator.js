@@ -897,9 +897,16 @@ class AppIndicatorsIconActor extends St.Icon {
         Object.values(SNIconType).forEach(t => (this._loadingIcons[t] = new Map()));
         this._updateIconSize();
 
-        Util.connectSmart(this._indicator, 'icon', this, () => this._updateIcon().catch(logError));
-        Util.connectSmart(this._indicator, 'overlay-icon', this, this._updateOverlayIcon);
-        Util.connectSmart(this._indicator, 'reset', this, () => this._invalidateIcon());
+        Util.connectSmart(this._indicator, 'icon', this, () => {
+            if (this.is_mapped())
+                this._updateIcon();
+        });
+        Util.connectSmart(this._indicator, 'overlay-icon', this, () => {
+            if (this.is_mapped())
+                this._updateIcon();
+        });
+        Util.connectSmart(this._indicator, 'reset', this,
+            () => this._invalidateIconWhenFullyReady());
 
         const settings = SettingsManager.getDefaultGSettings();
         Util.connectSmart(settings, 'changed::icon-size', this, () => {
@@ -908,7 +915,7 @@ class AppIndicatorsIconActor extends St.Icon {
         });
         Util.connectSmart(settings, 'changed::custom-icons', this, () => {
             this._updateCustomIcons();
-            this._invalidateIcon();
+            this._invalidateIconWhenFullyReady();
         });
 
         if (GObject.signal_lookup('resource-scale-changed', this))
@@ -923,29 +930,15 @@ class AppIndicatorsIconActor extends St.Icon {
             this._invalidateIcon();
         });
 
-        Util.connectSmart(this._indicator, 'ready', this, () => {
-            this._updateIconClass();
-            this._updateCustomIcons();
-            this._invalidateIcon();
+        Util.connectSmart(Util.getDefaultTheme(), 'changed', this,
+            () => this._invalidateIconWhenFullyReady());
+
+        this.connect('notify::mapped', () => {
+            if (!this.is_mapped())
+                this._updateWhenFullyReady();
         });
 
-        Util.connectSmart(Util.getDefaultTheme(), 'changed', this, this._invalidateIcon);
-
-        if (indicator.isReady) {
-            this._updateCustomIcons();
-
-            if (this.get_stage()) {
-                this._invalidateIcon();
-            } else {
-                const waitStyleChange = new PromiseUtils.SignalConnectionPromise(
-                    this, 'style-changed', this._cancellable);
-
-                waitStyleChange.then(() => this._invalidateIcon()).catch(e => {
-                    if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                        logError(e);
-                });
-            }
-        }
+        this._updateWhenFullyReady();
 
         this.connect('destroy', () => {
             this._iconCache.destroy();
@@ -958,6 +951,45 @@ class AppIndicatorsIconActor extends St.Icon {
 
     get debugId() {
         return this._indicator ? this._indicator.id : this.toString();
+    }
+
+    async _waitForFullyReady() {
+        const waitConditions = [];
+
+        if (!this.is_mapped()) {
+            waitConditions.push(new PromiseUtils.SignalConnectionPromise(
+                this, 'notify::mapped', this._cancellable));
+        }
+
+        if (!this._indicator.isReady) {
+            waitConditions.push(new PromiseUtils.SignalConnectionPromise(
+                this._indicator, 'ready', this._cancellable));
+        }
+
+        if (!waitConditions.length)
+            return true;
+
+        await Promise.all(waitConditions);
+        return this._waitForFullyReady();
+    }
+
+    async _updateWhenFullyReady() {
+        if (this._waitingReady)
+            return;
+
+        try {
+            this._waitingReady = true;
+            await this._waitForFullyReady();
+
+            this._updateIconClass();
+            this._updateCustomIcons();
+            this._invalidateIcon();
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                logError(e);
+        } finally {
+            delete this._waitingReady;
+        }
     }
 
     _updateIconClass() {
@@ -1472,6 +1504,22 @@ class AppIndicatorsIconActor extends St.Icon {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED) &&
                 !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING))
                 logError(e, `${this.debugId}: Updating overlay icon failed`);
+        }
+    }
+
+    async _invalidateIconWhenFullyReady() {
+        if (this._waitingInvalidation)
+            return;
+
+        try {
+            this._waitingInvalidation = true;
+            await this._waitForFullyReady();
+            this._invalidateIcon();
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                logError(e);
+        } finally {
+            delete this._waitingInvalidation;
         }
     }
 
