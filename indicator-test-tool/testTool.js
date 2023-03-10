@@ -77,6 +77,23 @@ const ScrollType = {
         menu.append(item);
 
         item = Gtk.MenuItem.new_with_label('Foo');
+        const fooItem = item;
+        let fooId = item.connect('activate', () => {
+            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+                print('Changing item label', fooItem.get_label());
+                fooItem.set_label('Destroy me now...');
+                fooItem.connect('activate', () => {
+                    print('Removed item labeled', fooItem.get_label());
+                    fooItem.destroy();
+                });
+                fooItem.disconnect(fooId);
+
+                const barItem = Gtk.MenuItem.new_with_label('Bar');
+                menu.insert(barItem, 2);
+                barItem.show();
+                return GLib.SOURCE_REMOVE;
+            });
+        });
         menu.append(item);
 
         item = Gtk.ImageMenuItem.new_with_label('Calculator');
@@ -84,6 +101,14 @@ const ScrollType = {
         menu.append(item);
 
         item = Gtk.CheckMenuItem.new_with_label('Check me!');
+        const checkItem = item;
+        item.connect('activate', () => {
+            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+                print('changed item label', checkItem.get_label());
+                checkItem.set_label(`Checked at ${new Date().getTime()}`);
+                return GLib.SOURCE_REMOVE;
+            });
+        });
         menu.append(item);
 
         item = Gtk.MenuItem.new_with_label('Blub');
