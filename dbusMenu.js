@@ -234,12 +234,9 @@ var DBusClient = GObject.registerClass({
         super._init(busName, objectPath, interfaceInfo,
             Gio.DBusProxyFlags.DO_NOT_LOAD_PROPERTIES);
 
-        this._items = new Map([
-            [
-                0,
-                new DbusMenuItem(this, 0, DBusClient.baseItems, []),
-            ],
-        ]);
+        this._items = new Map();
+        this._items.set(0, new DbusMenuItem(this, 0, DBusClient.baseItems, []));
+        this._flagItemsUpdateRequired = false;
 
         // will be set to true if a layout update is requested while one is already in progress
         // then the handler that completes the layout update will request another update
@@ -250,6 +247,7 @@ var DBusClient = GObject.registerClass({
         this._propertiesRequestedFor = new Set(/* ids */);
 
         this._layoutUpdated = false;
+        this._active = false;
     }
 
     async initAsync(cancellable) {
@@ -351,6 +349,7 @@ var DBusClient = GObject.registerClass({
             this._doLayoutUpdate(root);
             this._gcItems();
             this._flagLayoutUpdateInProgress = false;
+            this._flagItemsUpdateRequired = false;
 
             if (this._flagLayoutUpdateRequired)
                 this._beginLayoutUpdate();
@@ -369,21 +368,21 @@ var DBusClient = GObject.registerClass({
     }
 
     _doLayoutUpdate(item) {
-        let [id, properties, children] = item;
+        const [id, properties, children] = item;
 
-        let childrenUnpacked = children.map(c => c.deep_unpack());
-        let childrenIds = childrenUnpacked.map(c => c[0]);
+        const childrenUnpacked = children.map(c => c.deep_unpack());
+        const childrenIds = childrenUnpacked.map(([c]) => c);
 
         // make sure all our children exist
         childrenUnpacked.forEach(c => this._doLayoutUpdate(c));
 
         // make sure we exist
         const menuItem = this._items.get(id);
+
         if (menuItem) {
             // we do, update our properties if necessary
             for (let prop in properties)
                 menuItem.propertySet(prop, properties[prop]);
-
 
             // make sure our children are all at the right place, and exist
             let oldChildrenIds = menuItem.getChildrenIds();
@@ -408,23 +407,67 @@ var DBusClient = GObject.registerClass({
 
             // remove any old children that weren't reused
             oldChildrenIds.forEach(c => menuItem.removeChild(c));
-        } else {
-            // we don't, so let's create us
-            this._items.set(id, new DbusMenuItem(this, id, properties, childrenIds));
-            this._requestProperties(id).catch(e => {
-                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                    Util.Logger.warn(`Could not get menu properties menu proxy: ${e}`);
-            });
+
+            if (!this._flagItemsUpdateRequired)
+                return id;
         }
+
+        // we don't, so let's create us
+        let newMenuItem = menuItem;
+
+        if (!newMenuItem) {
+            newMenuItem = new DbusMenuItem(this, id, properties, childrenIds);
+            this._items.set(id, newMenuItem);
+        }
+
+        this._requestProperties(id).catch(e => {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                Util.Logger.warn(`Could not get menu properties menu proxy: ${e}`);
+        });
 
         return id;
     }
 
+    _doPropertiesUpdate() {
+        this._items.forEach((_, id) => {
+            this._requestProperties(id).catch(e => {
+                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                    Util.Logger.warn(`Could not get menu properties menu proxy: ${e}`);
+            });
+        });
+    }
+
+
+    set active(active) {
+        const wasActive = this._active;
+        this._active = active;
+
+        if (active && wasActive !== active) {
+            if (this._flagLayoutUpdateRequired) {
+                this._requestLayoutUpdate();
+            } else if (this._flagItemsUpdateRequired) {
+                this._doPropertiesUpdate();
+                this._flagItemsUpdateRequired = false;
+            }
+        }
+    }
+
     _onSignal(_sender, signal, params) {
-        if (signal === 'LayoutUpdated')
+        if (signal === 'LayoutUpdated') {
+            if (!this._active) {
+                this._flagLayoutUpdateRequired = true;
+                return;
+            }
+
             this._requestLayoutUpdate();
-        else if (signal === 'ItemsPropertiesUpdated')
+        } else if (signal === 'ItemsPropertiesUpdated') {
+            if (!this._active) {
+                this._flagItemsUpdateRequired = true;
+                return;
+            }
+
             this._onPropertiesUpdated(params.deep_unpack());
+        }
     }
 
     getItem(id) {
@@ -844,6 +887,8 @@ var Client = class AppIndicatorsClient {
     _onMenuOpened(menu, state) {
         if (!this._rootItem)
             return;
+
+        this._client.active = state;
 
         if (state) {
             if (this._openedSubMenu && this._openedSubMenu.isOpen)
