@@ -130,18 +130,15 @@ async function introspectBusObject(bus, name, cancellable, interfaces = null, pa
     if (path === '/')
         path = '';
 
-    const requests = [];
-    for (const subNodes of nodeInfo.nodes) {
-        const subPath = `${path}/${subNodes.path}`;
-        requests.push(introspectBusObject(bus, name, cancellable, subPath));
+    async function* iterateSubNodes() {
+        for (const subNodeInfo of nodeInfo.nodes) {
+            const subPath = `${path}/${subNodeInfo.path}`;
+            yield introspectBusObject(bus, name, cancellable, interfaces, subPath);
+        }
     }
 
-    for (const result of await Promise.allSettled(requests)) {
-        if (result.status === 'fulfilled')
-            result.value.forEach(n => nodes.push(n));
-        else if (!result.reason.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-            Logger.debug(`Impossible to get node info: ${result.reason}`);
-    }
+    for await (const subNodes of iterateSubNodes())
+        nodes.push(...subNodes);
 
     return nodes;
 }
