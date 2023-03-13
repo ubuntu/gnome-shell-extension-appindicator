@@ -238,10 +238,8 @@ var DBusClient = GObject.registerClass({
         this._items.set(0, new DbusMenuItem(this, 0, DBusClient.baseItems, []));
         this._flagItemsUpdateRequired = false;
 
-        // will be set to true if a layout update is requested while one is already in progress
-        // then the handler that completes the layout update will request another update
+        // will be set to true if a layout update is needed once active
         this._flagLayoutUpdateRequired = false;
-        this._flagLayoutUpdateInProgress = false;
 
         // property requests are queued
         this._propertiesRequestedFor = new Set(/* ids */);
@@ -274,13 +272,11 @@ var DBusClient = GObject.registerClass({
     }
 
     _requestLayoutUpdate() {
-        if (this._flagLayoutUpdateInProgress)
-            this._flagLayoutUpdateRequired = true;
-        else
-            this._beginLayoutUpdate();
+        const cancellable = new Util.CancellableChild(this._cancellable);
+        this._beginLayoutUpdate(cancellable);
     }
 
-    async _requestProperties(propertyId) {
+    async _requestProperties(propertyId, cancellable) {
         this._propertiesRequestedFor.add(propertyId);
 
         if (this._propertiesRequest && this._propertiesRequest.pending())
@@ -288,13 +284,13 @@ var DBusClient = GObject.registerClass({
 
         // if we don't have any requests queued, we'll need to add one
         this._propertiesRequest = new PromiseUtils.IdlePromise(
-            GLib.PRIORITY_DEFAULT_IDLE, this._cancellable);
+            GLib.PRIORITY_DEFAULT_IDLE, cancellable);
         await this._propertiesRequest;
 
         const requestedProperties = Array.from(this._propertiesRequestedFor);
         this._propertiesRequestedFor.clear();
         const [result] = await this.GetGroupPropertiesAsync(requestedProperties,
-            [], this._cancellable);
+            [], cancellable);
 
         result.forEach(([id, properties]) => {
             let item = this._items.get(id);
@@ -326,8 +322,8 @@ var DBusClient = GObject.registerClass({
 
     // the original implementation will only request partial layouts if somehow possible
     // we try to save us from multiple kinds of race conditions by always requesting a full layout
-    _beginLayoutUpdate() {
-        this._layoutUpdateUpdateAsync().catch(e => {
+    _beginLayoutUpdate(cancellable) {
+        this._layoutUpdateUpdateAsync(cancellable).catch(e => {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 logError(e);
         });
@@ -335,28 +331,30 @@ var DBusClient = GObject.registerClass({
 
     // the original implementation will only request partial layouts if somehow possible
     // we try to save us from multiple kinds of race conditions by always requesting a full layout
-    async _layoutUpdateUpdateAsync() {
+    async _layoutUpdateUpdateAsync(cancellable) {
         // we only read the type property, because if the type changes after reading all properties,
         // the view would have to replace the item completely which we try to avoid
-        this._flagLayoutUpdateRequired = false;
-        this._flagLayoutUpdateInProgress = true;
+        if (this._layoutUpdateCancellable)
+            this._layoutUpdateCancellable.cancel();
+
+        this._layoutUpdateCancellable = cancellable;
 
         try {
             const [revision_, root] = await this.GetLayoutAsync(0, -1,
-                ['type', 'children-display'], this._cancellable);
+                ['type', 'children-display'], cancellable);
 
             this._updateLayoutState(true);
-            this._doLayoutUpdate(root);
+            this._doLayoutUpdate(root, cancellable);
             this._gcItems();
-            this._flagLayoutUpdateInProgress = false;
+            this._flagLayoutUpdateRequired = false;
             this._flagItemsUpdateRequired = false;
-
-            if (this._flagLayoutUpdateRequired)
-                this._beginLayoutUpdate();
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 this._updateLayoutState(false);
             throw e;
+        } finally {
+            if (this._layoutUpdateCancellable === cancellable)
+                this._layoutUpdateCancellable = null;
         }
     }
 
@@ -367,14 +365,14 @@ var DBusClient = GObject.registerClass({
             this.emit('ready-changed');
     }
 
-    _doLayoutUpdate(item) {
+    _doLayoutUpdate(item, cancellable) {
         const [id, properties, children] = item;
 
         const childrenUnpacked = children.map(c => c.deep_unpack());
         const childrenIds = childrenUnpacked.map(([c]) => c);
 
         // make sure all our children exist
-        childrenUnpacked.forEach(c => this._doLayoutUpdate(c));
+        childrenUnpacked.forEach(c => this._doLayoutUpdate(c, cancellable));
 
         // make sure we exist
         const menuItem = this._items.get(id);
@@ -420,7 +418,7 @@ var DBusClient = GObject.registerClass({
             this._items.set(id, newMenuItem);
         }
 
-        this._requestProperties(id).catch(e => {
+        this._requestProperties(id, cancellable).catch(e => {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 Util.Logger.warn(`Could not get menu properties menu proxy: ${e}`);
         });
@@ -428,12 +426,30 @@ var DBusClient = GObject.registerClass({
         return id;
     }
 
+    async _doPropertiesUpdateAsync(cancellable) {
+        if (this._propertiesUpdateCancellable)
+            this._propertiesUpdateCancellable.cancel();
+
+        this._propertiesUpdateCancellable = cancellable;
+
+        try {
+            const requests = [];
+
+            this._items.forEach((_, id) =>
+                requests.push(this._requestProperties(id, cancellable)));
+
+            await Promise.all(requests);
+        } finally {
+            if (this._propertiesUpdateCancellable === cancellable)
+                this._propertiesUpdateCancellable = null;
+        }
+    }
+
     _doPropertiesUpdate() {
-        this._items.forEach((_, id) => {
-            this._requestProperties(id).catch(e => {
-                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                    Util.Logger.warn(`Could not get menu properties menu proxy: ${e}`);
-            });
+        const cancellable = new Util.CancellableChild(this._cancellable);
+        this._doPropertiesUpdateAsync(cancellable).catch(e => {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                Util.Logger.warn(`Could not get menu properties menu proxy: ${e}`);
         });
     }
 
