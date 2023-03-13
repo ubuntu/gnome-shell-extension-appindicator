@@ -844,6 +844,7 @@ var Client = class AppIndicatorsClient {
     attachToMenu(menu) {
         this._rootMenu = menu;
         this._rootItem = this._client.getRoot();
+        this._itemsBeingAdded = new Set();
 
         // cleanup: remove existing children (just in case)
         this._rootMenu.removeAll();
@@ -863,8 +864,9 @@ var Client = class AppIndicatorsClient {
         this._rootItem.sendAboutToShow();
 
         // fill the menu for the first time
-        this._rootItem.getChildren().forEach(child =>
-            this._rootMenu.addMenuItem(MenuItemFactory.createItem(this, child)));
+        const children = this._rootItem.getChildren();
+        children.forEach(child =>
+            this._onRootChildAdded(this._rootItem, child));
     }
 
     _setOpenedSubmenu(submenu) {
@@ -884,16 +886,35 @@ var Client = class AppIndicatorsClient {
     }
 
     _onRootChildAdded(dbusItem, child, position) {
-        this._rootMenu.addMenuItem(MenuItemFactory.createItem(this, child), position);
+        // Menu additions can be expensive, so let's do it in different chunks
+        const basePriority = this.isOpen ? GLib.PRIORITY_DEFAULT : GLib.PRIORITY_LOW;
+        const idlePromise = new PromiseUtils.IdlePromise(
+            basePriority + this._itemsBeingAdded.size, this.cancellable);
+        this._itemsBeingAdded.add(child);
+
+        idlePromise.then(() => {
+            if (!this._itemsBeingAdded.has(child))
+                return;
+
+            this._rootMenu.addMenuItem(
+                MenuItemFactory.createItem(this, child), position);
+        }).catch(e => {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                logError(e);
+        }).finally(() => this._itemsBeingAdded.delete(child));
     }
 
     _onRootChildRemoved(dbusItem, child) {
         // children like to play hide and seek
         // but we know how to find it for sure!
-        this._rootMenu._getMenuItems().forEach(item => {
-            if (item._dbusItem === child)
-                item.destroy();
-        });
+        const item = this._rootMenu._getMenuItems().find(it =>
+            it._dbusItem === child);
+
+        if (item)
+            item.destroy();
+        else
+            this._itemsBeingAdded.delete(child);
+
     }
 
     _onRootChildMoved(dbusItem, child, oldpos, newpos) {
@@ -927,6 +948,7 @@ var Client = class AppIndicatorsClient {
         this._rootItem = null;
         this._rootMenu = null;
         this.indicator = null;
+        this._itemsBeingAdded = null;
     }
 };
 Signals.addSignalMethods(Client.prototype);
