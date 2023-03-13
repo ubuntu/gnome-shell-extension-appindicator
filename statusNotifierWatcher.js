@@ -150,7 +150,6 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
         // StatusNotifierItem interface... However let's do it after a low
         // priority idle, so that it won't affect startup.
         const cancellable = this._cancellable;
-        await new PromiseUtils.IdlePromise(GLib.PRIORITY_LOW, cancellable);
         const bus = Gio.DBus.session;
         const uniqueNames = await Util.getBusNames(bus, cancellable);
         const introspectName = async name => {
