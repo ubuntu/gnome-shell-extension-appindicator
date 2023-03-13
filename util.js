@@ -113,7 +113,7 @@ async function getProcessName(connectionName, cancellable = null,
     return ByteArray.toString(bytes.toArray().map(v => !v ? 0x20 : v));
 }
 
-async function introspectBusObject(bus, name, cancellable, path = undefined) {
+async function introspectBusObject(bus, name, cancellable, interfaces = null, path = undefined) {
     if (!path)
         path = '/';
 
@@ -122,7 +122,10 @@ async function introspectBusObject(bus, name, cancellable, path = undefined) {
         -1, cancellable)).deep_unpack();
 
     const nodeInfo = Gio.DBusNodeInfo.new_for_xml(introspection);
-    const nodes = [{ nodeInfo, path }];
+    const nodes = [];
+
+    if (!interfaces || dbusNodeImplementsInterfaces(nodeInfo, interfaces))
+        nodes.push({ nodeInfo, path });
 
     if (path === '/')
         path = '';
