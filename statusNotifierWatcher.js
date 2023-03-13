@@ -154,20 +154,19 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
         const bus = Gio.DBus.session;
         const uniqueNames = await Util.getBusNames(bus, cancellable);
         const introspectName = async name => {
-            const nodes = await Util.introspectBusObject(bus, name, cancellable);
+            const nodes = await Util.introspectBusObject(bus, name, cancellable,
+                ['org.kde.StatusNotifierItem']);
             const services = [...uniqueNames.get(name)];
-            nodes.forEach(({ nodeInfo, path }) => {
-                if (Util.dbusNodeImplementsInterfaces(nodeInfo, ['org.kde.StatusNotifierItem'])) {
-                    const ids = services.map(s => Util.indicatorId(s, name, path));
-                    if (ids.every(id => !this._items.has(id))) {
-                        const service = services.find(s =>
-                            s && s.startsWith('org.kde.StatusNotifierItem')) || services[0];
-                        const id = Util.indicatorId(
-                            path === DEFAULT_ITEM_OBJECT_PATH ? service : null,
-                            name, path);
-                        Util.Logger.warn(`Using Brute-force mode for StatusNotifierItem ${id}`);
-                        this._registerItem(service, name, path);
-                    }
+            nodes.forEach(({ path }) => {
+                const ids = services.map(s => Util.indicatorId(s, name, path));
+                if (ids.every(id => !this._items.has(id))) {
+                    const service = services.find(s =>
+                        s && s.startsWith('org.kde.StatusNotifierItem')) || services[0];
+                    const id = Util.indicatorId(
+                        path === DEFAULT_ITEM_OBJECT_PATH ? service : null,
+                        name, path);
+                    Util.Logger.warn(`Using Brute-force mode for StatusNotifierItem ${id}`);
+                    this._registerItem(service, name, path);
                 }
             });
         };
