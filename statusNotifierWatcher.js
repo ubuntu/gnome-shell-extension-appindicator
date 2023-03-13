@@ -154,10 +154,12 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
         const bus = Gio.DBus.session;
         const uniqueNames = await Util.getBusNames(bus, cancellable);
         const introspectName = async name => {
-            const nodes = await Util.introspectBusObject(bus, name, cancellable,
+            const nodes = Util.introspectBusObject(bus, name, cancellable,
                 ['org.kde.StatusNotifierItem']);
             const services = [...uniqueNames.get(name)];
-            nodes.forEach(({ path }) => {
+
+            for await (const node of nodes) {
+                const { path } = node;
                 const ids = services.map(s => Util.indicatorId(s, name, path));
                 if (ids.every(id => !this._items.has(id))) {
                     const service = services.find(s =>
@@ -168,7 +170,7 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
                     Util.Logger.warn(`Using Brute-force mode for StatusNotifierItem ${id}`);
                     this._registerItem(service, name, path);
                 }
-            });
+            }
         };
         await Promise.allSettled([...uniqueNames.keys()].map(n => introspectName(n)));
     }

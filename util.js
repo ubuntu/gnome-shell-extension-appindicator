@@ -113,7 +113,8 @@ async function getProcessName(connectionName, cancellable = null,
     return ByteArray.toString(bytes.toArray().map(v => !v ? 0x20 : v));
 }
 
-async function introspectBusObject(bus, name, cancellable, interfaces = null, path = undefined) {
+async function* introspectBusObject(bus, name, cancellable,
+    interfaces = undefined, path = undefined) {
     if (!path)
         path = '/';
 
@@ -122,25 +123,17 @@ async function introspectBusObject(bus, name, cancellable, interfaces = null, pa
         5000, cancellable)).deep_unpack();
 
     const nodeInfo = Gio.DBusNodeInfo.new_for_xml(introspection);
-    const nodes = [];
 
     if (!interfaces || dbusNodeImplementsInterfaces(nodeInfo, interfaces))
-        nodes.push({ nodeInfo, path });
+        yield { nodeInfo, path };
 
     if (path === '/')
         path = '';
 
-    async function* iterateSubNodes() {
-        for (const subNodeInfo of nodeInfo.nodes) {
-            const subPath = `${path}/${subNodeInfo.path}`;
-            yield introspectBusObject(bus, name, cancellable, interfaces, subPath);
-        }
+    for (const subNodeInfo of nodeInfo.nodes) {
+        const subPath = `${path}/${subNodeInfo.path}`;
+        yield* introspectBusObject(bus, name, cancellable, interfaces, subPath);
     }
-
-    for await (const subNodes of iterateSubNodes())
-        nodes.push(...subNodes);
-
-    return nodes;
 }
 
 function dbusNodeImplementsInterfaces(nodeInfo, interfaces) {
