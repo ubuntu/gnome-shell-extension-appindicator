@@ -119,7 +119,7 @@ async function introspectBusObject(bus, name, cancellable, interfaces = null, pa
 
     const [introspection] = (await bus.call(name, path, 'org.freedesktop.DBus.Introspectable',
         'Introspect', null, new GLib.VariantType('(s)'), Gio.DBusCallFlags.NONE,
-        -1, cancellable)).deep_unpack();
+        5000, cancellable)).deep_unpack();
 
     const nodeInfo = Gio.DBusNodeInfo.new_for_xml(introspection);
     const nodes = [];
