@@ -454,7 +454,10 @@ var AppIndicator = class AppIndicatorsAppIndicator {
             this._commandLine = await Util.getProcessName(this.busName,
                 cancellable, GLib.PRIORITY_LOW);
         } catch (e) {
-            Util.Logger.debug(`${this.uniqueId}, failed getting command line: ${e.message}`);
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+                Util.Logger.debug(
+                    `${this.uniqueId}, failed getting command line: ${e.message}`);
+            }
         }
     }
 
