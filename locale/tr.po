@@ -1,135 +1,144 @@
-# TopIcons Plus Turkish Translate.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the PACKAGE package.
+# Ubuntu AppIndicator Turkish Translate.
+# Copyright (C) 2019-2023 Ubuntu AppIndicator'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Ubuntu AppIndicator package.
+#
 # Serdar Sağlam <teknomobil@yandex.com>, 2019.
+# Sabri Ünal <libreajans@gmail.com>, 2023.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: \n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-09-27 20:43+0200\n"
-"PO-Revision-Date: 2019-02-09 00:28+0300\n"
-"Last-Translator: \n"
-"Language-Team: Serdar Sağlam <teknomobil@yandex.com>\n"
+"Project-Id-Version: Ubuntu AppIndicator\n"
+"Report-Msgid-Bugs-To: https://github.com/ubuntu/gnome-shell-extension-appindicator\n"
+"POT-Creation-Date: 2023-03-07 02:36+0100\n"
+"PO-Revision-Date: 2023-04-20 12:56+0300\n"
+"Last-Translator: Sabri Ünal <libreajans@gmail.com>\n"
+"Language-Team: Turkish <takim@gnome.org.tr>\n"
 "Language: tr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 2.2.1\n"
-"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Poedit 3.2.2\n"
 
-#: prefs.js:67
+#: prefs.js:59
+msgid "Enable Legacy Tray Icons support"
+msgstr "Eski Tepsi Simgeleri desteğini etkinleştir"
+
+#: prefs.js:91
 msgid "Opacity (min: 0, max: 255)"
 msgstr "Opaklık (az: 0, çok: 255)"
 
-#: prefs.js:95
+#: prefs.js:120
 msgid "Desaturation (min: 0.0, max: 1.0)"
 msgstr "Doygunluk (az: 0.0, çok: 1.0)"
 
-#: prefs.js:123
+#: prefs.js:148
 msgid "Brightness (min: -1.0, max: 1.0)"
 msgstr "Parlaklık (az: -1.0, çok: 1.0)"
 
-#: prefs.js:151
+#: prefs.js:176
 msgid "Contrast (min: -1.0, max: 1.0)"
 msgstr "Karşıtlık (az: -1.0, çok: 1.0)"
 
-#: prefs.js:179
+#: prefs.js:204
 msgid "Icon size (min: 0, max: 96)"
 msgstr "Simge boyutu (az: 0, çok : 96)"
 
-#: prefs.js:207
+#: prefs.js:232
 msgid "Tray horizontal alignment"
-msgstr "Simgeleri yatay hizala"
+msgstr "Tepsi yatay hizalama"
 
-#: prefs.js:212
+#: prefs.js:237
 msgid "Center"
 msgstr "Ortala"
 
-#: prefs.js:213
+#: prefs.js:238
 msgid "Left"
 msgstr "Sol"
 
-#: prefs.js:214
+#: prefs.js:239
 msgid "Right"
 msgstr "Sağ"
 
-#: prefs.js:259
+#: prefs.js:286
 msgid "Indicator ID"
-msgstr ""
+msgstr "Belirteç Kimliği"
 
-#: prefs.js:260
+#: prefs.js:287
 msgid "Icon Name"
-msgstr ""
+msgstr "Simge Adı"
 
-#: prefs.js:261
+#: prefs.js:288
 msgid "Attention Icon Name"
-msgstr ""
+msgstr "Dikkat Simgesi Adı"
 
-#: prefs.js:336
+#: prefs.js:363
 msgid "Preferences"
-msgstr ""
+msgstr "Tercihler"
 
-#: prefs.js:338
+#: prefs.js:365
 msgid "Custom Icons"
-msgstr ""
+msgstr "Özel Simgeler"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
-msgid "Saturation"
-msgstr ""
+msgid "Enable legacy tray icons support"
+msgstr "Eski tepsi simgeleri desteğini etkinleştir"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
-msgid "Brightness"
-msgstr ""
+msgid "Saturation"
+msgstr "Doygunluk"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
-msgid "Contrast"
-msgstr ""
+msgid "Brightness"
+msgstr "Parlaklık"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
-msgid "Opacity"
-msgstr ""
+msgid "Contrast"
+msgstr "Karşıtlık"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
-msgid "Icon size"
-msgstr ""
+msgid "Opacity"
+msgstr "Matlık"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:22
-#, fuzzy
-msgid "Icon size in pixel"
-msgstr "Simge boyutu (az: 0, çok : 96)"
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:25
+msgid "Icon size"
+msgstr "Simge boyutu"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
-msgid "Icon spacing"
-msgstr ""
+msgid "Icon size in pixel"
+msgstr "Simge boyutu (piksel olarak)"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:27
-msgid "Icon spacing within the tray"
-msgstr ""
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:30
+msgid "Icon spacing"
+msgstr "Simge boşluğu"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
-msgid "Position in tray"
-msgstr ""
+msgid "Icon spacing within the tray"
+msgstr "Tepsi içindeki simge boşluğu"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:32
-msgid "Set where the Icon tray should appear in Gnome tray"
-msgstr ""
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:35
+msgid "Position in tray"
+msgstr "Tepsideki konumu"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
-msgid "Order in tray"
-msgstr ""
+msgid "Set where the Icon tray should appear in Gnome tray"
+msgstr "Simge tepsisinin GNOME tepsisinde nerede görüneceğini ayarla"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:37
-msgid "Set where the Icon tray should appear among other trays"
-msgstr ""
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:40
+msgid "Order in tray"
+msgstr "Tepsideki sırası"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
-msgid "Custom icons"
-msgstr ""
+msgid "Set where the Icon tray should appear among other trays"
+msgstr "Simge tepsisinin diğer tepsiler arasında nerede görüneceğini ayarla"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:42
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:45
+msgid "Custom icons"
+msgstr "Özel simgeler"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:46
 msgid "Replace any icons with custom icons from themes"
-msgstr ""
+msgstr "Herhangi bir simgeyi temalardaki özel simgelerle değiştir"
 
 #~ msgid "Spacing between icons (min: 0, max: 20)"
 #~ msgstr "Simgeler arasında boşluk (az: 0, çok: 20)"
