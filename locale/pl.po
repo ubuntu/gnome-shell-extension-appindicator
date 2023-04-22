@@ -7,125 +7,134 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AppIndicatorExtension\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-09-27 20:43+0200\n"
-"PO-Revision-Date: 2022-01-12 14:32+0000\n"
+"POT-Creation-Date: 2023-03-07 02:36+0100\n"
+"PO-Revision-Date: 2023-04-22 21:08+0200\n"
+"Last-Translator: Maciej Karpinski <kontakt@karpinski.tech>\n"
 "Language-Team: \n"
+"Language: pl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 3.0\n"
-"Last-Translator: HydeFromT70s\n"
-"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
-"Language: pl\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 "
+"|| n%100>14) ? 1 : 2);\n"
+"X-Generator: Poedit 3.1.1\n"
 
-#: prefs.js:67
+#: prefs.js:59
+msgid "Enable Legacy Tray Icons support"
+msgstr "Włącz Obsługę Starszych Ikon"
+
+#: prefs.js:91
 msgid "Opacity (min: 0, max: 255)"
 msgstr "Krycie (min: 0, max: 255)"
 
-#: prefs.js:95
+#: prefs.js:120
 msgid "Desaturation (min: 0.0, max: 1.0)"
 msgstr "Desaturacja (min: 0.0, max: 1.0)"
 
-#: prefs.js:123
+#: prefs.js:148
 msgid "Brightness (min: -1.0, max: 1.0)"
 msgstr "Jasność (min: -1.0, max: 1.0)"
 
-#: prefs.js:151
+#: prefs.js:176
 msgid "Contrast (min: -1.0, max: 1.0)"
 msgstr "Kontrast (min: -1.0, max: 1.0)"
 
-#: prefs.js:179
+#: prefs.js:204
 msgid "Icon size (min: 0, max: 96)"
 msgstr "Rozmiar ikon (min: 0, max: 96)"
 
-#: prefs.js:207
+#: prefs.js:232
 msgid "Tray horizontal alignment"
 msgstr "Wyśrodkowanie tacki systemowej"
 
-#: prefs.js:212
+#: prefs.js:237
 msgid "Center"
 msgstr "Centralnie"
 
-#: prefs.js:213
+#: prefs.js:238
 msgid "Left"
 msgstr "Po lewej"
 
-#: prefs.js:214
+#: prefs.js:239
 msgid "Right"
 msgstr "Po prawej"
 
-#: prefs.js:259
+#: prefs.js:286
 msgid "Indicator ID"
 msgstr "ID"
 
-#: prefs.js:260
+#: prefs.js:287
 msgid "Icon Name"
 msgstr "Nazwa ikony"
 
-#: prefs.js:261
+#: prefs.js:288
 msgid "Attention Icon Name"
 msgstr "Nazwa ikony uwagi"
 
-#: prefs.js:336
+#: prefs.js:363
 msgid "Preferences"
 msgstr "Ustawienia"
 
-#: prefs.js:338
+#: prefs.js:365
 msgid "Custom Icons"
 msgstr "Niestandardowe ikony"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
+msgid "Enable legacy tray icons support"
+msgstr "Włącz obsługę starszych ikon"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
 msgid "Saturation"
 msgstr "Nasycenie"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
 msgid "Brightness"
 msgstr "Jasność"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
 msgid "Contrast"
 msgstr "Kontrast"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
 msgid "Opacity"
 msgstr "Krycie"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:25
 msgid "Icon size"
 msgstr "Rozmiar ikony"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:22
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
 msgid "Icon size in pixel"
 msgstr "Rozmiar ikony w pikselach"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:30
 msgid "Icon spacing"
 msgstr "Odstępy ikon"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:27
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
 msgid "Icon spacing within the tray"
 msgstr "Odstępy ikon na pasku zadań"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:35
 msgid "Position in tray"
 msgstr "Pozycja na pasku zadań"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:32
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
 msgid "Set where the Icon tray should appear in Gnome tray"
 msgstr "Ustaw, gdzie powinny pojawić się ikony na pasku zadań"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:40
 msgid "Order in tray"
 msgstr "Kolejność na pasku zadań"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:37
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
 msgid "Set where the Icon tray should appear among other trays"
 msgstr "Ustaw położenie tacki z ikonami między innymi tackami"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:45
 msgid "Custom icons"
 msgstr "Niestandardowe ikony"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:42
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:46
 msgid "Replace any icons with custom icons from themes"
 msgstr "Zastąp dowolne ikony niestandardowymi ikonami z motywów"
