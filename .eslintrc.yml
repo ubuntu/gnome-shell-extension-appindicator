@@ -1,3 +1,6 @@
+ignorePatterns:
+  - _build/**
+
 extends:
  - ./lint/eslintrc-gjs.yml
  - ./lint/eslintrc-shell.yml
@@ -6,8 +9,20 @@ overrides:
   - files: ./*.js
     globals:
       global: readonly
+      _: readonly
+      C_: readonly
+      N_: readonly
+      ngettext: readonly
 
-# Conform to https://gitlab.gnome.org/GNOME/gjs/-/raw/gnome-3-34/.eslintrc.yml
+    rules:
+      prefer-const: error
+      prefer-destructuring: warn
+      guard-for-in: error
+      max-len:
+        - error
+        - code: 110
+          ignoreUrls: true
+          ignoreTemplateLiterals: true
+
 parserOptions:
-  ecmaVersion: 2019
   sourceType: module

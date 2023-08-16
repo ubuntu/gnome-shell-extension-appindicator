@@ -22,7 +22,7 @@ export let DBusMenu = null;
 function loadInterfaceXml(extension, filename) {
     const interfacesDir = extension.dir.get_child('interfaces-xml');
     const file = interfacesDir.get_child(filename);
-    let [result, contents] = imports.gi.GLib.file_get_contents(file.get_path());
+    const [result, contents] = imports.gi.GLib.file_get_contents(file.get_path());
 
     if (result) {
         // HACK: The "" + trick is important as hell because file_get_contents returns
@@ -30,9 +30,10 @@ function loadInterfaceXml(extension, filename) {
         // Otherwise, it will try to check `instanceof XML` and fail miserably because there
         // is no `XML` on very recent SpiderMonkey releases (or, if SpiderMonkey is old enough,
         // will spit out a TypeError soon).
+        let nodeContents = contents;
         if (contents instanceof Uint8Array)
-            contents = imports.byteArray.toString(contents);
-        return `<node>${contents}</node>`;
+            nodeContents = imports.byteArray.toString(contents);
+        return `<node>${nodeContents}</node>`;
     } else {
         throw new Error(`AppIndicatorSupport: Could not load file: ${filename}`);
     }

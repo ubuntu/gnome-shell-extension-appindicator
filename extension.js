@@ -20,7 +20,7 @@ import * as StatusNotifierWatcher from './statusNotifierWatcher.js';
 import * as Interfaces from './interfaces.js';
 import * as TrayIconsManager from './trayIconsManager.js';
 import * as Util from './util.js';
-import { SettingsManager } from './settingsManager.js';
+import {SettingsManager} from './settingsManager.js';
 
 export default class DashToDockExtension extends Extension.Extension {
     constructor(...args) {

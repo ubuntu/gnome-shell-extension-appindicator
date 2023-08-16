@@ -28,7 +28,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 import * as ExtensionUtils from 'resource:///org/gnome/shell/misc/extensionUtils.js';
 
-import { BaseStatusIcon } from './indicatorStatusIcon.js';
+import {BaseStatusIcon} from './indicatorStatusIcon.js';
 import * as PromiseUtils from './promiseUtils.js';
 
 const Signals = imports.signals;
@@ -123,7 +123,7 @@ export async function* introspectBusObject(bus, name, cancellable,
     const nodeInfo = Gio.DBusNodeInfo.new_for_xml(introspection);
 
     if (!interfaces || dbusNodeImplementsInterfaces(nodeInfo, interfaces))
-        yield { nodeInfo, path };
+        yield {nodeInfo, path};
 
     if (path === '/')
         path = '';
@@ -171,7 +171,7 @@ export class NameWatcher {
 Signals.addSignalMethods(NameWatcher.prototype);
 
 function connectSmart3A(src, signal, handler) {
-    let id = src.connect(signal, handler);
+    const id = src.connect(signal, handler);
     let destroyId = 0;
 
     if (src.connect && (!(src instanceof GObject.Object) || GObject.signal_lookup('destroy', src))) {
@@ -312,11 +312,11 @@ export class Logger {
         };
 
         let thisFile = null;
-        let { stack } = new Error();
+        const {stack} = new Error();
         for (let stackLine of stack.split('\n')) {
             stackLine = stackLine.replace('resource:///org/gnome/Shell/', '');
-            let [code, line] = stackLine.split(':');
-            let [func, file] = code.split(/@(.+)/);
+            const [code, line] = stackLine.split(':');
+            const [func, file] = code.split(/@(.+)/);
 
             if (!thisFile || thisFile === file) {
                 thisFile = file;
@@ -341,7 +341,7 @@ export class Logger {
 
         const allLevels = Object.values(GLib.LogLevelFlags);
         const domains = GLib.getenv('G_MESSAGES_DEBUG');
-        const { name: domain } = extension.metadata;
+        const {name: domain} = extension.metadata;
         this.uuid = extension.metadata.uuid;
         Logger._domain = domain.replaceAll ? domain.replaceAll(' ', '-')
             : domain.split(' ').join('-');
@@ -380,11 +380,10 @@ export function versionCheck(required) {
         return ExtensionUtils.versionCheck(required, Config.PACKAGE_VERSION);
 
     const current = Config.PACKAGE_VERSION;
-    let currentArray = current.split('.');
-    let major = currentArray[0];
-    let minor = currentArray[1];
+    const currentArray = current.split('.');
+    const [major, minor] = currentArray;
     for (let i = 0; i < required.length; i++) {
-        let requiredArray = required[i].split('.');
+        const requiredArray = required[i].split('.');
         if (requiredArray[0] === major &&
             (requiredArray[1] === undefined && isFinite(minor) ||
                 requiredArray[1] === minor))
@@ -424,7 +423,7 @@ class CancellableChild extends Gio.Cancellable {
         if (parent && !(parent instanceof Gio.Cancellable))
             throw TypeError('Not a valid cancellable');
 
-        super._init({ parent });
+        super._init({parent});
 
         if (parent) {
             if (parent.is_cancelled()) {

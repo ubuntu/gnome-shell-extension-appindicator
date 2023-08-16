@@ -37,7 +37,6 @@ const DEFAULT_ITEM_OBJECT_PATH = '/StatusNotifierItem';
  * The StatusNotifierWatcher class implements the StatusNotifierWatcher dbus object
  */
 export class StatusNotifierWatcher {
-
     constructor(watchDog) {
         this._watchDog = watchDog;
         this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(Interfaces.StatusNotifierWatcher, this);
@@ -127,7 +126,7 @@ export class StatusNotifierWatcher {
 
     async _ensureItemRegistered(service, busName, objPath) {
         const id = Util.indicatorId(service, busName, objPath);
-        let item = this._items.get(id);
+        const item = this._items.get(id);
 
         if (item) {
             // delete the old one and add the new indicator
@@ -154,7 +153,7 @@ export class StatusNotifierWatcher {
             const services = [...uniqueNames.get(name)];
 
             for await (const node of nodes) {
-                const { path } = node;
+                const {path} = node;
                 const ids = services.map(s => Util.indicatorId(s, name, path));
                 if (ids.every(id => !this._items.has(id))) {
                     const service = services.find(s =>
@@ -174,7 +173,7 @@ export class StatusNotifierWatcher {
         // it would be too easy if all application behaved the same
         // instead, ayatana patched gnome apps to send a path
         // while kde apps send a bus name
-        let [service] = params;
+        const [service] = params;
         let busName, objPath;
 
         if (service.charAt(0) === '/') { // looks like a path
@@ -191,7 +190,7 @@ export class StatusNotifierWatcher {
         }
 
         if (!busName || !objPath) {
-            let error = `Impossible to register an indicator for parameters '${
+            const error = `Impossible to register an indicator for parameters '${
                 service.toString()}'`;
             Util.Logger.warn(error);
 
@@ -212,7 +211,7 @@ export class StatusNotifierWatcher {
     }
 
     _onIndicatorDestroyed(indicator) {
-        const { uniqueId } = indicator;
+        const {uniqueId} = indicator;
         this._items.delete(uniqueId);
 
         try {
