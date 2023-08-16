@@ -5,11 +5,10 @@
  *
  * Requires libappindicator3 introspection data
  */
-imports.gi.versions.Gtk = '3.0';
-const Gtk = imports.gi.Gtk;
-const AppIndicator = imports.gi.AppIndicator3;
-const GLib = imports.gi.GLib;
-const Gio = imports.gi.Gio;
+import Gtk from 'gi://Gtk?version=3.0';
+import AppIndicator from 'gi://AppIndicator3';
+import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
 
 const DEFAULT_ICON = 'start-here';
 const ATTENTION_ICON = 'starred';

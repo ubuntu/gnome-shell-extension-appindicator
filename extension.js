@@ -14,58 +14,77 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-/* exported init, enable, disable */
+import * as Extension from 'resource:///org/gnome/shell/extensions/extension.js';
 
-const Extension = imports.misc.extensionUtils.getCurrentExtension();
+import * as StatusNotifierWatcher from './statusNotifierWatcher.js';
+import * as Interfaces from './interfaces.js';
+import * as TrayIconsManager from './trayIconsManager.js';
+import * as Util from './util.js';
+import { SettingsManager } from './settingsManager.js';
 
-const StatusNotifierWatcher = Extension.imports.statusNotifierWatcher;
-const TrayIconsManager = Extension.imports.trayIconsManager;
-const Util = Extension.imports.util;
+export default class DashToDockExtension extends Extension.Extension {
+    constructor(...args) {
+        super(...args);
 
-let statusNotifierWatcher = null;
-let isEnabled = false;
-let watchDog = null;
+        Util.Logger.init(this);
+        Interfaces.initialize(this);
 
-function init() {
-    watchDog = new Util.NameWatcher(StatusNotifierWatcher.WATCHER_BUS_NAME);
-    watchDog.connect('vanished', () => maybeEnableAfterNameAvailable());
+        this._isEnabled = false;
+        this._statusNotifierWatcher = null;
+        this._watchDog = new Util.NameWatcher(StatusNotifierWatcher.WATCHER_BUS_NAME);
+        this._watchDog.connect('vanished', () => this._maybeEnableAfterNameAvailable());
 
-    // HACK: we want to leave the watchdog alive when disabling the extension,
-    // but if we are being reloaded, we destroy it since it could be considered
-    // a leak and spams our log, too.
-    /* eslint-disable no-undef */
-    if (typeof global['--appindicator-extension-on-reload'] === 'function')
-        global['--appindicator-extension-on-reload']();
+        // HACK: we want to leave the watchdog alive when disabling the extension,
+        // but if we are being reloaded, we destroy it since it could be considered
+        // a leak and spams our log, too.
+        /* eslint-disable no-undef */
+        if (typeof global['--appindicator-extension-on-reload'] === 'function')
+            global['--appindicator-extension-on-reload']();
 
-    global['--appindicator-extension-on-reload'] = () => {
-        Util.Logger.debug('Reload detected, destroying old watchdog');
-        watchDog.destroy();
-    };
-    /* eslint-enable no-undef */
-}
+        global['--appindicator-extension-on-reload'] = () => {
+            Util.Logger.debug('Reload detected, destroying old watchdog');
+            this._watchDog.destroy();
+            this._watchDog = null;
+        };
+        /* eslint-enable no-undef */
+    }
 
-// FIXME: when entering/leaving the lock screen, the extension might be enabled/disabled rapidly.
-// This will create very bad side effects in case we were not done unowning the name while trying
-// to own it again. Since g_bus_unown_name doesn't fire any callback when it's done, we need to
-// monitor the bus manually to find out when the name vanished so we can reclaim it again.
-function maybeEnableAfterNameAvailable() {
-    // by the time we get called whe might not be enabled
-    if (isEnabled && (!watchDog.nameAcquired || !watchDog.nameOnBus) && statusNotifierWatcher === null)
-        statusNotifierWatcher = new StatusNotifierWatcher.StatusNotifierWatcher(watchDog);
-}
+    enable() {
+        this._isEnabled = true;
+        SettingsManager.initialize(this);
+        Util.tryCleanupOldIndicators();
+        this._maybeEnableAfterNameAvailable();
+        TrayIconsManager.TrayIconsManager.initialize();
+    }
 
-function enable() {
-    isEnabled = true;
-    Util.tryCleanupOldIndicators();
-    maybeEnableAfterNameAvailable();
-    TrayIconsManager.TrayIconsManager.initialize();
-}
+    disable() {
+        this._isEnabled = false;
+        TrayIconsManager.TrayIconsManager.destroy();
+        SettingsManager.destroy();
 
-function disable() {
-    isEnabled = false;
-    TrayIconsManager.TrayIconsManager.destroy();
-    if (statusNotifierWatcher !== null) {
-        statusNotifierWatcher.destroy();
-        statusNotifierWatcher = null;
+        if (this._statusNotifierWatcher !== null) {
+            this._statusNotifierWatcher.destroy();
+            this._statusNotifierWatcher = null;
+        }
+    }
+
+    // FIXME: when entering/leaving the lock screen, the extension might be
+    // enabled/disabled rapidly.
+    // This will create very bad side effects in case we were not done unowning
+    // the name while trying to own it again. Since g_bus_unown_name doesn't
+    // fire any callback when it's done, we need to monitor the bus manually
+    // to find out when the name vanished so we can reclaim it again.
+    _maybeEnableAfterNameAvailable() {
+        // by the time we get called whe might not be enabled
+        if (!this._isEnabled || this._statusNotifierWatcher)
+            return;
+
+        if (this._watchDog.nameAcquired && this._watchDog.nameOnBus)
+            return;
+
+        print('Watchdog is', this._watchDog);
+
+        this._statusNotifierWatcher = new StatusNotifierWatcher.StatusNotifierWatcher(
+            this._watchDog);
     }
 }

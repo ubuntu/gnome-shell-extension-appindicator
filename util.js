@@ -14,41 +14,39 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-/* exported CancellableChild, getUniqueBusName, getBusNames,
-   introspectBusObject, dbusNodeImplementsInterfaces, waitForStartupCompletion,
-   connectSmart, disconnectSmart, versionCheck, getDefaultTheme, destroyDefaultTheme,
-   getProcessName, indicatorId, tryCleanupOldIndicators, DBusProxy */
+import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
+import Gtk from 'gi://Gtk';
+import Gdk from 'gi://Gdk';
+import Meta from 'gi://Meta';
+import GObject from 'gi://GObject';
+import St from 'gi://St';
 
 const ByteArray = imports.byteArray;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const Gtk = imports.gi.Gtk;
-const Gdk = imports.gi.Gdk;
-const Main = imports.ui.main;
-const Meta = imports.gi.Meta;
-const GObject = imports.gi.GObject;
-const St = imports.gi.St;
 
-const Config = imports.misc.config;
-const ExtensionUtils = imports.misc.extensionUtils;
-const Extension = ExtensionUtils.getCurrentExtension();
-const PromiseUtils = Extension.imports.promiseUtils;
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as Config from 'resource:///org/gnome/shell/misc/config.js';
+import * as ExtensionUtils from 'resource:///org/gnome/shell/misc/extensionUtils.js';
+
+import { BaseStatusIcon } from './indicatorStatusIcon.js';
+import * as PromiseUtils from './promiseUtils.js';
+
 const Signals = imports.signals;
 
-var BUS_ADDRESS_REGEX = /([a-zA-Z0-9._-]+\.[a-zA-Z0-9.-]+)|(:[0-9]+\.[0-9]+)$/;
+export const BUS_ADDRESS_REGEX = /([a-zA-Z0-9._-]+\.[a-zA-Z0-9.-]+)|(:[0-9]+\.[0-9]+)$/;
 
 PromiseUtils._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
 PromiseUtils._promisify(Gio._LocalFilePrototype, 'read', 'read_finish');
 PromiseUtils._promisify(Gio.InputStream.prototype, 'read_bytes_async', 'read_bytes_finish');
 
-function indicatorId(service, busName, objectPath) {
+export function indicatorId(service, busName, objectPath) {
     if (service && service !== busName && service.match(BUS_ADDRESS_REGEX))
         return service;
 
     return `${busName}@${objectPath}`;
 }
 
-async function getUniqueBusName(bus, name, cancellable) {
+export async function getUniqueBusName(bus, name, cancellable) {
     if (name[0] === ':')
         return name;
 
@@ -63,7 +61,7 @@ async function getUniqueBusName(bus, name, cancellable) {
     return unique;
 }
 
-async function getBusNames(bus, cancellable) {
+export async function getBusNames(bus, cancellable) {
     if (!bus)
         bus = Gio.DBus.session;
 
@@ -104,7 +102,7 @@ async function getProcessId(connectionName, cancellable = null, bus = Gio.DBus.s
     return pid;
 }
 
-async function getProcessName(connectionName, cancellable = null,
+export async function getProcessName(connectionName, cancellable = null,
     priority = GLib.PRIORITY_DEFAULT, bus = Gio.DBus.session) {
     const pid = await getProcessId(connectionName, cancellable, bus);
     const cmdFile = Gio.File.new_for_path(`/proc/${pid}/cmdline`);
@@ -113,7 +111,7 @@ async function getProcessName(connectionName, cancellable = null,
     return ByteArray.toString(bytes.toArray().map(v => !v ? 0x20 : v));
 }
 
-async function* introspectBusObject(bus, name, cancellable,
+export async function* introspectBusObject(bus, name, cancellable,
     interfaces = undefined, path = undefined) {
     if (!path)
         path = '/';
@@ -143,7 +141,7 @@ function dbusNodeImplementsInterfaces(nodeInfo, interfaces) {
     return interfaces.some(iface => nodeInfo.lookup_interface(iface));
 }
 
-var NameWatcher = class AppIndicatorsNameWatcher {
+export class NameWatcher {
     constructor(name) {
         this._watcherId = Gio.DBus.session.watch_name(name,
             Gio.BusNameWatcherFlags.NONE, () => {
@@ -169,7 +167,7 @@ var NameWatcher = class AppIndicatorsNameWatcher {
     get nameOnBus() {
         return !!this._nameOnBus;
     }
-};
+}
 Signals.addSignalMethods(NameWatcher.prototype);
 
 function connectSmart3A(src, signal, handler) {
@@ -220,7 +218,7 @@ function connectSmart4A(src, signal, target, method) {
  * or
  *      Util.connectSmart(srcOb, 'signal', () => { ... })
  */
-function connectSmart(...args) {
+export function connectSmart(...args) {
     if (arguments.length === 4)
         return connectSmart4A(...args);
     else
@@ -244,7 +242,7 @@ function disconnectSmart4A(src, tgt, signalIds) {
         tgt.disconnect(tgtDestroyId);
 }
 
-function disconnectSmart(...args) {
+export function disconnectSmart(...args) {
     if (arguments.length === 2)
         return disconnectSmart3A(...args);
     else if (arguments.length === 3)
@@ -254,7 +252,7 @@ function disconnectSmart(...args) {
 }
 
 let _defaultTheme;
-function getDefaultTheme() {
+export function getDefaultTheme() {
     if (_defaultTheme)
         return _defaultTheme;
 
@@ -274,7 +272,7 @@ function getDefaultTheme() {
     return _defaultTheme;
 }
 
-function destroyDefaultTheme() {
+export function destroyDefaultTheme() {
     _defaultTheme = null;
 }
 
@@ -283,7 +281,7 @@ function destroyDefaultTheme() {
  * Helper function to wait for the system startup to be completed.
  * Adding widgets before the desktop is ready to accept them can result in errors.
  */
-async function waitForStartupCompletion(cancellable) {
+export async function waitForStartupCompletion(cancellable) {
     if (Main.layoutManager._startingUp)
         await Main.layoutManager.connect_once('startup-complete', cancellable);
 
@@ -297,7 +295,7 @@ async function waitForStartupCompletion(cancellable) {
 /**
  * Helper class for logging stuff
  */
-var Logger = class AppIndicatorsLogger {
+export class Logger {
     static _logStructured(logLevel, message, extraFields = {}) {
         if (!Object.values(GLib.LogLevelFlags).includes(logLevel)) {
             Logger._logStructured(GLib.LogLevelFlags.LEVEL_WARNING,
@@ -305,12 +303,11 @@ var Logger = class AppIndicatorsLogger {
             return;
         }
 
-        Logger._init(Extension.metadata.name);
         if (!Logger._levels.includes(logLevel))
             return;
 
         let fields = {
-            'SYSLOG_IDENTIFIER': Extension.metadata.uuid,
+            'SYSLOG_IDENTIFIER': this.uuid,
             'MESSAGE': `${message}`,
         };
 
@@ -338,12 +335,14 @@ var Logger = class AppIndicatorsLogger {
         GLib.log_structured(Logger._domain, logLevel, Object.assign(fields, extraFields));
     }
 
-    static _init(domain) {
+    static init(extension) {
         if (Logger._domain)
             return;
 
         const allLevels = Object.values(GLib.LogLevelFlags);
         const domains = GLib.getenv('G_MESSAGES_DEBUG');
+        const { name: domain } = extension.metadata;
+        this.uuid = extension.metadata.uuid;
         Logger._domain = domain.replaceAll ? domain.replaceAll(' ', '-')
             : domain.split(' ').join('-');
 
@@ -374,9 +373,9 @@ var Logger = class AppIndicatorsLogger {
     static critical(message) {
         Logger._logStructured(GLib.LogLevelFlags.LEVEL_CRITICAL, message);
     }
-};
+}
 
-function versionCheck(required) {
+export function versionCheck(required) {
     if (ExtensionUtils.versionCheck instanceof Function)
         return ExtensionUtils.versionCheck(required, Config.PACKAGE_VERSION);
 
@@ -394,9 +393,8 @@ function versionCheck(required) {
     return false;
 }
 
-function tryCleanupOldIndicators() {
-    const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon;
-    const indicatorType = IndicatorStatusIcon.BaseStatusIcon;
+export function tryCleanupOldIndicators() {
+    const indicatorType = BaseStatusIcon;
     const indicators = Object.values(Main.panel.statusArea).filter(i => i instanceof indicatorType);
 
     try {
@@ -413,7 +411,7 @@ function tryCleanupOldIndicators() {
     new Set(indicators).forEach(i => i.destroy());
 }
 
-var CancellableChild = GObject.registerClass({
+export const CancellableChild = GObject.registerClass({
     Properties: {
         'parent': GObject.ParamSpec.object(
             'parent', 'parent', 'parent',
@@ -469,104 +467,3 @@ class CancellableChild extends Gio.Cancellable {
         this._realCancel();
     }
 });
-
-var DBusProxy = GObject.registerClass({
-    Signals: { 'destroy': {} },
-}, class DBusProxy extends Gio.DBusProxy {
-    static get TUPLE_VARIANT_TYPE() {
-        if (!this._tupleVariantType)
-            this._tupleVariantType = new GLib.VariantType('(v)');
-
-        return this._tupleVariantType;
-    }
-
-    static destroy() {
-        delete this._tupleType;
-    }
-
-    _init(busName, objectPath, interfaceInfo, flags = Gio.DBusProxyFlags.NONE) {
-        if (interfaceInfo.signals.length)
-            Logger.warn('Avoid exposing signals to gjs!');
-
-        super._init({
-            gConnection: Gio.DBus.session,
-            gInterfaceName: interfaceInfo.name,
-            gInterfaceInfo: interfaceInfo,
-            gName: busName,
-            gObjectPath: objectPath,
-            gFlags: flags,
-        });
-
-        this._signalIds = [];
-
-        if (!(flags & Gio.DBusProxyFlags.DO_NOT_CONNECT_SIGNALS)) {
-            this._signalIds.push(this.connect('g-signal',
-                (_proxy, ...args) => this._onSignal(...args)));
-        }
-
-        this._signalIds.push(this.connect('notify::g-name-owner', () =>
-            this._onNameOwnerChanged()));
-    }
-
-    async initAsync(cancellable) {
-        cancellable = new CancellableChild(cancellable);
-        await this.init_async(GLib.PRIORITY_DEFAULT, cancellable);
-        this._cancellable = cancellable;
-
-        this.gInterfaceInfo.methods.map(m => m.name).forEach(method =>
-            this._ensureAsyncMethod(method));
-    }
-
-    destroy() {
-        this.emit('destroy');
-
-        this._signalIds.forEach(id => this.disconnect(id));
-
-        if (this._cancellable)
-            this._cancellable.cancel();
-    }
-
-    // This can be removed when we will have GNOME 43 as minimum version
-    _ensureAsyncMethod(method) {
-        if (this[`${method}Async`])
-            return;
-
-        if (!this[`${method}Remote`])
-            throw new Error(`Missing remote method '${method}'`);
-
-        this[`${method}Async`] = function (...args) {
-            return new Promise((resolve, reject) => {
-                this[`${method}Remote`](...args, (ret, e) => {
-                    if (e)
-                        reject(e);
-                    else
-                        resolve(ret);
-                });
-            });
-        };
-    }
-
-    _onSignal() {
-    }
-
-    getProperty(propertyName, cancellable) {
-        return this.gConnection.call(this.gName,
-            this.gObjectPath, 'org.freedesktop.DBus.Properties', 'Get',
-            GLib.Variant.new('(ss)', [this.gInterfaceName, propertyName]),
-            DBusProxy.TUPLE_VARIANT_TYPE, Gio.DBusCallFlags.NONE, -1,
-            cancellable);
-    }
-
-    getProperties(cancellable) {
-        return this.gConnection.call(this.gName,
-            this.gObjectPath, 'org.freedesktop.DBus.Properties', 'GetAll',
-            GLib.Variant.new('(s)', [this.gInterfaceName]),
-            GLib.VariantType.new('(a{sv})'), Gio.DBusCallFlags.NONE, -1,
-            cancellable);
-    }
-});
-
-if (imports.system.version < 17101) {
-    /* In old versions wrappers are not applied to sub-classes, so let's do it */
-    DBusProxy.prototype.init_async = Gio.DBusProxy.prototype.init_async;
-}

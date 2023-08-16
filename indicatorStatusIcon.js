@@ -14,29 +14,25 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-/* exported BaseStatusIcon, IndicatorStatusIcon, IndicatorStatusTrayIcon,
-            addIconToPanel, getTrayIcons, getAppIndicatorIcons */
+import Clutter from 'gi://Clutter';
+import Gio from 'gi://Gio';
+import GObject from 'gi://GObject';
+import St from 'gi://St';
 
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GObject = imports.gi.GObject;
-const St = imports.gi.St;
+import * as AppDisplay from 'resource:///org/gnome/shell/ui/appDisplay.js';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as Panel from 'resource:///org/gnome/shell/ui/panel.js';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 
-const AppDisplay = imports.ui.appDisplay;
-const Main = imports.ui.main;
-const Panel = imports.ui.panel;
-const PanelMenu = imports.ui.panelMenu;
+import * as AppIndicator from './appIndicator.js';
+import * as PromiseUtils from './promiseUtils.js';
+import * as SettingsManager from './settingsManager.js';
+import * as Util from './util.js';
+import * as DBusMenu from './dbusMenu.js';
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Extension = ExtensionUtils.getCurrentExtension();
+const DEFAULT_ICON_SIZE = Panel.PANEL_ICON_SIZE || 16;
 
-const AppIndicator = Extension.imports.appIndicator;
-const DBusMenu = Extension.imports.dbusMenu;
-const Util = Extension.imports.util;
-const PromiseUtils = Extension.imports.promiseUtils;
-const SettingsManager = Extension.imports.settingsManager;
-
-function addIconToPanel(statusIcon) {
+export function addIconToPanel(statusIcon) {
     if (!(statusIcon instanceof BaseStatusIcon))
         throw TypeError(`Unexpected icon type: ${statusIcon}`);
 
@@ -58,18 +54,18 @@ function addIconToPanel(statusIcon) {
         addIconToPanel(statusIcon));
 }
 
-function getTrayIcons() {
+export function getTrayIcons() {
     return Object.values(Main.panel.statusArea).filter(
         i => i instanceof IndicatorStatusTrayIcon);
 }
 
-function getAppIndicatorIcons() {
+export function getAppIndicatorIcons() {
     return Object.values(Main.panel.statusArea).filter(
         i => i instanceof IndicatorStatusIcon);
 }
 
-var BaseStatusIcon = GObject.registerClass(
-class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
+export const BaseStatusIcon = GObject.registerClass(
+class IndicatorBaseStatusIcon extends PanelMenu.Button {
     _init(menuAlignment, nameText, iconActor, dontCreateMenu) {
         super._init(menuAlignment, nameText, dontCreateMenu);
 
@@ -226,11 +222,11 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
 /*
  * IndicatorStatusIcon implements an icon in the system status area
  */
-var IndicatorStatusIcon = GObject.registerClass(
-class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
+export const IndicatorStatusIcon = GObject.registerClass(
+class IndicatorStatusIcon extends BaseStatusIcon {
     _init(indicator) {
         super._init(0.5, indicator.accessibleName,
-            new AppIndicator.IconActor(indicator, Panel.PANEL_ICON_SIZE));
+            new AppIndicator.IconActor(indicator, DEFAULT_ICON_SIZE));
         this._indicator = indicator;
 
         this._lastClickTime = -1;
@@ -275,7 +271,7 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
     }
 
     _updateLabel() {
-        var label = this._indicator.label;
+        const label = this._indicator.label;
         if (label) {
             if (!this._label || !this._labelBin) {
                 this._labelBin = new St.Bin({
@@ -452,8 +448,8 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
     }
 });
 
-var IndicatorStatusTrayIcon = GObject.registerClass(
-class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
+export const IndicatorStatusTrayIcon = GObject.registerClass(
+class IndicatorTrayIcon extends BaseStatusIcon {
     _init(icon) {
         super._init(0.5, icon.wm_class, icon, { dontCreateMenu: true });
         Util.Logger.debug(`Adding legacy tray icon ${this.uniqueId}`);
@@ -588,7 +584,7 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
         let iconSize = settings.get_int('icon-size');
 
         if (iconSize <= 0)
-            iconSize = Panel.PANEL_ICON_SIZE;
+            iconSize = DEFAULT_ICON_SIZE;
 
         this.height = -1;
         this._icon.set({

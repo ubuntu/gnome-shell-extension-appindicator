@@ -14,25 +14,21 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-/* exported StatusNotifierWatcher */
+import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-
-const Extension = imports.misc.extensionUtils.getCurrentExtension();
-
-const AppIndicator = Extension.imports.appIndicator;
-const DBusMenu = Extension.imports.dbusMenu;
-const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon;
-const Interfaces = Extension.imports.interfaces;
-const PromiseUtils = Extension.imports.promiseUtils;
-const Util = Extension.imports.util;
+import * as AppIndicator from './appIndicator.js';
+import * as IndicatorStatusIcon from './indicatorStatusIcon.js';
+import * as Interfaces from './interfaces.js';
+import * as PromiseUtils from './promiseUtils.js';
+import * as Util from './util.js';
+import * as DBusMenu from './dbusMenu.js';
 
 
 // TODO: replace with org.freedesktop and /org/freedesktop when approved
 const KDE_PREFIX = 'org.kde';
 
-var WATCHER_BUS_NAME = `${KDE_PREFIX}.StatusNotifierWatcher`;
+export const WATCHER_BUS_NAME = `${KDE_PREFIX}.StatusNotifierWatcher`;
 const WATCHER_OBJECT = '/StatusNotifierWatcher';
 
 const DEFAULT_ITEM_OBJECT_PATH = '/StatusNotifierItem';
@@ -40,7 +36,7 @@ const DEFAULT_ITEM_OBJECT_PATH = '/StatusNotifierItem';
 /*
  * The StatusNotifierWatcher class implements the StatusNotifierWatcher dbus object
  */
-var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
+export class StatusNotifierWatcher {
 
     constructor(watchDog) {
         this._watchDog = watchDog;
@@ -287,4 +283,4 @@ var StatusNotifierWatcher = class AppIndicatorsStatusNotifierWatcher {
         delete this._items;
         this._isDestroyed = true;
     }
-};
+}

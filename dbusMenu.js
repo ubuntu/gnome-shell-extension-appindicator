@@ -14,20 +14,21 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GObject = imports.gi.GObject;
-const GLib = imports.gi.GLib;
-const GdkPixbuf = imports.gi.GdkPixbuf;
-const PopupMenu = imports.ui.popupMenu;
+import Clutter from 'gi://Clutter';
+import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
+import GdkPixbuf from 'gi://GdkPixbuf';
+import Gio from 'gi://Gio';
+import St from 'gi://St';
+
+import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+
+import * as DBusInterfaces from './interfaces.js';
+import * as PromiseUtils from './promiseUtils.js';
+import * as Util from './util.js';
+import { DBusProxy } from './dbusProxy.js';
+
 const Signals = imports.signals;
-const St = imports.gi.St;
-
-const Extension = imports.misc.extensionUtils.getCurrentExtension();
-
-const DBusInterfaces = Extension.imports.interfaces;
-const PromiseUtils = Extension.imports.promiseUtils;
-const Util = Extension.imports.util;
 
 PromiseUtils._promisify(GdkPixbuf.Pixbuf, 'new_from_stream_async',
     'new_from_stream_finish');
@@ -40,7 +41,7 @@ PromiseUtils._promisify(GdkPixbuf.Pixbuf, 'new_from_stream_async',
 /**
  * Saves menu property values and handles type checking and defaults
  */
-var PropertyStore = class AppIndicatorsPropertyStore {
+export class PropertyStore {
 
     constructor(initialProperties) {
         this._props = new Map();
@@ -70,7 +71,7 @@ var PropertyStore = class AppIndicatorsPropertyStore {
         else
             return null;
     }
-};
+}
 
 // we list all the properties we know and use here, so we won' have to deal with unexpected type mismatches
 PropertyStore.MandatedTypes = {
@@ -96,7 +97,7 @@ PropertyStore.DefaultValues = {
 /**
  * Represents a single menu item
  */
-var DbusMenuItem = class AppIndicatorsDbusMenuItem {
+export class DbusMenuItem {
 
     // will steal the properties object
     constructor(client, id, properties, childrenIds) {
@@ -198,7 +199,7 @@ var DbusMenuItem = class AppIndicatorsDbusMenuItem {
     sendAboutToShow() {
         this._client.sendAboutToShow(this._id);
     }
-};
+}
 Signals.addSignalMethods(DbusMenuItem.prototype);
 
 
@@ -206,9 +207,9 @@ Signals.addSignalMethods(DbusMenuItem.prototype);
  * The client does the heavy lifting of actually reading layouts and distributing events
  */
 
-var DBusClient = GObject.registerClass({
+export const DBusClient = GObject.registerClass({
     Signals: { 'ready-changed': {} },
-}, class AppIndicatorsDBusClient extends Util.DBusProxy {
+}, class AppIndicatorsDBusClient extends DBusProxy {
     static get interfaceInfo() {
         if (!this._interfaceInfo) {
             this._interfaceInfo = Gio.DBusInterfaceInfo.new_for_xml(
@@ -817,7 +818,7 @@ const MenuUtils = {
  *
  * Something like a mini-god-object
  */
-var Client = class AppIndicatorsClient {
+export class Client {
 
     constructor(busName, path, indicator) {
         this._busName  = busName;
@@ -952,5 +953,5 @@ var Client = class AppIndicatorsClient {
         this.indicator = null;
         this._itemsBeingAdded = null;
     }
-};
+}
 Signals.addSignalMethods(Client.prototype);

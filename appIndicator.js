@@ -14,28 +14,27 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-/* exported AppIndicatorProxy, AppIndicator IconActor */
+import Clutter from 'gi://Clutter';
+import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
+import Gdk from 'gi://Gdk';
+import GdkPixbuf from 'gi://GdkPixbuf';
+import Gio from 'gi://Gio';
+import Gtk from 'gi://Gtk';
+import Meta from 'gi://Meta';
+import St from 'gi://St';
 
-const Clutter = imports.gi.Clutter;
-const GdkPixbuf = imports.gi.GdkPixbuf;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const GObject = imports.gi.GObject;
-const Gdk = imports.gi.Gdk;
-const Gtk = imports.gi.Gtk;
-const Meta = imports.gi.Meta;
-const St = imports.gi.St;
+import * as Params from 'resource:///org/gnome/shell/misc/params.js';
 
-const Extension = imports.misc.extensionUtils.getCurrentExtension();
+import * as IconCache from './iconCache.js';
+import * as Util from './util.js';
+import * as Interfaces from './interfaces.js';
+import * as PixmapsUtils from './pixmapsUtils.js';
+import * as PromiseUtils from './promiseUtils.js';
+import * as SettingsManager from './settingsManager.js';
+import { DBusProxy } from './dbusProxy.js';
+
 const Signals = imports.signals;
-
-const IconCache = Extension.imports.iconCache;
-const Util = Extension.imports.util;
-const Interfaces = Extension.imports.interfaces;
-const Params = imports.misc.params;
-const PixmapsUtils = Extension.imports.pixmapsUtils;
-const PromiseUtils = Extension.imports.promiseUtils;
-const SettingsManager = Extension.imports.settingsManager;
 
 PromiseUtils._promisify(Gio.File.prototype, 'read_async', 'read_finish');
 PromiseUtils._promisify(Gio._LocalFilePrototype, 'read_async', 'read_finish');
@@ -52,15 +51,14 @@ const MAX_UPDATE_FREQUENCY = 30; // In ms
 const FALLBACK_ICON_NAME = 'image-loading-symbolic';
 const PIXMAPS_FORMAT = imports.gi.Cogl.PixelFormat.ARGB_8888;
 
-// eslint-disable-next-line no-unused-vars
-const SNICategory = Object.freeze({
+export const SNICategory = Object.freeze({
     APPLICATION: 'ApplicationStatus',
     COMMUNICATIONS: 'Communications',
     SYSTEM: 'SystemServices',
     HARDWARE: 'Hardware',
 });
 
-var SNIStatus = Object.freeze({
+export const SNIStatus = Object.freeze({
     PASSIVE: 'Passive',
     ACTIVE: 'Active',
     NEEDS_ATTENTION: 'NeedsAttention',
@@ -83,8 +81,8 @@ const SNIconType = Object.freeze({
     },
 });
 
-var AppIndicatorProxy = GObject.registerClass(
-class AppIndicatorProxy extends Util.DBusProxy {
+export const AppIndicatorProxy = GObject.registerClass(
+class AppIndicatorProxy extends DBusProxy {
     static get interfaceInfo() {
         if (!this._interfaceInfo) {
             this._interfaceInfo = Gio.DBusInterfaceInfo.new_for_xml(
@@ -411,7 +409,7 @@ if (imports.system.version < 17101) {
  * the AppIndicator class serves as a generic container for indicator information and functions common
  * for every displaying implementation (IndicatorMessageSource and IndicatorStatusIcon)
  */
-var AppIndicator = class AppIndicatorsAppIndicator {
+export class AppIndicator {
 
     static get NEEDED_PROPERTIES() {
         return ['Id', 'Menu'];
@@ -849,7 +847,7 @@ var AppIndicator = class AppIndicatorsAppIndicator {
             Util.Logger.critical(`${this.id}, failed to scroll: ${e.message}`);
         }
     }
-};
+}
 Signals.addSignalMethods(AppIndicator.prototype);
 
 let StTextureCacheSkippingFileIcon;
@@ -877,7 +875,7 @@ if (imports.system.version >= 17501) {
     } catch (e) {}
 }
 
-var IconActor = GObject.registerClass(
+export const IconActor = GObject.registerClass(
 class AppIndicatorsIconActor extends St.Icon {
 
     static get DEFAULT_STYLE() {

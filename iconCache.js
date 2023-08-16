@@ -14,14 +14,11 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-/* exported IconCache */
+import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
 
-const GLib = imports.gi.GLib;
-const Gio = imports.gi.Gio;
-
-const Extension = imports.misc.extensionUtils.getCurrentExtension();
-const PromiseUtils = Extension.imports.promiseUtils;
-const Util = Extension.imports.util;
+import * as PromiseUtils from './promiseUtils.js';
+import * as Util from './util.js';
 
 // The icon cache caches icon objects in case they're reused shortly aftwerwards.
 // This is necessary for some indicators like skype which rapidly switch between serveral icons.
@@ -33,7 +30,7 @@ const GC_INTERVAL = 100; // seconds
 const LIFETIME_TIMESPAN = 120; // seconds
 
 // how to use: see IconCache.add, IconCache.get
-var IconCache = class AppIndicatorsIconCache {
+export class IconCache {
     constructor() {
         this._cache = new Map();
         this._activeIcons = Object.create(null);
@@ -179,4 +176,4 @@ var IconCache = class AppIndicatorsIconCache {
     destroy() {
         this.clear();
     }
-};
+}
