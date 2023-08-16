@@ -1,6 +1,8 @@
 ---
+# SPDX-License-Identifier: MIT OR LGPL-2.0-or-later
+# SPDX-FileCopyrightText: 2018 Claudio André <claudioandre.br@gmail.com>
 env:
-  es6: true
+  es2021: true
 extends: 'eslint:recommended'
 rules:
   array-bracket-newline:
@@ -24,7 +26,9 @@ rules:
   #     allow: [^vfunc_, ^on_, _instance_init]
   comma-dangle:
     - error
-    - always-multiline
+    - arrays: always-multiline
+      objects: always-multiline
+      functions: never
   comma-spacing:
     - error
     - before: false
@@ -68,7 +72,10 @@ rules:
   linebreak-style:
     - error
     - unix
-  lines-between-class-members: error
+  lines-between-class-members:
+    - error
+    - always
+    - exceptAfterSingleLine: true
   max-nested-callbacks: error
   max-statements-per-line: error
   new-parens: error
@@ -104,17 +111,18 @@ rules:
   no-octal-escape: error
   no-proto: error
   no-prototype-builtins: 'off'
+  no-restricted-globals: [error, window]
   no-restricted-properties:
     - error
+    - object: Lang
+      property: copyProperties
+      message: Use Object.assign()
     - object: Lang
       property: bind
       message: Use arrow notation or Function.prototype.bind()
     - object: Lang
       property: Class
       message: Use ES6 classes
-    - object: imports
-      property: mainloop
-      message: Use GLib main loops and timeouts
   no-restricted-syntax:
     - error
     - selector: >-
@@ -130,6 +138,8 @@ rules:
         BlockStatement[body.length=1]
         CallExpression[arguments.length=0][callee.object.type="Super"][callee.property.name="_init"]
       message: _init() that only calls super._init() is unnecessary
+    - selector: BinaryExpression[operator="instanceof"][right.name="Array"]
+      message: Use Array.isArray()
   no-return-assign: error
   no-return-await: error
   no-self-compare: error
@@ -162,10 +172,14 @@ rules:
   object-curly-newline:
     - error
     - consistent: true
+      multiline: true
   object-curly-spacing: error
   object-shorthand: error
   operator-assignment: error
   operator-linebreak: error
+  padded-blocks:
+    - error
+    - never
   # These may be a bit controversial, we can try them out and enable them later
   # prefer-const: error
   # prefer-destructuring: error
@@ -206,9 +220,6 @@ rules:
   template-curly-spacing: error
   template-tag-spacing: error
   unicode-bom: error
-  valid-jsdoc:
-    - error
-    - requireReturn: false
   wrap-iife:
     - error
     - inside
@@ -225,5 +236,13 @@ globals:
   logError: readonly
   print: readonly
   printerr: readonly
+  window: readonly
+  TextEncoder: readonly
+  TextDecoder: readonly
+  console: readonly
+  setTimeout: readonly
+  setInterval: readonly
+  clearTimeout: readonly
+  clearInterval: readonly
 parserOptions:
-  ecmaVersion: 2020
+  ecmaVersion: 2022

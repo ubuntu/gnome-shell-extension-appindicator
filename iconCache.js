@@ -48,7 +48,7 @@ export class IconCache {
             return null;
         }
 
-        let oldIcon = this._cache.get(id);
+        const oldIcon = this._cache.get(id);
         if (!oldIcon || !oldIcon.equals(icon)) {
             Util.Logger.debug(`IconCache: adding ${id}: ${icon}`);
             this._cache.set(id, icon);
@@ -119,7 +119,7 @@ export class IconCache {
 
     // returns an object from the cache, or null if it can't be found.
     get(id) {
-        let icon = this._cache.get(id);
+        const icon = this._cache.get(id);
         if (icon) {
             Util.Logger.debug(`IconCache: retrieving ${id}: ${icon}`);
             this._renewLifetime(id);

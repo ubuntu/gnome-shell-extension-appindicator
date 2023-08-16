@@ -32,7 +32,7 @@ import * as Interfaces from './interfaces.js';
 import * as PixmapsUtils from './pixmapsUtils.js';
 import * as PromiseUtils from './promiseUtils.js';
 import * as SettingsManager from './settingsManager.js';
-import { DBusProxy } from './dbusProxy.js';
+import {DBusProxy} from './dbusProxy.js';
 
 const Signals = imports.signals;
 
@@ -69,7 +69,7 @@ const SNIconType = Object.freeze({
     ATTENTION: 1,
     OVERLAY: 2,
 
-    toPropertyName: (iconType, params = { isPixbuf: false }) => {
+    toPropertyName: (iconType, params = {isPixbuf: false}) => {
         let propertyName = 'Icon';
 
         if (iconType === SNIconType.OVERLAY)
@@ -114,7 +114,7 @@ class AppIndicatorProxy extends DBusProxy {
     }
 
     _init(busName, objectPath) {
-        const { interfaceInfo } = AppIndicatorProxy;
+        const {interfaceInfo} = AppIndicatorProxy;
 
         super._init(busName, objectPath, interfaceInfo,
             Gio.DBusProxyFlags.GET_INVALIDATED_PROPERTIES);
@@ -316,7 +316,7 @@ class AppIndicatorProxy extends DBusProxy {
 
             this._cancellables.delete(propertyName);
             await this._queuePropertyUpdate(propertyName, valueVariant,
-                Object.assign(params, { cancellable }));
+                Object.assign(params, {cancellable}));
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
                 // the property may not even exist, silently ignore it
@@ -410,7 +410,6 @@ if (imports.system.version < 17101) {
  * for every displaying implementation (IndicatorMessageSource and IndicatorStatusIcon)
  */
 export class AppIndicator {
-
     static get NEEDED_PROPERTIES() {
         return ['Id', 'Menu'];
     }
@@ -460,7 +459,7 @@ export class AppIndicator {
     }
 
     _checkIfReady() {
-        let wasReady = this.isReady;
+        const wasReady = this.isReady;
         let isReady = false;
 
         if (this.hasNameOwner && this.id && this.menuPath)
@@ -591,7 +590,7 @@ export class AppIndicator {
     }
 
     get hasOverlayIcon() {
-        const { name, pixmap } = this.overlayIcon;
+        const {name, pixmap} = this.overlayIcon;
 
         return name || (pixmap && pixmap.n_children());
     }
@@ -652,8 +651,8 @@ export class AppIndicator {
     }
 
     _onPropertiesChanged(_proxy, changed, _invalidated) {
-        let props = Object.keys(changed.unpack());
-        let signalsToEmit = new Set();
+        const props = Object.keys(changed.unpack());
+        const signalsToEmit = new Set();
         const checkIfReadyChanged = () => {
             if (checkIfReadyChanged.value === undefined)
                 checkIfReadyChanged.value = this._checkIfReady();
@@ -728,7 +727,7 @@ export class AppIndicator {
 
     _getPixmapProperty(iconType) {
         const propertyName = SNIconType.toPropertyName(iconType,
-            { isPixbuf: true });
+            {isPixbuf: true});
         const pixmap = this._proxy.get_cached_property(propertyName);
         const wasInvalidated = this._invalidatedPixmapsIcons.delete(iconType);
 
@@ -747,7 +746,7 @@ export class AppIndicator {
     invalidatePixmapProperty(iconType) {
         this._invalidatedPixmapsIcons.add(iconType);
         this._proxy.set_cached_property(
-            SNIconType.toPropertyName(iconType, { isPixbuf: true }), null);
+            SNIconType.toPropertyName(iconType, {isPixbuf: true}), null);
     }
 
     _getActivationToken(timestamp) {
@@ -859,7 +858,7 @@ if (imports.system.version >= 17501) {
         }, class StTextureCacheSkippingFileIconImpl extends Gio.EmblemedIcon {
             _init(params) {
                 // FIXME: We can't just inherit from Gio.FileIcon for some reason
-                super._init({ gicon: new Gio.FileIcon(params) });
+                super._init({gicon: new Gio.FileIcon(params)});
             }
 
             vfunc_to_tokens() {
@@ -877,7 +876,6 @@ if (imports.system.version >= 17501) {
 
 export const IconActor = GObject.registerClass(
 class AppIndicatorsIconActor extends St.Icon {
-
     static get DEFAULT_STYLE() {
         return 'padding: 0';
     }
@@ -912,7 +910,7 @@ class AppIndicatorsIconActor extends St.Icon {
         this.add_style_class_name('status-notifier-icon');
         this.set_style(AppIndicatorsIconActor.DEFAULT_STYLE);
 
-        let themeContext = St.ThemeContext.get_for_stage(global.stage);
+        const themeContext = St.ThemeContext.get_for_stage(global.stage);
         this.height = iconSize * themeContext.scale_factor;
 
         this._indicator     = indicator;
@@ -1174,7 +1172,7 @@ class AppIndicatorsIconActor extends St.Icon {
     }
 
     async _createIconByIconData(iconData, iconSize, iconScaling, cancellable) {
-        const { file, iconInfo, name } = iconData;
+        const {file, iconInfo, name} = iconData;
 
         if (!file && !name) {
             if (this._createIconIdle) {
@@ -1200,13 +1198,13 @@ class AppIndicatorsIconActor extends St.Icon {
         }
 
         if (name)
-            return new Gio.ThemedIcon({ name });
+            return new Gio.ThemedIcon({name});
 
         if (!file)
             throw new Error('Neither file or name are set');
 
         if (!this._isFileInWritableArea(file))
-            return new Gio.FileIcon({ file });
+            return new Gio.FileIcon({file});
 
         try {
             const [format, width, height] = await GdkPixbuf.Pixbuf.get_file_info_async(
@@ -1224,7 +1222,7 @@ class AppIndicatorsIconActor extends St.Icon {
                 return null;
             } else if (StTextureCacheSkippingFileIcon) {
                 /* We'll wrap the icon so that it won't be cached forever by the shell */
-                return new StTextureCacheSkippingFileIcon({ file });
+                return new StTextureCacheSkippingFileIcon({file});
             } else if (iconInfo) {
                 return this._createIconByIconInfo(iconInfo, iconSize,
                     iconScaling, this._getIconLoadingColors(), cancellable);
@@ -1232,7 +1230,7 @@ class AppIndicatorsIconActor extends St.Icon {
                 const iconColors = this._getIconLoadingColors();
 
                 if (iconColors) {
-                    const fileIcon = new Gio.FileIcon({ file });
+                    const fileIcon = new Gio.FileIcon({file});
                     const iconTheme = this._iconTheme || this._createIconTheme();
                     const fileIconInfo = iconTheme.lookup_by_gicon_for_scale(
                         fileIcon, iconSize, iconScaling,
@@ -1263,8 +1261,8 @@ class AppIndicatorsIconActor extends St.Icon {
             height, 1, iconScaling);
 
         const setCustomImageActor = imageActor => {
-            const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
-            const { content } = imageActor;
+            const {scaleFactor} = St.ThemeContext.get_for_stage(global.stage);
+            const {content} = imageActor;
             imageActor.content = null;
             imageActor.destroy();
 
@@ -1325,7 +1323,7 @@ class AppIndicatorsIconActor extends St.Icon {
     }
 
     _getIconData(name, themePath, size, scale) {
-        const emptyIconData = { iconInfo: null, file: null, name: null };
+        const emptyIconData = {iconInfo: null, file: null, name: null};
 
         if (!name) {
             delete this._iconTheme;
@@ -1338,7 +1336,7 @@ class AppIndicatorsIconActor extends St.Icon {
             delete this._iconTheme;
 
             const file = Gio.File.new_for_path(name);
-            return { file, iconInfo: null, name: null };
+            return {file, iconInfo: null, name: null};
         }
 
         if (name.includes('.')) {
@@ -1390,7 +1388,7 @@ class AppIndicatorsIconActor extends St.Icon {
         }
 
         delete this._iconTheme;
-        return { name, iconInfo: null, file: null };
+        return {name, iconInfo: null, file: null};
     }
 
     _setImageContent(content, width, height) {
@@ -1404,7 +1402,7 @@ class AppIndicatorsIconActor extends St.Icon {
     }
 
     async _createIconFromPixmap(iconType, iconSize, iconScaling, scaleFactor, pixmapsVariant) {
-        const { pixmapVariant, width, height, rowStride } =
+        const {pixmapVariant, width, height, rowStride} =
             PixmapsUtils.getBestPixmap(pixmapsVariant, iconSize * iconScaling);
 
         const id = `__PIXMAP_ICON_${width}x${height}`;
@@ -1453,7 +1451,7 @@ class AppIndicatorsIconActor extends St.Icon {
                 if (gicon instanceof Gio.EmblemedIcon)
                     this.gicon = gicon;
                 else
-                    this.gicon = new Gio.EmblemedIcon({ gicon });
+                    this.gicon = new Gio.EmblemedIcon({gicon});
 
                 this._iconCache.updateActive(SNIconType.NORMAL, gicon,
                     this.gicon.get_icon() === gicon);
@@ -1461,7 +1459,7 @@ class AppIndicatorsIconActor extends St.Icon {
                 this.gicon = null;
             }
         } else if (gicon) {
-            this._emblem = new Gio.Emblem({ icon: gicon });
+            this._emblem = new Gio.Emblem({icon: gicon});
             this._iconCache.updateActive(iconType, gicon, true);
         } else {
             this._emblem = null;
@@ -1483,14 +1481,14 @@ class AppIndicatorsIconActor extends St.Icon {
             icon = this._indicator.attentionIcon;
             break;
         case SNIconType.NORMAL:
-            icon = this._indicator.icon;
+            ({icon} = this._indicator);
             break;
         case SNIconType.OVERLAY:
             icon = this._indicator.overlayIcon;
             break;
         }
 
-        const { theme, name, pixmap } = icon;
+        const {theme, name, pixmap} = icon;
         const commonArgs = [theme, iconType, iconSize];
 
         if (this._customIcons.size) {
@@ -1541,7 +1539,7 @@ class AppIndicatorsIconActor extends St.Icon {
 
     // updates the base icon
     async _createIcon(name, pixmap, theme, iconType, iconSize) {
-        const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+        const {scaleFactor} = St.ThemeContext.get_for_stage(global.stage);
         const resourceScale = this._getResourceScale();
         const iconScaling = Math.ceil(resourceScale * scaleFactor);
 
@@ -1570,12 +1568,12 @@ class AppIndicatorsIconActor extends St.Icon {
             return;
 
         if (this.gicon instanceof Gio.EmblemedIcon) {
-            const { gicon } = this.gicon;
+            const {gicon} = this.gicon;
             this._iconCache.updateActive(SNIconType.NORMAL, gicon, false);
         }
 
         // we might need to use the AttentionIcon*, which have precedence over the normal icons
-        let iconType = this._indicator.status === SNIStatus.NEEDS_ATTENTION
+        const iconType = this._indicator.status === SNIStatus.NEEDS_ATTENTION
             ? SNIconType.ATTENTION : SNIconType.NORMAL;
 
         try {
@@ -1592,14 +1590,14 @@ class AppIndicatorsIconActor extends St.Icon {
             return;
 
         if (this._emblem) {
-            const { icon } = this._emblem;
+            const {icon} = this._emblem;
             this._iconCache.updateActive(SNIconType.OVERLAY, icon, false);
         }
 
         // KDE hardcodes the overlay icon size to 10px (normal icon size 16px)
         // we approximate that ratio for other sizes, too.
         // our algorithms will always pick a smaller one instead of stretching it.
-        let iconSize = Math.floor(this._iconSize / 1.6);
+        const iconSize = Math.floor(this._iconSize / 1.6);
 
         try {
             await this._updateIconByType(SNIconType.OVERLAY, iconSize);
@@ -1657,7 +1655,7 @@ class AppIndicatorsIconActor extends St.Icon {
         let iconStyle = AppIndicatorsIconActor.DEFAULT_STYLE;
 
         if (themeIconSize > 0) {
-            const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+            const {scaleFactor} = St.ThemeContext.get_for_stage(global.stage);
 
             if (themeIconSize / scaleFactor !== this._iconSize) {
                 iconStyle = `${AppIndicatorsIconActor.DEFAULT_STYLE};` +

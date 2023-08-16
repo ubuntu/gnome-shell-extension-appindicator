@@ -22,7 +22,7 @@ export class CancellablePromise extends Promise {
             rejector = reject;
         });
 
-        const { stack: promiseStack } = new Error();
+        const {stack: promiseStack} = new Error();
         this._promiseStack = promiseStack;
 
         this._resolver = (...args) => {
@@ -320,7 +320,7 @@ export function _promisifySignals(proto) {
     };
 }
 
-const addSignalMethods = Signals.addSignalMethods;
+const {addSignalMethods} = Signals;
 Signals.addSignalMethods = proto => {
     addSignalMethods(proto);
     _promisifySignals(proto);
@@ -328,7 +328,7 @@ Signals.addSignalMethods = proto => {
 
 _promisifySignals(GObject.Object.prototype);
 
-export let _promisify = Gio._promisify;
+export let {_promisify} = Gio;
 if (imports.system.version < 16501) {
     /* This is backported from upstream gjs, so that all the features are available */
     _promisify = function (proto, asyncFunc, finishFunc = undefined) {
@@ -353,7 +353,7 @@ if (imports.system.version < 16501) {
             if (!args.every(arg => typeof arg !== 'function'))
                 return this[originalFuncName](...args);
             return new Promise((resolve, reject) => {
-                let { stack: callStack } = new Error();
+                let {stack: callStack} = new Error();
                 this[originalFuncName](...args, (source, res) => {
                     try {
                         const result = source !== null && source[finishFunc] !== undefined
@@ -379,10 +379,10 @@ if (imports.system.version < 16501) {
 
 if (!Promise.allSettled) {
     Promise.allSettled = function (promises) {
-        let wrappedPromises = promises.map(p => Promise.resolve(p)
+        const wrappedPromises = promises.map(p => Promise.resolve(p)
             .then(
-                val => ({ status: 'fulfilled', value: val }),
-                err => ({ status: 'rejected', reason: err })));
+                val => ({status: 'fulfilled', value: val}),
+                err => ({status: 'rejected', reason: err})));
         return Promise.all(wrappedPromises);
     };
 }

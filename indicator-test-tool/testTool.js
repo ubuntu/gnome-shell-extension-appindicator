@@ -32,7 +32,6 @@ const ScrollType = {
 };
 
 (() => {
-
     const temporaryFiles = [];
 
     var app = new Gtk.Application({
@@ -321,5 +320,4 @@ const ScrollType = {
     });
 
     app.run(ARGV);
-
 })();

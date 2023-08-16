@@ -76,7 +76,7 @@ class IndicatorBaseStatusIcon extends PanelMenu.Button {
         if (!super._onDestroy)
             this.connect('destroy', () => this._onDestroy());
 
-        this._box = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
+        this._box = new St.BoxLayout({style_class: 'panel-status-indicators-box'});
         this.add_child(this._box);
 
         this._setIconActor(iconActor);
@@ -271,7 +271,7 @@ class IndicatorStatusIcon extends BaseStatusIcon {
     }
 
     _updateLabel() {
-        const label = this._indicator.label;
+        const {label} = this._indicator;
         if (label) {
             if (!this._label || !this._labelBin) {
                 this._labelBin = new St.Bin({
@@ -336,8 +336,8 @@ class IndicatorStatusIcon extends BaseStatusIcon {
     }
 
     _updateClickCount(buttonEvent) {
-        const { x, y, time } = buttonEvent;
-        const { doubleClickDistance, doubleClickTime } =
+        const {x, y, time} = buttonEvent;
+        const {doubleClickDistance, doubleClickTime} =
             Clutter.Settings.get_default();
 
         if (time > (this._lastClickTime + doubleClickTime) ||
@@ -372,7 +372,7 @@ class IndicatorStatusIcon extends BaseStatusIcon {
     }
 
     async _waitForDoubleClick() {
-        const { doubleClickTime } = Clutter.Settings.get_default();
+        const {doubleClickTime} = Clutter.Settings.get_default();
         this._waitDoubleClickPromise = new PromiseUtils.TimeoutPromise(
             doubleClickTime);
 
@@ -438,7 +438,7 @@ class IndicatorStatusIcon extends BaseStatusIcon {
         // event, and we can choose which one we interpret.
         if (scrollEvent.direction === Clutter.ScrollDirection.SMOOTH) {
             const event = Clutter.get_current_event();
-            let [dx, dy] = event.get_scroll_delta();
+            const [dx, dy] = event.get_scroll_delta();
 
             this._indicator.scroll(dx, dy);
             return Clutter.EVENT_STOP;
@@ -451,7 +451,7 @@ class IndicatorStatusIcon extends BaseStatusIcon {
 export const IndicatorStatusTrayIcon = GObject.registerClass(
 class IndicatorTrayIcon extends BaseStatusIcon {
     _init(icon) {
-        super._init(0.5, icon.wm_class, icon, { dontCreateMenu: true });
+        super._init(0.5, icon.wm_class, icon, {dontCreateMenu: true});
         Util.Logger.debug(`Adding legacy tray icon ${this.uniqueId}`);
         this._box.add_style_class_name('appindicator-trayicons-box');
         this.add_style_class_name('appindicator-icon');
@@ -580,7 +580,7 @@ class IndicatorTrayIcon extends BaseStatusIcon {
 
     _updateIconSize() {
         const settings = SettingsManager.getDefaultGSettings();
-        const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+        const {scaleFactor} = St.ThemeContext.get_for_stage(global.stage);
         let iconSize = settings.get_int('icon-size');
 
         if (iconSize <= 0)
