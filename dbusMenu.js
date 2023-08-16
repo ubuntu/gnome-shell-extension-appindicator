@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+const Clutter = imports.gi.Clutter;
 const Gio = imports.gi.Gio;
 const GObject = imports.gi.GObject;
 const GLib = imports.gi.GLib;
@@ -580,7 +582,7 @@ const MenuItemFactory = {
         if (shellItem instanceof PopupMenu.PopupMenuItem) {
             shellItem._icon = new St.Icon({
                 style_class: 'popup-menu-icon',
-                x_align: St.Align.END,
+                xAlign: St.Align ? St.Align.END : Clutter.ActorAlign.END,
             });
             shellItem.add_child(shellItem._icon);
             shellItem.label.x_expand = true;
