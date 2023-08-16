@@ -14,22 +14,19 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-/* exported TrayIconsManager */
+import Shell from 'gi://Shell';
 
-const Shell = imports.gi.Shell;
-const Main = imports.ui.main;
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+
+import * as IndicatorStatusIcon from './indicatorStatusIcon.js';
+import * as Util from './util.js';
+import * as SettingsManager from './settingsManager.js';
+
 const Signals = imports.signals;
-
-const ExtensionUtils = imports.misc.extensionUtils;
-
-const Extension = ExtensionUtils.getCurrentExtension();
-const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon;
-const Util = Extension.imports.util;
-const SettingsManager = Extension.imports.settingsManager;
 
 let trayIconsManager;
 
-var TrayIconsManager = class TrayIconsManager {
+export class TrayIconsManager {
     static initialize() {
         if (!trayIconsManager)
             trayIconsManager = new TrayIconsManager();
@@ -103,5 +100,5 @@ var TrayIconsManager = class TrayIconsManager {
         this._disable();
         trayIconsManager = null;
     }
-};
+}
 Signals.addSignalMethods(TrayIconsManager.prototype);

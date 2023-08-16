@@ -1,12 +1,13 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
-/* exported CancellablePromise, SignalConnectionPromise, IdlePromise,
-   TimeoutPromise, TimeoutSecondsPromise, MetaLaterPromise, _promisify,
-   _promisifySignals */
 
-const { Gio, GLib, GObject, Meta } = imports.gi;
+import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
+import Meta from 'gi://GdkPixbuf';
+
 const Signals = imports.signals;
 
-var CancellablePromise = class extends Promise {
+export class CancellablePromise extends Promise {
     constructor(executor, cancellable) {
         if (!(executor instanceof Function))
             throw TypeError('executor is not a function');
@@ -120,9 +121,9 @@ var CancellablePromise = class extends Promise {
 
         return this;
     }
-};
+}
 
-var SignalConnectionPromise = class extends CancellablePromise {
+export class SignalConnectionPromise extends CancellablePromise {
     constructor(object, signal, cancellable) {
         if (arguments.length === 1 && object instanceof Function) {
             super(object);
@@ -187,9 +188,9 @@ var SignalConnectionPromise = class extends CancellablePromise {
     get object() {
         return this._chainRoot._object;
     }
-};
+}
 
-var GSourcePromise = class extends CancellablePromise {
+export class GSourcePromise extends CancellablePromise {
     constructor(gsource, priority, cancellable) {
         if (arguments.length === 1 && gsource instanceof Function) {
             super(gsource);
@@ -233,9 +234,9 @@ var GSourcePromise = class extends CancellablePromise {
         }
         super._cleanup();
     }
-};
+}
 
-var IdlePromise = class extends GSourcePromise {
+export class IdlePromise extends GSourcePromise {
     constructor(priority, cancellable) {
         if (arguments.length === 1 && priority instanceof Function) {
             super(priority);
@@ -247,9 +248,9 @@ var IdlePromise = class extends GSourcePromise {
 
         super(GLib.idle_source_new(), priority, cancellable);
     }
-};
+}
 
-var TimeoutPromise = class extends GSourcePromise {
+export class TimeoutPromise extends GSourcePromise {
     constructor(interval, priority, cancellable) {
         if (arguments.length === 1 && interval instanceof Function) {
             super(interval);
@@ -261,9 +262,9 @@ var TimeoutPromise = class extends GSourcePromise {
 
         super(GLib.timeout_source_new(interval), priority, cancellable);
     }
-};
+}
 
-var TimeoutSecondsPromise = class extends GSourcePromise {
+export class TimeoutSecondsPromise extends GSourcePromise {
     constructor(interval, priority, cancellable) {
         if (arguments.length === 1 && interval instanceof Function) {
             super(interval);
@@ -275,9 +276,9 @@ var TimeoutSecondsPromise = class extends GSourcePromise {
 
         super(GLib.timeout_source_new_seconds(interval), priority, cancellable);
     }
-};
+}
 
-var MetaLaterPromise = class extends CancellablePromise {
+export class MetaLaterPromise extends CancellablePromise {
     constructor(laterType, cancellable) {
         if (arguments.length === 1 && laterType instanceof Function) {
             super(laterType);
@@ -308,9 +309,9 @@ var MetaLaterPromise = class extends CancellablePromise {
         }
         super._cleanup();
     }
-};
+}
 
-function _promisifySignals(proto) {
+export function _promisifySignals(proto) {
     if (proto.connect_once)
         return;
 
@@ -327,7 +328,7 @@ Signals.addSignalMethods = proto => {
 
 _promisifySignals(GObject.Object.prototype);
 
-var _promisify = Gio._promisify;
+export let _promisify = Gio._promisify;
 if (imports.system.version < 16501) {
     /* This is backported from upstream gjs, so that all the features are available */
     _promisify = function (proto, asyncFunc, finishFunc = undefined) {

@@ -14,15 +14,12 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-/* exported StatusNotifierItem, StatusNotifierWatcher, DBusMenu */
-
-var StatusNotifierItem = loadInterfaceXml('StatusNotifierItem.xml');
-var StatusNotifierWatcher = loadInterfaceXml('StatusNotifierWatcher.xml');
-var DBusMenu = loadInterfaceXml('DBusMenu.xml');
+export let StatusNotifierItem = null;
+export let StatusNotifierWatcher = null;
+export let DBusMenu = null;
 
 // loads a xml file into an in-memory string
-function loadInterfaceXml(filename) {
-    const extension = imports.misc.extensionUtils.getCurrentExtension();
+function loadInterfaceXml(extension, filename) {
     const interfacesDir = extension.dir.get_child('interfaces-xml');
     const file = interfacesDir.get_child(filename);
     let [result, contents] = imports.gi.GLib.file_get_contents(file.get_path());
@@ -39,4 +36,16 @@ function loadInterfaceXml(filename) {
     } else {
         throw new Error(`AppIndicatorSupport: Could not load file: ${filename}`);
     }
+}
+
+export function initialize(extension) {
+    StatusNotifierItem = loadInterfaceXml(extension, 'StatusNotifierItem.xml');
+    StatusNotifierWatcher = loadInterfaceXml(extension, 'StatusNotifierWatcher.xml');
+    DBusMenu = loadInterfaceXml(extension, 'DBusMenu.xml');
+}
+
+export function destroy() {
+    StatusNotifierItem = null;
+    StatusNotifierWatcher = null;
+    DBusMenu = null;
 }

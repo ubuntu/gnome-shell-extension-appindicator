@@ -2,42 +2,21 @@
 
 /* exported init, buildPrefsWidget */
 
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
+import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
+import Gio from 'gi://Gio';
+import Gtk from 'gi://Gtk';
 
-try {
-    // eslint-disable-next-line no-unused-expressions
-    imports.misc.extensionUtils;
-} catch (e) {
-    const resource = Gio.Resource.load(
-        '/usr/share/gnome-shell/org.gnome.Extensions.src.gresource');
-    resource._register();
-    imports.searchPath.push('resource:///org/gnome/Extensions/js');
-
-    const gtkVersion = GLib.getenv('FORCE_GTK_VERSION') || '4.0';
-    imports.gi.versions.Gtk = gtkVersion;
-    imports.gi.versions.Gdk = gtkVersion;
-}
-
-const GObject = imports.gi.GObject;
-const Gtk = imports.gi.Gtk;
-
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
-const Gettext = imports.gettext.domain(
-    Me ? Me.metadata['gettext-domain'] : 'AppIndicatorExtension');
-const _ = Gettext.gettext;
-
-function init() {
-    ExtensionUtils.initTranslations();
-}
+import {
+    ExtensionPreferences,
+    gettext as _,
+} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 const AppIndicatorPreferences = GObject.registerClass(
 class AppIndicatorPreferences extends Gtk.Box {
-    _init() {
+    _init(extension) {
         super._init({ orientation: Gtk.Orientation.VERTICAL, spacing: 30 });
-        this._settings = Me ? ExtensionUtils.getSettings()
-            : new Gio.Settings({ schema_id: 'org.gnome.shell.extensions.appindicator' });
+        this._settings = extension.getSettings();
 
         let label = null;
         let widget = null;
@@ -371,29 +350,8 @@ class AppIndicatorPreferences extends Gtk.Box {
     }
 });
 
-function buildPrefsWidget() {
-    let widget = new AppIndicatorPreferences();
-
-    if (widget.show_all)
-        widget.show_all();
-
-    return widget;
-}
-
-if (!Me) {
-    GLib.setenv('GSETTINGS_SCHEMA_DIR', './schemas', true);
-    Gtk.init(null);
-
-    const loop = GLib.MainLoop.new(null, false);
-    const win = new Gtk.Window();
-    if (win.set_child) {
-        win.set_child(buildPrefsWidget());
-        win.connect('close-request', () => loop.quit());
-    } else {
-        win.add(buildPrefsWidget());
-        win.connect('delete-event', () => loop.quit());
+export default class DockPreferences extends ExtensionPreferences {
+    getPreferencesWidget() {
+        return new AppIndicatorPreferences(this);
     }
-    win.present();
-
-    loop.run();
 }
