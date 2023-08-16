@@ -16,9 +16,6 @@
 
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
-import Gtk from 'gi://Gtk';
-import Gdk from 'gi://Gdk';
-import Meta from 'gi://Meta';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 
@@ -26,18 +23,16 @@ const ByteArray = imports.byteArray;
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as Config from 'resource:///org/gnome/shell/misc/config.js';
-import * as ExtensionUtils from 'resource:///org/gnome/shell/misc/extensionUtils.js';
 
 import {BaseStatusIcon} from './indicatorStatusIcon.js';
-import * as PromiseUtils from './promiseUtils.js';
 
 const Signals = imports.signals;
 
 export const BUS_ADDRESS_REGEX = /([a-zA-Z0-9._-]+\.[a-zA-Z0-9.-]+)|(:[0-9]+\.[0-9]+)$/;
 
-PromiseUtils._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
-PromiseUtils._promisify(Gio._LocalFilePrototype, 'read', 'read_finish');
-PromiseUtils._promisify(Gio.InputStream.prototype, 'read_bytes_async', 'read_bytes_finish');
+Gio._promisify(Gio.DBusConnection.prototype, 'call');
+Gio._promisify(Gio._LocalFilePrototype, 'read');
+Gio._promisify(Gio.InputStream.prototype, 'read_bytes_async');
 
 export function indicatorId(service, busName, objectPath) {
     if (service && service !== busName && service.match(BUS_ADDRESS_REGEX))
@@ -256,19 +251,7 @@ export function getDefaultTheme() {
     if (_defaultTheme)
         return _defaultTheme;
 
-    if (St.IconTheme) {
-        _defaultTheme = new St.IconTheme();
-        return _defaultTheme;
-    }
-
-    if (Gdk.Screen && Gdk.Screen.get_default()) {
-        _defaultTheme = Gtk.IconTheme.get_default();
-        if (_defaultTheme)
-            return _defaultTheme;
-    }
-
-    _defaultTheme = new Gtk.IconTheme();
-    _defaultTheme.set_custom_theme(St.Settings.get().gtk_icon_theme);
+    _defaultTheme = new St.IconTheme();
     return _defaultTheme;
 }
 
@@ -284,12 +267,6 @@ export function destroyDefaultTheme() {
 export async function waitForStartupCompletion(cancellable) {
     if (Main.layoutManager._startingUp)
         await Main.layoutManager.connect_once('startup-complete', cancellable);
-
-    if (!St.IconTheme && !Meta.is_wayland_compositor()) {
-        const displayManager = Gdk.DisplayManager.get();
-        if (displayManager && !displayManager.get_default_display())
-            await displayManager.connect_once('display-opened', cancellable);
-    }
 }
 
 /**
@@ -343,8 +320,7 @@ export class Logger {
         const domains = GLib.getenv('G_MESSAGES_DEBUG');
         const {name: domain} = extension.metadata;
         this.uuid = extension.metadata.uuid;
-        Logger._domain = domain.replaceAll ? domain.replaceAll(' ', '-')
-            : domain.split(' ').join('-');
+        Logger._domain = domain.replaceAll(' ', '-');
 
         if (domains === 'all' || (domains && domains.split(' ').includes(Logger._domain))) {
             Logger._levels = allLevels;
@@ -376,20 +352,10 @@ export class Logger {
 }
 
 export function versionCheck(required) {
-    if (ExtensionUtils.versionCheck instanceof Function)
-        return ExtensionUtils.versionCheck(required, Config.PACKAGE_VERSION);
-
     const current = Config.PACKAGE_VERSION;
     const currentArray = current.split('.');
-    const [major, minor] = currentArray;
-    for (let i = 0; i < required.length; i++) {
-        const requiredArray = required[i].split('.');
-        if (requiredArray[0] === major &&
-            (requiredArray[1] === undefined && isFinite(minor) ||
-                requiredArray[1] === minor))
-            return true;
-    }
-    return false;
+    const [major] = currentArray;
+    return major >= required;
 }
 
 export function tryCleanupOldIndicators() {

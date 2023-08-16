@@ -4,6 +4,8 @@ import GObject from 'gi://GObject';
 
 import {CancellableChild, Logger} from './util.js';
 
+Gio._promisify(Gio.DBusProxy.prototype, 'init_async');
+
 export const DBusProxy = GObject.registerClass({
     Signals: {'destroy': {}},
 }, class DBusProxy extends Gio.DBusProxy {
