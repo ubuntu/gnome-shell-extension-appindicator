@@ -57,13 +57,8 @@ class AppIndicatorPreferences extends Gtk.Box {
             margin_bottom: 10,
         });
 
-        if (imports.gi.versions.Gtk === '4.0') {
-            this.legacy_tray_hbox.append(label);
-            this.legacy_tray_hbox.append(widget);
-        } else {
-            this.legacy_tray_hbox.pack_start(label, true, true, 0);
-            this.legacy_tray_hbox.pack_start(widget, false, false, 0);
-        }
+        this.legacy_tray_hbox.append(label);
+        this.legacy_tray_hbox.append(widget);
 
         // Icon opacity
         this.opacity_hbox = new Gtk.Box({
@@ -88,13 +83,8 @@ class AppIndicatorPreferences extends Gtk.Box {
         widget.connect('value-changed', w => {
             this._settings.set_int('icon-opacity', w.get_value_as_int());
         });
-        if (imports.gi.versions.Gtk === '4.0') {
-            this.opacity_hbox.append(label);
-            this.opacity_hbox.append(widget);
-        } else {
-            this.opacity_hbox.pack_start(label, true, true, 0);
-            this.opacity_hbox.pack_start(widget, false, false, 0);
-        }
+        this.opacity_hbox.append(label);
+        this.opacity_hbox.append(widget);
 
         // Icon saturation
         this.saturation_hbox = new Gtk.Box({
@@ -118,13 +108,8 @@ class AppIndicatorPreferences extends Gtk.Box {
         widget.connect('value-changed', w => {
             this._settings.set_double('icon-saturation', w.get_value());
         });
-        if (imports.gi.versions.Gtk === '4.0') {
-            this.saturation_hbox.append(label);
-            this.saturation_hbox.append(widget);
-        } else {
-            this.saturation_hbox.pack_start(label, true, true, 0);
-            this.saturation_hbox.pack_start(widget, false, false, 0);
-        }
+        this.saturation_hbox.append(label);
+        this.saturation_hbox.append(widget);
 
         // Icon brightness
         this.brightness_hbox = new Gtk.Box({
@@ -148,13 +133,8 @@ class AppIndicatorPreferences extends Gtk.Box {
         widget.connect('value-changed', w => {
             this._settings.set_double('icon-brightness', w.get_value());
         });
-        if (imports.gi.versions.Gtk === '4.0') {
-            this.brightness_hbox.append(label);
-            this.brightness_hbox.append(widget);
-        } else {
-            this.brightness_hbox.pack_start(label, true, true, 0);
-            this.brightness_hbox.pack_start(widget, false, false, 0);
-        }
+        this.brightness_hbox.append(label);
+        this.brightness_hbox.append(widget);
 
         // Icon contrast
         this.contrast_hbox = new Gtk.Box({
@@ -178,13 +158,8 @@ class AppIndicatorPreferences extends Gtk.Box {
         widget.connect('value-changed', w => {
             this._settings.set_double('icon-contrast', w.get_value());
         });
-        if (imports.gi.versions.Gtk === '4.0') {
-            this.contrast_hbox.append(label);
-            this.contrast_hbox.append(widget);
-        } else {
-            this.contrast_hbox.pack_start(label, true, true, 0);
-            this.contrast_hbox.pack_start(widget, false, false, 0);
-        }
+        this.contrast_hbox.append(label);
+        this.contrast_hbox.append(widget);
 
         // Icon size
         this.icon_size_hbox = new Gtk.Box({
@@ -208,13 +183,8 @@ class AppIndicatorPreferences extends Gtk.Box {
         widget.connect('value-changed', w => {
             this._settings.set_int('icon-size', w.get_value_as_int());
         });
-        if (imports.gi.versions.Gtk === '4.0') {
-            this.icon_size_hbox.append(label);
-            this.icon_size_hbox.append(widget);
-        } else {
-            this.icon_size_hbox.pack_start(label, true, true, 0);
-            this.icon_size_hbox.pack_start(widget, false, false, 0);
-        }
+        this.icon_size_hbox.append(label);
+        this.icon_size_hbox.append(widget);
 
         // Tray position in panel
         this.tray_position_hbox = new Gtk.Box({
@@ -236,29 +206,16 @@ class AppIndicatorPreferences extends Gtk.Box {
         widget.append('right', _('Right'));
         this._settings.bind('tray-pos', widget, 'active-id',
             Gio.SettingsBindFlags.DEFAULT);
-        if (imports.gi.versions.Gtk === '4.0') {
-            this.tray_position_hbox.append(label);
-            this.tray_position_hbox.append(widget);
+        this.tray_position_hbox.append(label);
+        this.tray_position_hbox.append(widget);
 
-            this.preferences_vbox.append(this.legacy_tray_hbox);
-            this.preferences_vbox.append(this.opacity_hbox);
-            this.preferences_vbox.append(this.saturation_hbox);
-            this.preferences_vbox.append(this.brightness_hbox);
-            this.preferences_vbox.append(this.contrast_hbox);
-            this.preferences_vbox.append(this.icon_size_hbox);
-            this.preferences_vbox.append(this.tray_position_hbox);
-        } else {
-            this.tray_position_hbox.pack_start(label, true, true, 0);
-            this.tray_position_hbox.pack_start(widget, false, false, 0);
-
-            this.preferences_vbox.pack_start(this.legacy_tray_hbox, true, false, 0);
-            this.preferences_vbox.pack_start(this.opacity_hbox, true, false, 0);
-            this.preferences_vbox.pack_start(this.saturation_hbox, true, false, 0);
-            this.preferences_vbox.pack_start(this.brightness_hbox, true, false, 0);
-            this.preferences_vbox.pack_start(this.contrast_hbox, true, false, 0);
-            this.preferences_vbox.pack_start(this.icon_size_hbox, true, false, 0);
-            this.preferences_vbox.pack_start(this.tray_position_hbox, true, false, 0);
-        }
+        this.preferences_vbox.append(this.legacy_tray_hbox);
+        this.preferences_vbox.append(this.opacity_hbox);
+        this.preferences_vbox.append(this.saturation_hbox);
+        this.preferences_vbox.append(this.brightness_hbox);
+        this.preferences_vbox.append(this.contrast_hbox);
+        this.preferences_vbox.append(this.icon_size_hbox);
+        this.preferences_vbox.append(this.tray_position_hbox);
 
         // Custom icons section
 
@@ -310,10 +267,7 @@ class AppIndicatorPreferences extends Gtk.Box {
         customTreeView.insert_column(customAttentionIconColumn, 2);
         customTreeView.set_grid_lines(Gtk.TreeViewGridLines.BOTH);
 
-        if (imports.gi.versions.Gtk === '4.0')
-            this.custom_icons_vbox.append(customTreeView);
-        else
-            this.custom_icons_vbox.pack_start(customTreeView, false, false, 0);
+        this.custom_icons_vbox.append(customTreeView);
 
         cellrenderer.connect('edited', (w, path, text) => {
             this.selection = customTreeView.get_selection();
@@ -361,10 +315,7 @@ class AppIndicatorPreferences extends Gtk.Box {
         this.notebook.append_page(this.custom_icons_vbox,
             new Gtk.Label({label: _('Custom Icons')}));
 
-        if (imports.gi.versions.Gtk === '4.0')
-            this.append(this.notebook);
-        else
-            this.add(this.notebook);
+        this.append(this.notebook);
     }
 });
 

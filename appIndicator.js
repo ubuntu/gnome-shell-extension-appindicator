@@ -17,11 +17,8 @@
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
-import Gdk from 'gi://Gdk';
 import GdkPixbuf from 'gi://GdkPixbuf';
 import Gio from 'gi://Gio';
-import Gtk from 'gi://Gtk';
-import Meta from 'gi://Meta';
 import St from 'gi://St';
 
 import * as Params from 'resource:///org/gnome/shell/misc/params.js';
@@ -36,16 +33,11 @@ import {DBusProxy} from './dbusProxy.js';
 
 const Signals = imports.signals;
 
-PromiseUtils._promisify(Gio.File.prototype, 'read_async', 'read_finish');
-PromiseUtils._promisify(Gio._LocalFilePrototype, 'read_async', 'read_finish');
-PromiseUtils._promisify(GdkPixbuf.Pixbuf, 'get_file_info_async', 'get_file_info_finish');
-PromiseUtils._promisify(GdkPixbuf.Pixbuf, 'new_from_stream_at_scale_async', 'new_from_stream_finish');
-PromiseUtils._promisify(Gio.DBusProxy.prototype, 'init_async', 'init_finish');
-
-if (St.IconInfo)
-    PromiseUtils._promisify(St.IconInfo.prototype, 'load_symbolic_async', 'load_symbolic_finish');
-else
-    PromiseUtils._promisify(Gtk.IconInfo.prototype, 'load_symbolic_async', 'load_symbolic_finish');
+Gio._promisify(Gio.File.prototype, 'read_async');
+Gio._promisify(GdkPixbuf.Pixbuf, 'get_file_info_async');
+Gio._promisify(GdkPixbuf.Pixbuf, 'new_from_stream_at_scale_async',
+    'new_from_stream_finish');
+Gio._promisify(St.IconInfo.prototype, 'load_symbolic_async');
 
 const MAX_UPDATE_FREQUENCY = 30; // In ms
 const FALLBACK_ICON_NAME = 'image-loading-symbolic';
@@ -399,11 +391,6 @@ class AppIndicatorProxy extends DBusProxy {
         return null;
     }
 });
-
-if (imports.system.version < 17101) {
-    /* In old versions wrappers are not applied to sub-classes, so let's do it */
-    AppIndicatorProxy.prototype.init_async = Gio.DBusProxy.prototype.init_async;
-}
 
 /**
  * the AppIndicator class serves as a generic container for indicator information and functions common
@@ -849,30 +836,24 @@ export class AppIndicator {
 }
 Signals.addSignalMethods(AppIndicator.prototype);
 
-let StTextureCacheSkippingFileIcon;
+const StTextureCacheSkippingFileIcon = GObject.registerClass({
+    Implements: [Gio.Icon],
+}, class StTextureCacheSkippingFileIconImpl extends Gio.EmblemedIcon {
+    _init(params) {
+        // FIXME: We can't just inherit from Gio.FileIcon for some reason
+        super._init({gicon: new Gio.FileIcon(params)});
+    }
 
-if (imports.system.version >= 17501) {
-    try {
-        StTextureCacheSkippingFileIcon = GObject.registerClass({
-            Implements: [Gio.Icon],
-        }, class StTextureCacheSkippingFileIconImpl extends Gio.EmblemedIcon {
-            _init(params) {
-                // FIXME: We can't just inherit from Gio.FileIcon for some reason
-                super._init({gicon: new Gio.FileIcon(params)});
-            }
-
-            vfunc_to_tokens() {
-                // Disables the to_tokens() vfunc so that the icon to_string()
-                // method won't work and thus can't be kept forever around by
-                // StTextureCache, see the awesome debugging session in this thread:
-                //   https://twitter.com/mild_sunrise/status/1458739604098621443
-                // upstream bug is at:
-                //   https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/4944
-                return [false, [], 0];
-            }
-        });
-    } catch (e) {}
-}
+    vfunc_to_tokens() {
+        // Disables the to_tokens() vfunc so that the icon to_string()
+        // method won't work and thus can't be kept forever around by
+        // StTextureCache, see the awesome debugging session in this thread:
+        //   https://twitter.com/mild_sunrise/status/1458739604098621443
+        // upstream bug is at:
+        //   https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/4944
+        return [false, [], 0];
+    }
+});
 
 export const IconActor = GObject.registerClass(
 class AppIndicatorsIconActor extends St.Icon {
@@ -1100,7 +1081,7 @@ class AppIndicatorsIconActor extends St.Icon {
         if (!themeNode)
             return lookupFlags;
 
-        const lookupFlagsEnum = St.IconLookupFlags || Gtk.IconLookupFlags;
+        const lookupFlagsEnum = St.IconLookupFlags;
         const iconStyle = themeNode.get_icon_style();
         if (iconStyle === St.IconStyle.REGULAR)
             lookupFlags |= lookupFlagsEnum.FORCE_REGULAR;
@@ -1115,64 +1096,8 @@ class AppIndicatorsIconActor extends St.Icon {
         return lookupFlags;
     }
 
-    _getIconLoadingColors() {
-        const themeNode = this.get_theme_node();
-
-        if (!themeNode)
-            return null;
-
-        const iconColors = themeNode.get_icon_colors();
-        if (St.IconTheme)
-            return iconColors;
-
-        if (!iconColors)
-            return iconColors;
-
-        const rgbaFromClutter = color => new Gdk.RGBA({
-            red: color.red / 255.0,
-            green: color.green / 255.0,
-            blue: color.blue / 255.0,
-            alpha: color.alpha / 255.0,
-        });
-
-        return {
-            foreground: rgbaFromClutter(iconColors.foreground),
-            warning: rgbaFromClutter(iconColors.warning),
-            error: rgbaFromClutter(iconColors.error),
-            success: rgbaFromClutter(iconColors.success),
-        };
-    }
-
-    async _createIconByFile(file, iconSize, iconScaling, cancellable) {
-        try {
-            const inputStream = await file.read_async(GLib.PRIORITY_DEFAULT, cancellable);
-            return GdkPixbuf.Pixbuf.new_from_stream_at_scale_async(inputStream,
-                -1, Math.ceil(iconSize * iconScaling), true, cancellable);
-        } catch (e) {
-            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
-                Util.Logger.warn(
-                    `${this.debugId}, Impossible to read image from path '${file.get_path()}': ${e}`);
-            }
-            throw e;
-        }
-    }
-
-    async _createIconByIconInfo(iconInfo, iconSize, iconScaling, iconColors, cancellable) {
-        if (iconColors) {
-            const args = St.IconInfo && iconInfo instanceof St.IconInfo
-                ? [iconColors] : [iconColors.foreground, iconColors.success,
-                    iconColors.warning, iconColors.error];
-
-            const [pixbuf] = await iconInfo.load_symbolic_async(...args, cancellable);
-            return pixbuf;
-        }
-
-        return this._createIconByFile(Gio.File.new_for_path(iconInfo.get_filename()),
-            iconSize, iconScaling, cancellable);
-    }
-
     async _createIconByIconData(iconData, iconSize, iconScaling, cancellable) {
-        const {file, iconInfo, name} = iconData;
+        const {file, name} = iconData;
 
         if (!file && !name) {
             if (this._createIconIdle) {
@@ -1220,31 +1145,10 @@ class AppIndicatorsIconActor extends St.Icon {
                 await this._loadCustomImage(file,
                     width, height, iconSize, iconScaling, cancellable);
                 return null;
-            } else if (StTextureCacheSkippingFileIcon) {
+            } else {
                 /* We'll wrap the icon so that it won't be cached forever by the shell */
                 return new StTextureCacheSkippingFileIcon({file});
-            } else if (iconInfo) {
-                return this._createIconByIconInfo(iconInfo, iconSize,
-                    iconScaling, this._getIconLoadingColors(), cancellable);
-            } else if (format.name === 'svg') {
-                const iconColors = this._getIconLoadingColors();
-
-                if (iconColors) {
-                    const fileIcon = new Gio.FileIcon({file});
-                    const iconTheme = this._iconTheme || this._createIconTheme();
-                    const fileIconInfo = iconTheme.lookup_by_gicon_for_scale(
-                        fileIcon, iconSize, iconScaling,
-                        this._getIconLookupFlags(this.get_theme_node()));
-
-                    if (fileIconInfo) {
-                        return this._createIconByIconInfo(fileIconInfo,
-                            iconSize, iconScaling, iconColors, cancellable);
-                    }
-                }
             }
-
-            return this._createIconByFile(file,
-                iconSize, iconScaling, cancellable);
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
                 Util.Logger.warn(
@@ -1303,21 +1207,8 @@ class AppIndicatorsIconActor extends St.Icon {
     }
 
     _createIconTheme(searchPath = []) {
-        if (St.IconTheme) {
-            const iconTheme = new St.IconTheme();
-            iconTheme.set_search_path(searchPath);
-
-            return iconTheme;
-        }
-
-        const iconTheme = new Gtk.IconTheme();
+        const iconTheme = new St.IconTheme();
         iconTheme.set_search_path(searchPath);
-
-        if (!Meta.is_wayland_compositor()) {
-            const defaultScreen = Gdk.Screen.get_default();
-            if (defaultScreen)
-                iconTheme.set_screen(defaultScreen);
-        }
 
         return iconTheme;
     }
@@ -1368,9 +1259,7 @@ class AppIndicatorsIconActor extends St.Icon {
             // try to look up the icon in the icon theme
             const iconInfo = this._iconTheme.lookup_icon_for_scale(`${name}`,
                 size, scale, this._getIconLookupFlags(this.get_theme_node()) |
-                (St.IconLookupFlags
-                    ? St.IconLookupFlags.GENERIC_FALLBACK
-                    : Gtk.IconLookupFlags.GENERIC_FALLBACK));
+                St.IconLookupFlags.GENERIC_FALLBACK);
 
             if (iconInfo) {
                 return {

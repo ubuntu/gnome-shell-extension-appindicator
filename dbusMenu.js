@@ -30,8 +30,7 @@ import {DBusProxy} from './dbusProxy.js';
 
 const Signals = imports.signals;
 
-PromiseUtils._promisify(GdkPixbuf.Pixbuf, 'new_from_stream_async',
-    'new_from_stream_finish');
+Gio._promisify(GdkPixbuf.Pixbuf, 'new_from_stream_async');
 
 // ////////////////////////////////////////////////////////////////////////
 // PART ONE: "ViewModel" backend implementation.
@@ -542,11 +541,6 @@ export const DBusClient = GObject.registerClass({
     }
 });
 
-if (imports.system.version < 17101) {
-    /* In old versions wrappers are not applied to sub-classes, so let's do it */
-    DBusClient.prototype.init_async = Gio.DBusProxy.prototype.init_async;
-}
-
 // ////////////////////////////////////////////////////////////////////////
 // PART TWO: "View" frontend implementation.
 // ////////////////////////////////////////////////////////////////////////
@@ -581,7 +575,7 @@ const MenuItemFactory = {
         if (shellItem instanceof PopupMenu.PopupMenuItem) {
             shellItem._icon = new St.Icon({
                 style_class: 'popup-menu-icon',
-                xAlign: St.Align ? St.Align.END : Clutter.ActorAlign.END,
+                xAlign: Clutter.ActorAlign.END,
             });
             shellItem.add_child(shellItem._icon);
             shellItem.label.x_expand = true;

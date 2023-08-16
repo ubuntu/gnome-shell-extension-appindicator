@@ -143,10 +143,8 @@ class IndicatorBaseStatusIcon extends PanelMenu.Button {
         const userValue = settings.get_user_value('icon-opacity');
         if (userValue)
             this.opacity = userValue.unpack();
-        else if (Util.versionCheck(['40']))
-            this.opacity = 255;
         else
-            this.opacity = settings.get_int('icon-opacity');
+            this.opacity = 255;
     }
 
     _updateEffects() {
@@ -275,8 +273,7 @@ class IndicatorStatusIcon extends BaseStatusIcon {
         if (label) {
             if (!this._label || !this._labelBin) {
                 this._labelBin = new St.Bin({
-                    y_align: Util.versionCheck(['3.34'])
-                        ? St.Align.MIDDLE : Clutter.ActorAlign.CENTER,
+                    yAlign: Clutter.ActorAlign.CENTER,
                 });
                 this._label = new St.Label();
                 this._labelBin.add_actor(this._label);
