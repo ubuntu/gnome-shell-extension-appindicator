@@ -1,5 +1,5 @@
 project('gnome-shell-ubuntu-appindicators',
-  version : '56',
+  version : '57',
   meson_version : '>= 0.53',
   license: 'GPL2',
 )
