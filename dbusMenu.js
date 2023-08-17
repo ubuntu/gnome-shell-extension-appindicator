@@ -22,13 +22,12 @@ import Gio from 'gi://Gio';
 import St from 'gi://St';
 
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
 
 import * as DBusInterfaces from './interfaces.js';
 import * as PromiseUtils from './promiseUtils.js';
 import * as Util from './util.js';
 import {DBusProxy} from './dbusProxy.js';
-
-const Signals = imports.signals;
 
 Gio._promisify(GdkPixbuf.Pixbuf, 'new_from_stream_async');
 
@@ -95,9 +94,11 @@ PropertyStore.DefaultValues = {
 /**
  * Represents a single menu item
  */
-export class DbusMenuItem {
+export class DbusMenuItem extends Signals.EventEmitter {
     // will steal the properties object
     constructor(client, id, properties, childrenIds) {
+        super();
+
         this._client = client;
         this._id = id;
         this._propStore = new PropertyStore(properties);
@@ -197,7 +198,6 @@ export class DbusMenuItem {
         this._client.sendAboutToShow(this._id);
     }
 }
-Signals.addSignalMethods(DbusMenuItem.prototype);
 
 
 /**
@@ -812,8 +812,10 @@ const MenuUtils = {
  *
  * Something like a mini-god-object
  */
-export class Client {
+export class Client extends Signals.EventEmitter {
     constructor(busName, path, indicator) {
+        super();
+
         this._busName  = busName;
         this._busPath  = path;
         this._client   = new DBusClient(busName, path);
@@ -946,4 +948,3 @@ export class Client {
         this._itemsBeingAdded = null;
     }
 }
-Signals.addSignalMethods(Client.prototype);

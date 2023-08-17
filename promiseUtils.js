@@ -5,7 +5,7 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Meta from 'gi://GdkPixbuf';
 
-const Signals = imports.signals;
+import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
 
 export class CancellablePromise extends Promise {
     constructor(executor, cancellable) {
@@ -320,10 +320,5 @@ export function _promisifySignals(proto) {
     };
 }
 
-const {addSignalMethods} = Signals;
-Signals.addSignalMethods = proto => {
-    addSignalMethods(proto);
-    _promisifySignals(proto);
-};
-
 _promisifySignals(GObject.Object.prototype);
+_promisifySignals(Signals.EventEmitter.prototype);

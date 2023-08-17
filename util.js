@@ -23,10 +23,9 @@ const ByteArray = imports.byteArray;
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as Config from 'resource:///org/gnome/shell/misc/config.js';
+import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
 
 import {BaseStatusIcon} from './indicatorStatusIcon.js';
-
-const Signals = imports.signals;
 
 export const BUS_ADDRESS_REGEX = /([a-zA-Z0-9._-]+\.[a-zA-Z0-9.-]+)|(:[0-9]+\.[0-9]+)$/;
 
@@ -35,7 +34,7 @@ Gio._promisify(Gio._LocalFilePrototype, 'read');
 Gio._promisify(Gio.InputStream.prototype, 'read_bytes_async');
 
 export function indicatorId(service, busName, objectPath) {
-    if (service && service !== busName && service.match(BUS_ADDRESS_REGEX))
+    if (service !== busName && service?.match(BUS_ADDRESS_REGEX))
         return service;
 
     return `${busName}@${objectPath}`;
@@ -136,8 +135,10 @@ function dbusNodeImplementsInterfaces(nodeInfo, interfaces) {
     return interfaces.some(iface => nodeInfo.lookup_interface(iface));
 }
 
-export class NameWatcher {
+export class NameWatcher extends Signals.EventEmitter {
     constructor(name) {
+        super();
+
         this._watcherId = Gio.DBus.session.watch_name(name,
             Gio.BusNameWatcherFlags.NONE, () => {
                 this._nameOnBus = true;
@@ -163,7 +164,6 @@ export class NameWatcher {
         return !!this._nameOnBus;
     }
 }
-Signals.addSignalMethods(NameWatcher.prototype);
 
 function connectSmart3A(src, signal, handler) {
     const id = src.connect(signal, handler);

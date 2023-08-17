@@ -17,16 +17,15 @@
 import Shell from 'gi://Shell';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
 
 import * as IndicatorStatusIcon from './indicatorStatusIcon.js';
 import * as Util from './util.js';
 import * as SettingsManager from './settingsManager.js';
 
-const Signals = imports.signals;
-
 let trayIconsManager;
 
-export class TrayIconsManager {
+export class TrayIconsManager extends Signals.EventEmitter {
     static initialize() {
         if (!trayIconsManager)
             trayIconsManager = new TrayIconsManager();
@@ -38,6 +37,8 @@ export class TrayIconsManager {
     }
 
     constructor() {
+        super();
+
         if (trayIconsManager)
             throw new Error('TrayIconsManager is already constructed');
 
@@ -101,4 +102,3 @@ export class TrayIconsManager {
         trayIconsManager = null;
     }
 }
-Signals.addSignalMethods(TrayIconsManager.prototype);
