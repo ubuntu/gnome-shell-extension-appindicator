@@ -411,7 +411,7 @@ class IndicatorStatusIcon extends BaseStatusIcon {
         if (doubleClickHandled === Clutter.EVENT_PROPAGATE &&
             event.get_button() === Clutter.BUTTON_PRIMARY &&
             this.menu.numMenuItems) {
-            if (this._indicator.supportsActivation)
+            if (this._indicator.supportsActivation !== false)
                 this._waitForDoubleClick().catch(logError);
             else
                 this.menu.toggle();
