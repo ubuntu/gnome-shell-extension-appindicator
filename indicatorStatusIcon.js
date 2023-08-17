@@ -332,8 +332,9 @@ class IndicatorStatusIcon extends BaseStatusIcon {
         this._updateMenu();
     }
 
-    _updateClickCount(buttonEvent) {
-        const {x, y, time} = buttonEvent;
+    _updateClickCount(event) {
+        const [x, y] = event.get_coords();
+        const time = event.get_time();
         const {doubleClickDistance, doubleClickTime} =
             Clutter.Settings.get_default();
 
@@ -351,17 +352,15 @@ class IndicatorStatusIcon extends BaseStatusIcon {
         return this._clickCount;
     }
 
-    _maybeHandleDoubleClick(buttonEvent) {
+    _maybeHandleDoubleClick(event) {
         if (this._indicator.supportsActivation === false)
             return Clutter.EVENT_PROPAGATE;
 
-        if (buttonEvent.button !== Clutter.BUTTON_PRIMARY)
+        if (event.get_button() !== Clutter.BUTTON_PRIMARY)
             return Clutter.EVENT_PROPAGATE;
 
-        if (buttonEvent.click_count === 2 ||
-            (buttonEvent.click_count === undefined &&
-             this._updateClickCount(buttonEvent) === 2)) {
-            this._indicator.open(buttonEvent.x, buttonEvent.y, buttonEvent.time);
+        if (this._updateClickCount(event) === 2) {
+            this._indicator.open(...event.get_coords(), event.get_time());
             return Clutter.EVENT_STOP;
         }
 
@@ -391,26 +390,26 @@ class IndicatorStatusIcon extends BaseStatusIcon {
         return Clutter.EVENT_PROPAGATE;
     }
 
-    vfunc_button_press_event(buttonEvent) {
+    vfunc_button_press_event(event) {
         if (this._waitDoubleClickPromise)
             this._waitDoubleClickPromise.cancel();
 
         // if middle mouse button clicked send SecondaryActivate dbus event and do not show appindicator menu
-        if (buttonEvent.button === Clutter.BUTTON_MIDDLE) {
+        if (event.get_button() === Clutter.BUTTON_MIDDLE) {
             if (Main.panel.menuManager.activeMenu)
                 Main.panel.menuManager._closeMenu(true, Main.panel.menuManager.activeMenu);
-            this._indicator.secondaryActivate(buttonEvent.time, buttonEvent.x, buttonEvent.y);
+            this._indicator.secondaryActivate(event.get_time(), ...event.get_coords());
             return Clutter.EVENT_STOP;
         }
 
-        if (buttonEvent.button === Clutter.BUTTON_SECONDARY) {
+        if (event.get_button() === Clutter.BUTTON_SECONDARY) {
             this.menu.toggle();
             return Clutter.EVENT_PROPAGATE;
         }
 
-        const doubleClickHandled = this._maybeHandleDoubleClick(buttonEvent);
+        const doubleClickHandled = this._maybeHandleDoubleClick(event);
         if (doubleClickHandled === Clutter.EVENT_PROPAGATE &&
-            buttonEvent.button === Clutter.BUTTON_PRIMARY &&
+            event.get_button() === Clutter.BUTTON_PRIMARY &&
             this.menu.numMenuItems) {
             if (this._indicator.supportsActivation)
                 this._waitForDoubleClick().catch(logError);
@@ -421,20 +420,19 @@ class IndicatorStatusIcon extends BaseStatusIcon {
         return Clutter.EVENT_PROPAGATE;
     }
 
-    vfunc_button_release_event(buttonEvent) {
+    vfunc_button_release_event(event) {
         if (!this._indicator.supportsActivation)
-            return this._maybeHandleDoubleClick(buttonEvent);
+            return this._maybeHandleDoubleClick(event);
 
         return Clutter.EVENT_PROPAGATE;
     }
 
-    vfunc_scroll_event(scrollEvent) {
+    vfunc_scroll_event(event) {
         // Since Clutter 1.10, clutter will always send a smooth scrolling event
         // with explicit deltas, no matter what input device is used
         // In fact, for every scroll there will be a smooth and non-smooth scroll
         // event, and we can choose which one we interpret.
-        if (scrollEvent.direction === Clutter.ScrollDirection.SMOOTH) {
-            const event = Clutter.get_current_event();
+        if (event.get_scroll_direction() === Clutter.ScrollDirection.SMOOTH) {
             const [dx, dy] = event.get_scroll_delta();
 
             this._indicator.scroll(dx, dy);
@@ -514,26 +512,26 @@ class IndicatorTrayIcon extends BaseStatusIcon {
     _getSimulatedButtonEvent(touchEvent) {
         const event = Clutter.Event.new(Clutter.EventType.BUTTON_RELEASE);
         event.set_button(1);
-        event.set_time(touchEvent.time);
-        event.set_flags(touchEvent.flags);
-        event.set_stage(touchEvent.stage);
-        event.set_source(touchEvent.source);
-        event.set_coords(touchEvent.x, touchEvent.y);
-        event.set_state(touchEvent.modifier_state);
+        event.set_time(touchEvent.get_time());
+        event.set_flags(touchEvent.get_flags());
+        event.set_stage(global.stage);
+        event.set_source(touchEvent.get_source());
+        event.set_coords(...touchEvent.get_coords());
+        event.set_state(touchEvent.get_state());
         return event;
     }
 
-    vfunc_touch_event(touchEvent) {
+    vfunc_touch_event(event) {
         // Under X11 we rely on emulated pointer events
         if (!imports.gi.Meta.is_wayland_compositor())
             return Clutter.EVENT_PROPAGATE;
 
-        const slot = touchEvent.sequence.get_slot();
+        const slot = event.get_event_sequence().get_slot();
 
         if (!this._touchPressSlot &&
-            touchEvent.type === Clutter.EventType.TOUCH_BEGIN) {
+            event.get_type() === Clutter.EventType.TOUCH_BEGIN) {
             this.add_style_pseudo_class('active');
-            this._touchButtonEvent = this._getSimulatedButtonEvent(touchEvent);
+            this._touchButtonEvent = this._getSimulatedButtonEvent(event);
             this._touchPressSlot = slot;
             this._touchDelayPromise = new PromiseUtils.TimeoutPromise(
                 AppDisplay.MENU_POPUP_TIMEOUT);
@@ -544,7 +542,7 @@ class IndicatorTrayIcon extends BaseStatusIcon {
                 this._icon.click(this._touchButtonEvent);
                 this.remove_style_pseudo_class('active');
             });
-        } else if (touchEvent.type === Clutter.EventType.TOUCH_END &&
+        } else if (event.get_type() === Clutter.EventType.TOUCH_END &&
                    this._touchPressSlot === slot) {
             delete this._touchPressSlot;
             delete this._touchButtonEvent;
@@ -553,18 +551,18 @@ class IndicatorTrayIcon extends BaseStatusIcon {
                 delete this._touchDelayPromise;
             }
 
-            this._icon.click(this._getSimulatedButtonEvent(touchEvent));
+            this._icon.click(this._getSimulatedButtonEvent(event));
             this.remove_style_pseudo_class('active');
-        } else if (touchEvent.type === Clutter.EventType.TOUCH_UPDATE &&
+        } else if (event.get_type() === Clutter.EventType.TOUCH_UPDATE &&
                    this._touchPressSlot === slot) {
             this.add_style_pseudo_class('active');
-            this._touchButtonEvent = this._getSimulatedButtonEvent(touchEvent);
+            this._touchButtonEvent = this._getSimulatedButtonEvent(event);
         }
 
         return Clutter.EVENT_PROPAGATE;
     }
 
-    vfunc_leave_event(crossingEvent) {
+    vfunc_leave_event(event) {
         this.remove_style_pseudo_class('active');
 
         if (this._touchDelayPromise) {
@@ -572,7 +570,7 @@ class IndicatorTrayIcon extends BaseStatusIcon {
             delete this._touchDelayPromise;
         }
 
-        return super.vfunc_leave_event(crossingEvent);
+        return super.vfunc_leave_event(event);
     }
 
     _updateIconSize() {
