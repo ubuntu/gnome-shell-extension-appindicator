@@ -60,12 +60,13 @@ export default class DashToDockExtension extends Extension.Extension {
     disable() {
         this._isEnabled = false;
         TrayIconsManager.TrayIconsManager.destroy();
-        SettingsManager.destroy();
 
         if (this._statusNotifierWatcher !== null) {
             this._statusNotifierWatcher.destroy();
             this._statusNotifierWatcher = null;
         }
+
+        SettingsManager.destroy();
     }
 
     // FIXME: when entering/leaving the lock screen, the extension might be

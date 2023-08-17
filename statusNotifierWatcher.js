@@ -24,6 +24,8 @@ import * as PromiseUtils from './promiseUtils.js';
 import * as Util from './util.js';
 import * as DBusMenu from './dbusMenu.js';
 
+import {DBusProxy} from './dbusProxy.js';
+
 
 // TODO: replace with org.freedesktop and /org/freedesktop when approved
 const KDE_PREFIX = 'org.kde';
@@ -273,7 +275,7 @@ export class StatusNotifierWatcher {
 
         DBusMenu.DBusClient.destroy();
         AppIndicator.AppIndicatorProxy.destroy();
-        Util.DBusProxy.destroy();
+        DBusProxy.destroy();
         Util.destroyDefaultTheme();
 
         this._dbusImpl.run_dispose();
