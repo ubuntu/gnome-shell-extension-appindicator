@@ -22,6 +22,7 @@ import Gio from 'gi://Gio';
 import St from 'gi://St';
 
 import * as Params from 'resource:///org/gnome/shell/misc/params.js';
+import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
 
 import * as IconCache from './iconCache.js';
 import * as Util from './util.js';
@@ -30,8 +31,6 @@ import * as PixmapsUtils from './pixmapsUtils.js';
 import * as PromiseUtils from './promiseUtils.js';
 import * as SettingsManager from './settingsManager.js';
 import {DBusProxy} from './dbusProxy.js';
-
-const Signals = imports.signals;
 
 Gio._promisify(Gio.File.prototype, 'read_async');
 Gio._promisify(GdkPixbuf.Pixbuf, 'get_file_info_async');
@@ -396,12 +395,14 @@ class AppIndicatorProxy extends DBusProxy {
  * the AppIndicator class serves as a generic container for indicator information and functions common
  * for every displaying implementation (IndicatorMessageSource and IndicatorStatusIcon)
  */
-export class AppIndicator {
+export class AppIndicator extends Signals.EventEmitter {
     static get NEEDED_PROPERTIES() {
         return ['Id', 'Menu'];
     }
 
     constructor(service, busName, object) {
+        super();
+
         this.isReady = false;
         this.busName = busName;
         this._uniqueId = Util.indicatorId(service, busName, object);
@@ -834,7 +835,6 @@ export class AppIndicator {
         }
     }
 }
-Signals.addSignalMethods(AppIndicator.prototype);
 
 const StTextureCacheSkippingFileIcon = GObject.registerClass({
     Implements: [Gio.Icon],
