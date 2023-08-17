@@ -53,7 +53,7 @@ eslint = find_program('eslint', required: false)
 if eslint.found()
     test('eslint',
         eslint,
-        args: ['.', '-f', 'tap'],
+        args: [meson.project_source_root(), '-f', 'tap'],
         workdir: meson.source_root(),
         protocol: 'tap')
 endif
