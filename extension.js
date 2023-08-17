@@ -82,8 +82,6 @@ export default class DashToDockExtension extends Extension.Extension {
         if (this._watchDog.nameAcquired && this._watchDog.nameOnBus)
             return;
 
-        print('Watchdog is', this._watchDog);
-
         this._statusNotifierWatcher = new StatusNotifierWatcher.StatusNotifierWatcher(
             this._watchDog);
     }
