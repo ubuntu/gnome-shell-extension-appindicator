@@ -42,7 +42,6 @@ export class SettingsManager {
     }
 
     destroy() {
-        this._gsettings.run_dispose();
         this._gsettings = null;
     }
 }
