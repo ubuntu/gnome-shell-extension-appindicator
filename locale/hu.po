@@ -1,132 +1,140 @@
 # Hungarian translation for AppIndicator GNOME Shell Extension.
-# Copyright (C) 2022 Free Software Foundation, Inc.
+# Copyright (C) 2022, 2023 Free Software Foundation, Inc.
 # This file is distributed under the same license as the gnome-shell-extension-appindicator package.
 #
-# Balázs Úr <ur.balazs at fsf dot hu>, 2022.
+# Balázs Úr <ur.balazs at fsf dot hu>, 2022, 2023.
 msgid ""
 msgstr ""
 "Project-Id-Version: master\n"
 "Report-Msgid-Bugs-To: https://github.com/ubuntu/gnome-shell-extension-appindicator/issues\n"
-"POT-Creation-Date: 2021-09-27 20:43+0200\n"
-"PO-Revision-Date: 2022-11-02 00:09+0100\n"
+"POT-Creation-Date: 2023-03-07 02:36+0100\n"
+"PO-Revision-Date: 2023-09-22 08:57+0200\n"
 "Last-Translator: Balázs Úr <ur.balazs at fsf dot hu>\n"
 "Language-Team: Hungarian\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Lokalize 22.08.2\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Lokalize 23.04.3\n"
 
-#: prefs.js:67
+#: prefs.js:59
+msgid "Enable Legacy Tray Icons support"
+msgstr "Örökölt tálcaikonok támogatásának engedélyezése"
+
+#: prefs.js:91
 msgid "Opacity (min: 0, max: 255)"
 msgstr "Átlátszatlanság (legkisebb: 0, legnagyobb: 255)"
 
-#: prefs.js:95
+#: prefs.js:120
 msgid "Desaturation (min: 0.0, max: 1.0)"
 msgstr "Telítetlenség (legkisebb: 0.0, legnagyobb: 1.0)"
 
-#: prefs.js:123
+#: prefs.js:148
 msgid "Brightness (min: -1.0, max: 1.0)"
 msgstr "Fényerő (legkisebb: -1.0, legnagyobb: 1.0)"
 
-#: prefs.js:151
+#: prefs.js:176
 msgid "Contrast (min: -1.0, max: 1.0)"
 msgstr "Kontraszt (legkisebb: -1.0, legnagyobb: 1.0)"
 
-#: prefs.js:179
+#: prefs.js:204
 msgid "Icon size (min: 0, max: 96)"
 msgstr "Ikonméret (legkisebb: 0, legnagyobb: 96)"
 
-#: prefs.js:207
+#: prefs.js:232
 msgid "Tray horizontal alignment"
 msgstr "Tálca vízszintes elrendezése"
 
-#: prefs.js:212
+#: prefs.js:237
 msgid "Center"
 msgstr "Középre"
 
-#: prefs.js:213
+#: prefs.js:238
 msgid "Left"
 msgstr "Balra"
 
-#: prefs.js:214
+#: prefs.js:239
 msgid "Right"
 msgstr "Jobbra"
 
-#: prefs.js:259
+#: prefs.js:286
 msgid "Indicator ID"
 msgstr "Jelző azonosítója"
 
-#: prefs.js:260
+#: prefs.js:287
 msgid "Icon Name"
 msgstr "Ikon neve"
 
-#: prefs.js:261
+#: prefs.js:288
 msgid "Attention Icon Name"
 msgstr "Figyelem ikon neve"
 
-#: prefs.js:336
+#: prefs.js:363
 msgid "Preferences"
 msgstr "Beállítások"
 
-#: prefs.js:338
+#: prefs.js:365
 msgid "Custom Icons"
 msgstr "Egyéni ikonok"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
+msgid "Enable legacy tray icons support"
+msgstr "Örökölt tálcaikonok támogatásának engedélyezése"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
 msgid "Saturation"
 msgstr "Telítettség"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
 msgid "Brightness"
 msgstr "Fényerő"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
 msgid "Contrast"
 msgstr "Kontraszt"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
 msgid "Opacity"
 msgstr "Átlátszatlanság"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:25
 msgid "Icon size"
 msgstr "Ikonméret"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:22
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
 msgid "Icon size in pixel"
 msgstr "Ikonméret képpontban"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:30
 msgid "Icon spacing"
 msgstr "Ikon térköze"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:27
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
 msgid "Icon spacing within the tray"
 msgstr "Ikon térköze a tálcán belül"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:35
 msgid "Position in tray"
 msgstr "Elhelyezkedés a tálcán"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:32
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
 msgid "Set where the Icon tray should appear in Gnome tray"
 msgstr "Annak beállítása, hogy az ikontálca hol jelenjen meg a GNOME tálcán"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:40
 msgid "Order in tray"
 msgstr "Sorrend a tálcán"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:37
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
 msgid "Set where the Icon tray should appear among other trays"
 msgstr ""
 "Annak beállítása, hogy az ikontálca hol jelenjen meg az egyéb tálcák között"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:45
 msgid "Custom icons"
 msgstr "Egyéni ikonok"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:42
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:46
 msgid "Replace any icons with custom icons from themes"
 msgstr "Bármely ikon cseréje a témákból származó egyéni ikonokkal"
