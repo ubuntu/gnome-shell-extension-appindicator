@@ -80,6 +80,9 @@ export default class DashToDockExtension extends Extension.Extension {
         if (!this._isEnabled || this._statusNotifierWatcher)
             return;
 
+        if (!this._watchDog)
+            return;
+
         if (this._watchDog.nameAcquired && this._watchDog.nameOnBus)
             return;
 
