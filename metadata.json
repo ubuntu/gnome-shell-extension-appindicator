@@ -1,6 +1,7 @@
 {
     "shell-version": [
-        "45", "46"
+        "45",
+        "46"
     ],
     "gettext-domain": "AppIndicatorExtension",
     "settings-schema": "org.gnome.shell.extensions.appindicator",
