@@ -1,0 +1,138 @@
+# Ukrainian translation of gnome-shell-extension-appindicator.
+# Copyright (C) 2024 AppIndicatorExtension Contributors
+# This file is distributed under the same license as the AppIndicatorExtension package.
+# Yevhen Popok <xalt7x.service@gmail.com>, 2024.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: AppIndicatorExtension\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-03-07 02:36+0100\n"
+"PO-Revision-Date: 2024-01-08 22:43+0200\n"
+"Last-Translator: Yevhen Popok <xalt7x.service@gmail.com>\n"
+"Language-Team: \n"
+"Language: uk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 3.4\n"
+
+#: prefs.js:59
+msgid "Enable Legacy Tray Icons support"
+msgstr "Увімкнути підтримку застарілих піктограм лотка"
+
+#: prefs.js:91
+msgid "Opacity (min: 0, max: 255)"
+msgstr "Непрозорість (мін: 0, макс: 255)"
+
+#: prefs.js:120
+msgid "Desaturation (min: 0.0, max: 1.0)"
+msgstr "Знебарвлення (мін: 0.0, макс: 1.0)"
+
+#: prefs.js:148
+msgid "Brightness (min: -1.0, max: 1.0)"
+msgstr "Яксравість (мін: -1.0, макс: 1.0)"
+
+#: prefs.js:176
+msgid "Contrast (min: -1.0, max: 1.0)"
+msgstr "Контраст (мін: -1.0, макс: 1.0)"
+
+#: prefs.js:204
+msgid "Icon size (min: 0, max: 96)"
+msgstr "Розмір піктограм (мін: 0, макс: 96)"
+
+#: prefs.js:232
+msgid "Tray horizontal alignment"
+msgstr "Горизонтальне вирівнювання лотка"
+
+#: prefs.js:237
+msgid "Center"
+msgstr "По центру"
+
+#: prefs.js:238
+msgid "Left"
+msgstr "Ліворуч"
+
+#: prefs.js:239
+msgid "Right"
+msgstr "Праворуч"
+
+#: prefs.js:286
+msgid "Indicator ID"
+msgstr "ID індикатора"
+
+#: prefs.js:287
+msgid "Icon Name"
+msgstr "Назва піктограми"
+
+#: prefs.js:288
+msgid "Attention Icon Name"
+msgstr "Назва піктограми уваги"
+
+#: prefs.js:363
+msgid "Preferences"
+msgstr "Налаштування"
+
+#: prefs.js:365
+msgid "Custom Icons"
+msgstr "Спец. піктограми"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
+msgid "Enable legacy tray icons support"
+msgstr "Увімкнути підтримку застарілих піктограм"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
+msgid "Saturation"
+msgstr "Насиченість"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
+msgid "Brightness"
+msgstr "Яскравість"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
+msgid "Contrast"
+msgstr "Контраст"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
+msgid "Opacity"
+msgstr "Непрозорість"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:25
+msgid "Icon size"
+msgstr "Розмір піктограм "
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
+msgid "Icon size in pixel"
+msgstr "Розмір піктограм в пікселях"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:30
+msgid "Icon spacing"
+msgstr "Відстань між піктограмами"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
+msgid "Icon spacing within the tray"
+msgstr "Відстань між піктограмами в межах лотка"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:35
+msgid "Position in tray"
+msgstr "Розташування в лотку"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
+msgid "Set where the Icon tray should appear in Gnome tray"
+msgstr "Вказати, де в лотку Gnome повинен з’являтися лоток піктограм"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:40
+msgid "Order in tray"
+msgstr "Порядок в лотку"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
+msgid "Set where the Icon tray should appear among other trays"
+msgstr "Вказати, де поміж інших лотків повинен з’являтися лоток піктограм"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:45
+msgid "Custom icons"
+msgstr "Спец. піктограми"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:46
+msgid "Replace any icons with custom icons from themes"
+msgstr "Замінювати будь-які піктограми на спец. піктограми з тем"
