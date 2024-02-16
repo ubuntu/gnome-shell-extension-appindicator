@@ -130,6 +130,11 @@ export class DbusMenuItem extends Signals.EventEmitter {
         this.emit('property-changed', prop, this.propertyGetVariant(prop));
     }
 
+    resetProperties() {
+        Object.entries(PropertyStore.DefaultValues).forEach(([prop, value]) =>
+            this.propertySet(prop, value));
+    }
+
     getChildrenIds() {
         return this._children_ids.concat(); // clone it!
     }
@@ -296,6 +301,8 @@ export const DBusClient = GObject.registerClass({
             const item = this._items.get(id);
             if (!item)
                 return;
+
+            item.resetProperties();
 
             for (const [prop, value] of Object.entries(properties))
                 item.propertySet(prop, value);
