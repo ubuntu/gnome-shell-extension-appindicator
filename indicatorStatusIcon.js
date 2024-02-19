@@ -276,15 +276,15 @@ class IndicatorStatusIcon extends BaseStatusIcon {
                     yAlign: Clutter.ActorAlign.CENTER,
                 });
                 this._label = new St.Label();
-                this._labelBin.add_actor(this._label);
-                this._box.add_actor(this._labelBin);
+                Util.addActor(this._labelBin, this._label);
+                Util.addActor(this._box, this._labelBin);
             }
             this._label.set_text(label);
             if (!this._box.contains(this._labelBin))
-                this._box.add_actor(this._labelBin); // FIXME: why is it suddenly necessary?
+                Util.addActor(this._box, this._labelBin); // FIXME: why is it suddenly necessary?
         } else if (this._label) {
             this._labelBin.destroy_all_children();
-            this._box.remove_actor(this._labelBin);
+            Util.removeActor(this._box, this._labelBin);
             this._labelBin.destroy();
             delete this._labelBin;
             delete this._label;
