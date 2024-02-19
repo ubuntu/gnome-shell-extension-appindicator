@@ -375,6 +375,20 @@ export function tryCleanupOldIndicators() {
     new Set(indicators).forEach(i => i.destroy());
 }
 
+export function addActor(obj, actor) {
+    if (obj.add_actor)
+        obj.add_actor(actor)
+    else
+        obj.add_child(actor)
+}
+
+export function removeActor(obj, actor) {
+    if (obj.remove_actor)
+        obj.remove_actor(actor)
+    else
+        obj.remove_child(actor)
+}
+
 export const CancellableChild = GObject.registerClass({
     Properties: {
         'parent': GObject.ParamSpec.object(
