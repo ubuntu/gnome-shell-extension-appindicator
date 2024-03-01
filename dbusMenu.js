@@ -507,7 +507,7 @@ export const DBusClient = GObject.registerClass({
                 ret.is_of_type(new GLib.VariantType('()')))
                 this._requestLayoutUpdate();
         } catch (e) {
-            console.log(`Error when calling 'AboutToShow()' in ${this.gName}, ${this.gObjectPath}, ${gInterfaceName}`);
+            console.log(`Error when calling 'AboutToShow()' in ${this.gName}, ${this.gObjectPath}, ${this.gInterfaceName}`);
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 logError(e);
         }
