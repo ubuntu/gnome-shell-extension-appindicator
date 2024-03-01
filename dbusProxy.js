@@ -86,18 +86,28 @@ export const DBusProxy = GObject.registerClass({
     }
 
     getProperty(propertyName, cancellable) {
-        return this.gConnection.call(this.gName,
-            this.gObjectPath, 'org.freedesktop.DBus.Properties', 'Get',
-            GLib.Variant.new('(ss)', [this.gInterfaceName, propertyName]),
-            DBusProxy.TUPLE_VARIANT_TYPE, Gio.DBusCallFlags.NONE, -1,
-            cancellable);
+        try {
+            return this.gConnection.call(this.gName,
+                this.gObjectPath, 'org.freedesktop.DBus.Properties', 'Get',
+                GLib.Variant.new('(ss)', [this.gInterfaceName, propertyName]),
+                DBusProxy.TUPLE_VARIANT_TYPE, Gio.DBusCallFlags.NONE, -1,
+                cancellable);
+        } catch(e) {
+            console.log(`Error when calling 'Get(${propertyName})' in ${this.gName}, ${this.gObjectPath}, org.freedesktop.DBus.Properties`);
+            console.log(e);
+        }
     }
 
     getProperties(cancellable) {
-        return this.gConnection.call(this.gName,
-            this.gObjectPath, 'org.freedesktop.DBus.Properties', 'GetAll',
-            GLib.Variant.new('(s)', [this.gInterfaceName]),
-            GLib.VariantType.new('(a{sv})'), Gio.DBusCallFlags.NONE, -1,
-            cancellable);
+        try {
+            return this.gConnection.call(this.gName,
+                this.gObjectPath, 'org.freedesktop.DBus.Properties', 'GetAll',
+                GLib.Variant.new('(s)', [this.gInterfaceName]),
+                GLib.VariantType.new('(a{sv})'), Gio.DBusCallFlags.NONE, -1,
+                cancellable);
+        } catch(e) {
+            console.log(`Error when calling 'GetAll()' in ${this.gName}, ${this.gObjectPath}, org.freedesktop.DBus.Properties`);
+            console.log(e);
+        }
     }
 });

@@ -522,6 +522,7 @@ export const DBusClient = GObject.registerClass({
                 this._hasAboutToShow = false;
                 return;
             }
+            console.log(`Error when calling 'AboutToShow()' in ${this.gName}, ${this.gObjectPath}, ${gInterfaceName}`);
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 logError(e);
         }
