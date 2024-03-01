@@ -316,6 +316,7 @@ class AppIndicatorProxy extends DBusProxy {
                 this.set_cached_property(propertyName, null);
                 this._cancellables.delete(propertyName);
                 delete this._changedProperties[propertyName];
+                console.log(`Error when calling 'Get(${propertyName})' in ${this.gName}, ${this.gObjectPath}, org.freedesktop.DBus.Properties, ${this.gInterfaceName}`);
                 throw e;
             }
         }
