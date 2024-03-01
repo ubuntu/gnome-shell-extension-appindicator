@@ -312,7 +312,10 @@ class AppIndicatorProxy extends DBusProxy {
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
                 // the property may not even exist, silently ignore it
-                Util.Logger.debug(`While refreshing property ${propertyName}: ${e}`);
+                Util.Logger.debug(`Error when calling 'Get(${propertyName})' ` +
+                    `in ${this.gName}, ${this.gObjectPath}, ` +
+                    `org.freedesktop.DBus.Properties, ${this.gInterfaceName} ` +
+                    `while refreshing property ${propertyName}: ${e}`);
                 this.set_cached_property(propertyName, null);
                 this._cancellables.delete(propertyName);
                 delete this._changedProperties[propertyName];
