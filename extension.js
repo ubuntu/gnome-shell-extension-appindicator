@@ -26,6 +26,11 @@ export default class DashToDockExtension extends Extension.Extension {
     constructor(...args) {
         super(...args);
 
+        const StatusNotifierWatcher = Extension.imports.statusNotifierWatcher;
+        const TrayIconsManager = Extension.imports.trayIconsManager;
+        const Util = Extension.imports.util;
+        const SettingsManager = Extension.imports.settingsManager;
+
         Util.Logger.init(this);
         Interfaces.initialize(this);
 
@@ -46,7 +51,10 @@ export default class DashToDockExtension extends Extension.Extension {
             this._watchDog.destroy();
             this._watchDog = null;
         };
+
         /* eslint-enable no-undef */
+        const settings = SettingsManager.getDefaultGSettings();
+        settings.reset('recent-icons'); // clear in preparation of new collection
     }
 
     enable() {

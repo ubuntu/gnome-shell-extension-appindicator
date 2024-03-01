@@ -45,5 +45,10 @@
       <summary>Custom icons</summary>
       <description>Replace any icons with custom icons from themes</description>
     </key>
+    <key name="recent-icons" type="as">
+      <default>[]</default>
+      <summary>Recent icon IDs</summary>
+      <description>List of recently encountered icon ids</description>
+    </key>
   </schema>
 </schemalist>

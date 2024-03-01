@@ -18,6 +18,7 @@ import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
+import GLib from 'gi://GLib';
 
 import * as AppDisplay from 'resource:///org/gnome/shell/ui/appDisplay.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -323,6 +324,16 @@ class IndicatorStatusIcon extends BaseStatusIcon {
         }
     }
 
+    _addToRecentIcons() {
+        const settings = SettingsManager.getDefaultGSettings();
+        const iconIDs = settings.get_value('recent-icons').deep_unpack();
+
+        if (this._indicator.id && !iconIDs.includes(this._indicator.id)) {
+            iconIDs.push(this._indicator.id);
+            settings.set_value('recent-icons', new GLib.Variant('as', iconIDs));
+        }
+    }
+
     _showIfReady() {
         if (!this.isReady())
             return;
@@ -330,6 +341,9 @@ class IndicatorStatusIcon extends BaseStatusIcon {
         this._updateLabel();
         this._updateStatus();
         this._updateMenu();
+        this._addToRecentIcons();
+
+        super._showIfReady();
     }
 
     _updateClickCount(event) {
