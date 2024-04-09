@@ -1,5 +1,5 @@
 project('gnome-shell-ubuntu-appindicators',
-  version : '42',
+  version : '57',
   meson_version : '>= 0.53',
   license: 'GPL2',
 )
@@ -53,7 +53,7 @@ eslint = find_program('eslint', required: false)
 if eslint.found()
     test('eslint',
         eslint,
-        args: ['.', '-f', 'tap'],
+        args: [meson.project_source_root(), '-f', 'tap'],
         workdir: meson.source_root(),
         protocol: 'tap')
 endif

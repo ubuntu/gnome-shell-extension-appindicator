@@ -22,7 +22,6 @@
 
 
     <!-- signals -->
-
     <signal name="StatusNotifierItemRegistered">
         <arg type="s"/>
     </signal>

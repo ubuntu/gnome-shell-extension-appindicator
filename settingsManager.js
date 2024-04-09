@@ -14,35 +14,42 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-/* exported SettingsManager, getDefault, getDefaultGSettings */
-
-const ExtensionUtils = imports.misc.extensionUtils;
-
 let settingsManager;
 
-class SettingsManager {
+export class SettingsManager {
+    static initialize(extension) {
+        SettingsManager._settingsManager = new SettingsManager(extension);
+    }
+
+    static destroy() {
+        SettingsManager._settingsManager.destroy();
+        SettingsManager._settingsManager = null;
+    }
+
     static getDefault() {
-        if (!settingsManager)
-            settingsManager = new SettingsManager();
-        return settingsManager;
+        return this._settingsManager;
     }
 
     get gsettings() {
         return this._gsettings;
     }
 
-    constructor() {
+    constructor(extension) {
         if (settingsManager)
             throw new Error('SettingsManager is already constructed');
 
-        this._gsettings = ExtensionUtils.getSettings();
+        this._gsettings = extension.getSettings();
+    }
+
+    destroy() {
+        this._gsettings = null;
     }
 }
 
-function getDefault() {
+export function getDefault() {
     return SettingsManager.getDefault();
 }
 
-function getDefaultGSettings() {
+export function getDefaultGSettings() {
     return SettingsManager.getDefault().gsettings;
 }

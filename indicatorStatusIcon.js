@@ -14,36 +14,71 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-/* exported IndicatorStatusIcon, IndicatorStatusTrayIcon */
+import Clutter from 'gi://Clutter';
+import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
+import GObject from 'gi://GObject';
+import St from 'gi://St';
 
-const Clutter = imports.gi.Clutter;
-const GLib = imports.gi.GLib;
-const GObject = imports.gi.GObject;
-const St = imports.gi.St;
+import * as AppDisplay from 'resource:///org/gnome/shell/ui/appDisplay.js';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as Panel from 'resource:///org/gnome/shell/ui/panel.js';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 
-const AppDisplay = imports.ui.appDisplay;
-const Main = imports.ui.main;
-const Panel = imports.ui.panel;
-const PanelMenu = imports.ui.panelMenu;
+import * as AppIndicator from './appIndicator.js';
+import * as PromiseUtils from './promiseUtils.js';
+import * as SettingsManager from './settingsManager.js';
+import * as Util from './util.js';
+import * as DBusMenu from './dbusMenu.js';
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Extension = ExtensionUtils.getCurrentExtension();
+const DEFAULT_ICON_SIZE = Panel.PANEL_ICON_SIZE || 16;
 
-const AppIndicator = Extension.imports.appIndicator;
-const DBusMenu = Extension.imports.dbusMenu;
-const Util = Extension.imports.util;
-const PromiseUtils = Extension.imports.promiseUtils;
-const SettingsManager = Extension.imports.settingsManager;
+export function addIconToPanel(statusIcon) {
+    if (!(statusIcon instanceof BaseStatusIcon))
+        throw TypeError(`Unexpected icon type: ${statusIcon}`);
 
-const BaseStatusIcon = GObject.registerClass(
-class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
+    const settings = SettingsManager.getDefaultGSettings();
+    const indicatorId = `appindicator-${statusIcon.uniqueId}`;
+
+    const currentIcon = Main.panel.statusArea[indicatorId];
+    if (currentIcon) {
+        if (currentIcon !== statusIcon)
+            currentIcon.destroy();
+
+        Main.panel.statusArea[indicatorId] = null;
+    }
+
+    Main.panel.addToStatusArea(indicatorId, statusIcon, 1,
+        settings.get_string('tray-pos'));
+
+    Util.connectSmart(settings, 'changed::tray-pos', statusIcon, () =>
+        addIconToPanel(statusIcon));
+}
+
+export function getTrayIcons() {
+    return Object.values(Main.panel.statusArea).filter(
+        i => i instanceof IndicatorStatusTrayIcon);
+}
+
+export function getAppIndicatorIcons() {
+    return Object.values(Main.panel.statusArea).filter(
+        i => i instanceof IndicatorStatusIcon);
+}
+
+export const BaseStatusIcon = GObject.registerClass(
+class IndicatorBaseStatusIcon extends PanelMenu.Button {
     _init(menuAlignment, nameText, iconActor, dontCreateMenu) {
         super._init(menuAlignment, nameText, dontCreateMenu);
 
         const settings = SettingsManager.getDefaultGSettings();
         Util.connectSmart(settings, 'changed::icon-opacity', this, this._updateOpacity);
-        Util.connectSmart(settings, 'changed::tray-pos', this, this._showIfReady);
         this.connect('notify::hover', () => this._onHoverChanged());
+
+        if (!super._onDestroy)
+            this.connect('destroy', () => this._onDestroy());
+
+        this._box = new St.BoxLayout({style_class: 'panel-status-indicators-box'});
+        this.add_child(this._box);
 
         this._setIconActor(iconActor);
         this._showIfReady();
@@ -53,21 +88,37 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
         if (!(icon instanceof Clutter.Actor))
             throw new Error(`${icon} is not a valid actor`);
 
-        if (!this._icon) {
-            const settings = SettingsManager.getDefaultGSettings();
-            Util.connectSmart(settings, 'changed::icon-saturation', this, this._updateSaturation);
-            Util.connectSmart(settings, 'changed::icon-brightness', this, this._updateBrightnessContrast);
-            Util.connectSmart(settings, 'changed::icon-contrast', this, this._updateBrightnessContrast);
-        } else if (this._icon !== icon) {
+        if (this._icon && this._icon !== icon)
             this._icon.destroy();
-        }
 
         this._icon = icon;
         this._updateEffects();
+        this._monitorIconEffects();
+
+        if (this._icon) {
+            this._box.add_child(this._icon);
+            const id = this._icon.connect('destroy', () => {
+                this._icon.disconnect(id);
+                this._icon = null;
+                this._monitorIconEffects();
+            });
+        }
+    }
+
+    _onDestroy() {
+        if (this._icon)
+            this._icon.destroy();
+
+        if (super._onDestroy)
+            super._onDestroy();
     }
 
     isReady() {
         throw new GObject.NotImplementedError('isReady() in %s'.format(this.constructor.name));
+    }
+
+    get icon() {
+        return this._icon;
     }
 
     get uniqueId() {
@@ -75,13 +126,7 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
     }
 
     _showIfReady() {
-        if (!this.isReady())
-            return;
-
-        const indicatorId = `appindicator-${this.uniqueId}`;
-        Main.panel.statusArea[indicatorId] = null;
-        Main.panel.addToStatusArea(indicatorId, this, 1,
-            SettingsManager.getDefaultGSettings().get_string('tray-pos'));
+        this.visible = this.isReady();
     }
 
     _onHoverChanged() {
@@ -99,10 +144,8 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
         const userValue = settings.get_user_value('icon-opacity');
         if (userValue)
             this.opacity = userValue.unpack();
-        else if (Util.versionCheck(['40']))
-            this.opacity = 255;
         else
-            this.opacity = settings.get_int('icon-opacity');
+            this.opacity = 255;
     }
 
     _updateEffects() {
@@ -111,6 +154,32 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
         if (this._icon) {
             this._updateSaturation();
             this._updateBrightnessContrast();
+        }
+    }
+
+    _monitorIconEffects() {
+        const settings = SettingsManager.getDefaultGSettings();
+        const monitoring = !!this._iconSaturationIds;
+
+        if (!this._icon && monitoring) {
+            Util.disconnectSmart(settings, this, this._iconSaturationIds);
+            delete this._iconSaturationIds;
+
+            Util.disconnectSmart(settings, this, this._iconBrightnessIds);
+            delete this._iconBrightnessIds;
+
+            Util.disconnectSmart(settings, this, this._iconContrastIds);
+            delete this._iconContrastIds;
+        } else if (this._icon && !monitoring) {
+            this._iconSaturationIds =
+                Util.connectSmart(settings, 'changed::icon-saturation', this,
+                    this._updateSaturation);
+            this._iconBrightnessIds =
+                Util.connectSmart(settings, 'changed::icon-brightness', this,
+                    this._updateBrightnessContrast);
+            this._iconContrastIds =
+                Util.connectSmart(settings, 'changed::icon-contrast', this,
+                    this._updateBrightnessContrast);
         }
     }
 
@@ -152,18 +221,18 @@ class AppIndicatorsIndicatorBaseStatusIcon extends PanelMenu.Button {
 /*
  * IndicatorStatusIcon implements an icon in the system status area
  */
-var IndicatorStatusIcon = GObject.registerClass(
-class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
+export const IndicatorStatusIcon = GObject.registerClass(
+class IndicatorStatusIcon extends BaseStatusIcon {
     _init(indicator) {
         super._init(0.5, indicator.accessibleName,
-            new AppIndicator.IconActor(indicator, Panel.PANEL_ICON_SIZE));
+            new AppIndicator.IconActor(indicator, DEFAULT_ICON_SIZE));
         this._indicator = indicator;
 
-        this._box = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
-        this._box.add_style_class_name('appindicator-box');
-        this.add_child(this._box);
+        this._lastClickTime = -1;
+        this._lastClickX = -1;
+        this._lastClickY = -1;
 
-        this._box.add_child(this._icon);
+        this._box.add_style_class_name('appindicator-box');
 
         Util.connectSmart(this._indicator, 'ready', this, this._showIfReady);
         Util.connectSmart(this._indicator, 'menu', this, this._updateMenu);
@@ -175,15 +244,21 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
         });
         Util.connectSmart(this._indicator, 'accessible-name', this, () =>
             this.set_accessible_name(this._indicator.accessibleName));
+        Util.connectSmart(this._indicator, 'destroy', this, () => this.destroy());
 
-        this.connect('destroy', () => {
-            if (this._menuClient) {
-                this._menuClient.destroy();
-                this._menuClient = null;
-            }
-        });
+        this.connect('notify::visible', () => this._updateMenu());
 
         this._showIfReady();
+    }
+
+    _onDestroy() {
+        if (this._menuClient) {
+            this._menuClient.disconnect(this._menuReadyId);
+            this._menuClient.destroy();
+            this._menuClient = null;
+        }
+
+        super._onDestroy();
     }
 
     get uniqueId() {
@@ -195,12 +270,11 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
     }
 
     _updateLabel() {
-        var label = this._indicator.label;
+        const {label} = this._indicator;
         if (label) {
             if (!this._label || !this._labelBin) {
                 this._labelBin = new St.Bin({
-                    y_align: Util.versionCheck(['3.34'])
-                        ? St.Align.MIDDLE : Clutter.ActorAlign.CENTER,
+                    yAlign: Clutter.ActorAlign.CENTER,
                 });
                 this._label = new St.Label();
                 this._labelBin.add_actor(this._label);
@@ -219,20 +293,34 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
     }
 
     _updateStatus() {
+        const wasVisible = this.visible;
         this.visible = this._indicator.status !== AppIndicator.SNIStatus.PASSIVE;
+
+        if (this.visible !== wasVisible)
+            this._indicator.checkAlive().catch(logError);
     }
 
     _updateMenu() {
         if (this._menuClient) {
+            this._menuClient.disconnect(this._menuReadyId);
             this._menuClient.destroy();
             this._menuClient = null;
             this.menu.removeAll();
         }
 
-        if (this._indicator.menuPath) {
+        if (this.visible && this._indicator.menuPath) {
             this._menuClient = new DBusMenu.Client(this._indicator.busName,
-                this._indicator.menuPath);
-            this._menuClient.attachToMenu(this.menu);
+                this._indicator.menuPath, this._indicator);
+
+            if (this._menuClient.isReady)
+                this._menuClient.attachToMenu(this.menu);
+
+            this._menuReadyId = this._menuClient.connect('ready-changed', () => {
+                if (this._menuClient.isReady)
+                    this._menuClient.attachToMenu(this.menu);
+                else
+                    this._updateMenu();
+            });
         }
     }
 
@@ -254,34 +342,110 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
         this._updateStatus();
         this._updateMenu();
         this._addToRecentIcons();
-
-        super._showIfReady();
     }
 
-    vfunc_button_press_event(buttonEvent) {
-        // if middle mouse button clicked send SecondaryActivate dbus event and do not show appindicator menu
-        if (buttonEvent.button === 2) {
-            Main.panel.menuManager._closeMenu(true, Main.panel.menuManager.activeMenu);
-            this._indicator.secondaryActivate(buttonEvent.time, buttonEvent.x, buttonEvent.y);
-            return Clutter.EVENT_STOP;
-        }
+    _updateClickCount(event) {
+        const [x, y] = event.get_coords();
+        const time = event.get_time();
+        const {doubleClickDistance, doubleClickTime} =
+            Clutter.Settings.get_default();
 
-        if (buttonEvent.button === 1 && buttonEvent.click_count === 2) {
-            this._indicator.open(buttonEvent.x, buttonEvent.y);
+        if (time > (this._lastClickTime + doubleClickTime) ||
+            (Math.abs(x - this._lastClickX) > doubleClickDistance) ||
+            (Math.abs(y - this._lastClickY) > doubleClickDistance))
+            this._clickCount = 0;
+
+        this._lastClickTime = time;
+        this._lastClickX = x;
+        this._lastClickY = y;
+
+        this._clickCount = (this._clickCount % 2) + 1;
+
+        return this._clickCount;
+    }
+
+    _maybeHandleDoubleClick(event) {
+        if (this._indicator.supportsActivation === false)
+            return Clutter.EVENT_PROPAGATE;
+
+        if (event.get_button() !== Clutter.BUTTON_PRIMARY)
+            return Clutter.EVENT_PROPAGATE;
+
+        if (this._updateClickCount(event) === 2) {
+            this._indicator.open(...event.get_coords(), event.get_time());
             return Clutter.EVENT_STOP;
         }
 
         return Clutter.EVENT_PROPAGATE;
     }
 
-    vfunc_scroll_event(scrollEvent) {
+    async _waitForDoubleClick() {
+        const {doubleClickTime} = Clutter.Settings.get_default();
+        this._waitDoubleClickPromise = new PromiseUtils.TimeoutPromise(
+            doubleClickTime);
+
+        try {
+            await this._waitDoubleClickPromise;
+            this.menu.toggle();
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                throw e;
+        } finally {
+            delete this._waitDoubleClickPromise;
+        }
+    }
+
+    vfunc_event(event) {
+        if (this.menu.numMenuItems && event.type() === Clutter.EventType.TOUCH_BEGIN)
+            this.menu.toggle();
+
+        return Clutter.EVENT_PROPAGATE;
+    }
+
+    vfunc_button_press_event(event) {
+        if (this._waitDoubleClickPromise)
+            this._waitDoubleClickPromise.cancel();
+
+        // if middle mouse button clicked send SecondaryActivate dbus event and do not show appindicator menu
+        if (event.get_button() === Clutter.BUTTON_MIDDLE) {
+            if (Main.panel.menuManager.activeMenu)
+                Main.panel.menuManager._closeMenu(true, Main.panel.menuManager.activeMenu);
+            this._indicator.secondaryActivate(event.get_time(), ...event.get_coords());
+            return Clutter.EVENT_STOP;
+        }
+
+        if (event.get_button() === Clutter.BUTTON_SECONDARY) {
+            this.menu.toggle();
+            return Clutter.EVENT_PROPAGATE;
+        }
+
+        const doubleClickHandled = this._maybeHandleDoubleClick(event);
+        if (doubleClickHandled === Clutter.EVENT_PROPAGATE &&
+            event.get_button() === Clutter.BUTTON_PRIMARY &&
+            this.menu.numMenuItems) {
+            if (this._indicator.supportsActivation !== false)
+                this._waitForDoubleClick().catch(logError);
+            else
+                this.menu.toggle();
+        }
+
+        return Clutter.EVENT_PROPAGATE;
+    }
+
+    vfunc_button_release_event(event) {
+        if (!this._indicator.supportsActivation)
+            return this._maybeHandleDoubleClick(event);
+
+        return Clutter.EVENT_PROPAGATE;
+    }
+
+    vfunc_scroll_event(event) {
         // Since Clutter 1.10, clutter will always send a smooth scrolling event
         // with explicit deltas, no matter what input device is used
         // In fact, for every scroll there will be a smooth and non-smooth scroll
         // event, and we can choose which one we interpret.
-        if (scrollEvent.direction === Clutter.ScrollDirection.SMOOTH) {
-            const event = Clutter.get_current_event();
-            let [dx, dy] = event.get_scroll_delta();
+        if (event.get_scroll_direction() === Clutter.ScrollDirection.SMOOTH) {
+            const [dx, dy] = event.get_scroll_delta();
 
             this._indicator.scroll(dx, dy);
             return Clutter.EVENT_STOP;
@@ -291,16 +455,12 @@ class AppIndicatorsIndicatorStatusIcon extends BaseStatusIcon {
     }
 });
 
-var IndicatorStatusTrayIcon = GObject.registerClass(
-class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
+export const IndicatorStatusTrayIcon = GObject.registerClass(
+class IndicatorTrayIcon extends BaseStatusIcon {
     _init(icon) {
-        super._init(0.5, icon.wm_class, icon, { dontCreateMenu: true });
+        super._init(0.5, icon.wm_class, icon, {dontCreateMenu: true});
         Util.Logger.debug(`Adding legacy tray icon ${this.uniqueId}`);
-        this._box = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
         this._box.add_style_class_name('appindicator-trayicons-box');
-        this.add_child(this._box);
-
-        this._box.add_child(this._icon);
         this.add_style_class_name('appindicator-icon');
         this.add_style_class_name('tray-icon');
 
@@ -332,18 +492,20 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
         const settings = SettingsManager.getDefaultGSettings();
         Util.connectSmart(settings, 'changed::icon-size', this, this._updateIconSize);
 
-        // eslint-disable-next-line no-undef
         const themeContext = St.ThemeContext.get_for_stage(global.stage);
         Util.connectSmart(themeContext, 'notify::scale-factor', this, () =>
             this._updateIconSize());
 
         this._updateIconSize();
+    }
 
-        this.connect('destroy', () => {
-            Util.Logger.debug(`Destroying legacy tray icon ${this.uniqueId}`);
-            this._icon.destroy();
-            this._icon = null;
-        });
+    _onDestroy() {
+        Util.Logger.debug(`Destroying legacy tray icon ${this.uniqueId}`);
+
+        if (this._waitDoubleClickPromise)
+            this._waitDoubleClickPromise.cancel();
+
+        super._onDestroy();
     }
 
     isReady() {
@@ -362,26 +524,26 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
     _getSimulatedButtonEvent(touchEvent) {
         const event = Clutter.Event.new(Clutter.EventType.BUTTON_RELEASE);
         event.set_button(1);
-        event.set_time(touchEvent.time);
-        event.set_flags(touchEvent.flags);
-        event.set_stage(touchEvent.stage);
-        event.set_source(touchEvent.source);
-        event.set_coords(touchEvent.x, touchEvent.y);
-        event.set_state(touchEvent.modifier_state);
+        event.set_time(touchEvent.get_time());
+        event.set_flags(touchEvent.get_flags());
+        event.set_stage(global.stage);
+        event.set_source(touchEvent.get_source());
+        event.set_coords(...touchEvent.get_coords());
+        event.set_state(touchEvent.get_state());
         return event;
     }
 
-    vfunc_touch_event(touchEvent) {
+    vfunc_touch_event(event) {
         // Under X11 we rely on emulated pointer events
         if (!imports.gi.Meta.is_wayland_compositor())
             return Clutter.EVENT_PROPAGATE;
 
-        const slot = touchEvent.sequence.get_slot();
+        const slot = event.get_event_sequence().get_slot();
 
         if (!this._touchPressSlot &&
-            touchEvent.type === Clutter.EventType.TOUCH_BEGIN) {
+            event.get_type() === Clutter.EventType.TOUCH_BEGIN) {
             this.add_style_pseudo_class('active');
-            this._touchButtonEvent = this._getSimulatedButtonEvent(touchEvent);
+            this._touchButtonEvent = this._getSimulatedButtonEvent(event);
             this._touchPressSlot = slot;
             this._touchDelayPromise = new PromiseUtils.TimeoutPromise(
                 AppDisplay.MENU_POPUP_TIMEOUT);
@@ -392,7 +554,7 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
                 this._icon.click(this._touchButtonEvent);
                 this.remove_style_pseudo_class('active');
             });
-        } else if (touchEvent.type === Clutter.EventType.TOUCH_END &&
+        } else if (event.get_type() === Clutter.EventType.TOUCH_END &&
                    this._touchPressSlot === slot) {
             delete this._touchPressSlot;
             delete this._touchButtonEvent;
@@ -401,18 +563,18 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
                 delete this._touchDelayPromise;
             }
 
-            this._icon.click(this._getSimulatedButtonEvent(touchEvent));
+            this._icon.click(this._getSimulatedButtonEvent(event));
             this.remove_style_pseudo_class('active');
-        } else if (touchEvent.type === Clutter.EventType.TOUCH_UPDATE &&
+        } else if (event.get_type() === Clutter.EventType.TOUCH_UPDATE &&
                    this._touchPressSlot === slot) {
             this.add_style_pseudo_class('active');
-            this._touchButtonEvent = this._getSimulatedButtonEvent(touchEvent);
+            this._touchButtonEvent = this._getSimulatedButtonEvent(event);
         }
 
         return Clutter.EVENT_PROPAGATE;
     }
 
-    vfunc_leave_event(crossingEvent) {
+    vfunc_leave_event(event) {
         this.remove_style_pseudo_class('active');
 
         if (this._touchDelayPromise) {
@@ -420,20 +582,23 @@ class AppIndicatorsIndicatorTrayIcon extends BaseStatusIcon {
             delete this._touchDelayPromise;
         }
 
-        return super.vfunc_leave_event(crossingEvent);
+        return super.vfunc_leave_event(event);
     }
 
     _updateIconSize() {
         const settings = SettingsManager.getDefaultGSettings();
-        // eslint-disable-next-line no-undef
-        const { scale_factor: scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+        const {scaleFactor} = St.ThemeContext.get_for_stage(global.stage);
         let iconSize = settings.get_int('icon-size');
 
         if (iconSize <= 0)
-            iconSize = Panel.PANEL_ICON_SIZE;
+            iconSize = DEFAULT_ICON_SIZE;
 
         this.height = -1;
-        this._icon.set_height(iconSize * scaleFactor);
-        this._icon.set_y_align(Clutter.ActorAlign.CENTER);
+        this._icon.set({
+            width: iconSize * scaleFactor,
+            height: iconSize * scaleFactor,
+            xAlign: Clutter.ActorAlign.CENTER,
+            yAlign: Clutter.ActorAlign.CENTER,
+        });
     }
 });

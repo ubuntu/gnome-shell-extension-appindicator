@@ -49,7 +49,7 @@
         <arg type="ai" name="idErrors" direction="out" />
     </method>
 
-    <!-- Signals -->
+    <!-- Signals
     <signal name="ItemsPropertiesUpdated">
         <arg type="a(ia{sv})" name="updatedProps" direction="out" />
         <arg type="a(ias)" name="removedProps" direction="out" />
@@ -62,4 +62,5 @@
         <arg type="i" name="id" direction="out" />
         <arg type="u" name="timestamp" direction="out" />
     </signal>
+    -->
 </interface>

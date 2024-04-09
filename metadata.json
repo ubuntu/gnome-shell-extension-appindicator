@@ -1,12 +1,7 @@
 {
     "shell-version": [
-        "3.33",
-        "3.34",
-        "3.36",
-        "3.38",
-        "40",
-        "41",
-        "42"
+        "45",
+        "46"
     ],
     "gettext-domain": "AppIndicatorExtension",
     "settings-schema": "org.gnome.shell.extensions.appindicator",

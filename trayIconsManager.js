@@ -14,21 +14,18 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-/* exported TrayIconsManager */
+import Shell from 'gi://Shell';
 
-const Shell = imports.gi.Shell;
-const Main = imports.ui.main;
-const Signals = imports.signals;
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
 
-const ExtensionUtils = imports.misc.extensionUtils;
-
-const Extension = ExtensionUtils.getCurrentExtension();
-const IndicatorStatusIcon = Extension.imports.indicatorStatusIcon;
-const Util = Extension.imports.util;
+import * as IndicatorStatusIcon from './indicatorStatusIcon.js';
+import * as Util from './util.js';
+import * as SettingsManager from './settingsManager.js';
 
 let trayIconsManager;
 
-var TrayIconsManager = class TrayIconsManager {
+export class TrayIconsManager extends Signals.EventEmitter {
     static initialize() {
         if (!trayIconsManager)
             trayIconsManager = new TrayIconsManager();
@@ -40,31 +37,40 @@ var TrayIconsManager = class TrayIconsManager {
     }
 
     constructor() {
+        super();
+
         if (trayIconsManager)
             throw new Error('TrayIconsManager is already constructed');
+
+        this._changedId = SettingsManager.getDefaultGSettings().connect(
+            'changed::legacy-tray-enabled', () => this._toggle());
+
+        this._toggle();
+    }
+
+    _toggle() {
+        if (SettingsManager.getDefaultGSettings().get_boolean('legacy-tray-enabled'))
+            this._enable();
+        else
+            this._disable();
+    }
+
+    _enable() {
+        if (this._tray)
+            return;
 
         this._tray = new Shell.TrayManager();
         Util.connectSmart(this._tray, 'tray-icon-added', this, this.onTrayIconAdded);
         Util.connectSmart(this._tray, 'tray-icon-removed', this, this.onTrayIconRemoved);
 
         this._tray.manage_screen(Main.panel);
-        this._icons = [];
     }
 
-    onTrayIconAdded(_tray, icon) {
-        const trayIcon = new IndicatorStatusIcon.IndicatorStatusTrayIcon(icon);
-        this._icons.push(trayIcon);
-        trayIcon.connect('destroy', () =>
-            this._icons.splice(this._icons.indexOf(trayIcon), 1));
-    }
+    _disable() {
+        if (!this._tray)
+            return;
 
-    onTrayIconRemoved(_tray, icon) {
-        icon.destroy();
-    }
-
-    destroy() {
-        this.emit('destroy');
-        this._icons.forEach(i => i.destroy());
+        IndicatorStatusIcon.getTrayIcons().forEach(i => i.destroy());
         if (this._tray.unmanage_screen) {
             this._tray.unmanage_screen();
             this._tray = null;
@@ -73,7 +79,26 @@ var TrayIconsManager = class TrayIconsManager {
             this._tray = null;
             imports.system.gc(); // force finalizing tray to unmanage screen
         }
+    }
+
+    onTrayIconAdded(_tray, icon) {
+        const trayIcon = new IndicatorStatusIcon.IndicatorStatusTrayIcon(icon);
+        IndicatorStatusIcon.addIconToPanel(trayIcon);
+    }
+
+    onTrayIconRemoved(_tray, icon) {
+        try {
+            const [trayIcon] = IndicatorStatusIcon.getTrayIcons().filter(i => i.icon === icon);
+            trayIcon.destroy();
+        } catch (e) {
+            Util.Logger.warning(`No icon container found for ${icon.title} (${icon})`);
+        }
+    }
+
+    destroy() {
+        this.emit('destroy');
+        SettingsManager.getDefaultGSettings().disconnect(this._changedId);
+        this._disable();
         trayIconsManager = null;
     }
-};
-Signals.addSignalMethods(TrayIconsManager.prototype);
+}

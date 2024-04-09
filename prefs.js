@@ -2,73 +2,80 @@
 
 /* exported init, buildPrefsWidget */
 
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
+import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
+import Gio from 'gi://Gio';
+import Gtk from 'gi://Gtk';
 
-try {
-    // eslint-disable-next-line no-unused-expressions
-    imports.misc.extensionUtils;
-} catch (e) {
-    const resource = Gio.Resource.load(
-        '/usr/share/gnome-shell/org.gnome.Extensions.src.gresource');
-    resource._register();
-    imports.searchPath.push('resource:///org/gnome/Extensions/js');
-
-    const gtkVersion = GLib.getenv('FORCE_GTK_VERSION') || '4.0';
-    imports.gi.versions.Gtk = gtkVersion;
-    imports.gi.versions.Gdk = gtkVersion;
-}
-
-const GObject = imports.gi.GObject;
-const Gtk = imports.gi.Gtk;
-
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
-const Gettext = imports.gettext.domain(
-    Me ? Me.metadata['gettext-domain'] : 'AppIndicatorExtension');
-const _ = Gettext.gettext;
-
-function init() {
-    ExtensionUtils.initTranslations();
-}
+import {
+    ExtensionPreferences,
+    gettext as _
+} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 const AppIndicatorPreferences = GObject.registerClass(
 class AppIndicatorPreferences extends Gtk.Box {
-    _init() {
-        super._init({ orientation: Gtk.Orientation.VERTICAL, spacing: 30 });
-        this._settings = Me ? ExtensionUtils.getSettings()
-            : new Gio.Settings({ schema_id: 'org.gnome.shell.extensions.appindicator' });
+    _init(extension) {
+        super._init({orientation: Gtk.Orientation.VERTICAL, spacing: 30});
+        this._settings = extension.getSettings();
 
         let label = null;
         let widget = null;
 
-        this.preferences_vbox = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL,
+        this.preferences_vbox = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
             spacing: 8,
             margin_start: 30,
             margin_end: 30,
             margin_top: 30,
-            margin_bottom: 30 });
-        this.custom_icons_vbox = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL,
+            margin_bottom: 30,
+        });
+        this.custom_icons_vbox = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
             spacing: 10,
             margin_start: 10,
             margin_end: 10,
             margin_top: 10,
-            margin_bottom: 10 });
+            margin_bottom: 10,
+        });
 
+        label = new Gtk.Label({
+            label: _('Enable Legacy Tray Icons support'),
+            hexpand: true,
+            halign: Gtk.Align.START,
+        });
+        widget = new Gtk.Switch({halign: Gtk.Align.END});
+
+        this._settings.bind('legacy-tray-enabled', widget, 'active',
+            Gio.SettingsBindFlags.DEFAULT);
+
+        this.legacy_tray_hbox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 10,
+            margin_start: 10,
+            margin_end: 10,
+            margin_top: 10,
+            margin_bottom: 10,
+        });
+
+        this.legacy_tray_hbox.append(label);
+        this.legacy_tray_hbox.append(widget);
 
         // Icon opacity
-        this.opacity_hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL,
+        this.opacity_hbox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
             spacing: 10,
             margin_start: 10,
             margin_end: 10,
             margin_top: 10,
-            margin_bottom: 10 });
+            margin_bottom: 10,
+        });
         label = new Gtk.Label({
             label: _('Opacity (min: 0, max: 255)'),
             hexpand: true,
             halign: Gtk.Align.START,
         });
-        widget = new Gtk.SpinButton({ halign: Gtk.Align.END });
+
+        widget = new Gtk.SpinButton({halign: Gtk.Align.END});
         widget.set_sensitive(true);
         widget.set_range(0, 255);
         widget.set_value(this._settings.get_int('icon-opacity'));
@@ -76,27 +83,24 @@ class AppIndicatorPreferences extends Gtk.Box {
         widget.connect('value-changed', w => {
             this._settings.set_int('icon-opacity', w.get_value_as_int());
         });
-        if (imports.gi.versions.Gtk === '4.0') {
-            this.opacity_hbox.append(label);
-            this.opacity_hbox.append(widget);
-        } else {
-            this.opacity_hbox.pack_start(label, true, true, 0);
-            this.opacity_hbox.pack_start(widget, false, false, 0);
-        }
+        this.opacity_hbox.append(label);
+        this.opacity_hbox.append(widget);
 
         // Icon saturation
-        this.saturation_hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL,
+        this.saturation_hbox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
             spacing: 10,
             margin_start: 10,
             margin_end: 10,
             margin_top: 10,
-            margin_bottom: 10 });
+            margin_bottom: 10,
+        });
         label = new Gtk.Label({
             label: _('Desaturation (min: 0.0, max: 1.0)'),
             hexpand: true,
             halign: Gtk.Align.START,
         });
-        widget = new Gtk.SpinButton({ halign: Gtk.Align.END, digits: 1 });
+        widget = new Gtk.SpinButton({halign: Gtk.Align.END, digits: 1});
         widget.set_sensitive(true);
         widget.set_range(0.0, 1.0);
         widget.set_value(this._settings.get_double('icon-saturation'));
@@ -104,27 +108,24 @@ class AppIndicatorPreferences extends Gtk.Box {
         widget.connect('value-changed', w => {
             this._settings.set_double('icon-saturation', w.get_value());
         });
-        if (imports.gi.versions.Gtk === '4.0') {
-            this.saturation_hbox.append(label);
-            this.saturation_hbox.append(widget);
-        } else {
-            this.saturation_hbox.pack_start(label, true, true, 0);
-            this.saturation_hbox.pack_start(widget, false, false, 0);
-        }
+        this.saturation_hbox.append(label);
+        this.saturation_hbox.append(widget);
 
         // Icon brightness
-        this.brightness_hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL,
+        this.brightness_hbox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
             spacing: 10,
             margin_start: 10,
             margin_end: 10,
             margin_top: 10,
-            margin_bottom: 10 });
+            margin_bottom: 10,
+        });
         label = new Gtk.Label({
             label: _('Brightness (min: -1.0, max: 1.0)'),
             hexpand: true,
             halign: Gtk.Align.START,
         });
-        widget = new Gtk.SpinButton({ halign: Gtk.Align.END, digits: 1 });
+        widget = new Gtk.SpinButton({halign: Gtk.Align.END, digits: 1});
         widget.set_sensitive(true);
         widget.set_range(-1.0, 1.0);
         widget.set_value(this._settings.get_double('icon-brightness'));
@@ -132,27 +133,24 @@ class AppIndicatorPreferences extends Gtk.Box {
         widget.connect('value-changed', w => {
             this._settings.set_double('icon-brightness', w.get_value());
         });
-        if (imports.gi.versions.Gtk === '4.0') {
-            this.brightness_hbox.append(label);
-            this.brightness_hbox.append(widget);
-        } else {
-            this.brightness_hbox.pack_start(label, true, true, 0);
-            this.brightness_hbox.pack_start(widget, false, false, 0);
-        }
+        this.brightness_hbox.append(label);
+        this.brightness_hbox.append(widget);
 
         // Icon contrast
-        this.contrast_hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL,
+        this.contrast_hbox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
             spacing: 10,
             margin_start: 10,
             margin_end: 10,
             margin_top: 10,
-            margin_bottom: 10 });
+            margin_bottom: 10,
+        });
         label = new Gtk.Label({
             label: _('Contrast (min: -1.0, max: 1.0)'),
             hexpand: true,
             halign: Gtk.Align.START,
         });
-        widget = new Gtk.SpinButton({ halign: Gtk.Align.END, digits: 1 });
+        widget = new Gtk.SpinButton({halign: Gtk.Align.END, digits: 1});
         widget.set_sensitive(true);
         widget.set_range(-1.0, 1.0);
         widget.set_value(this._settings.get_double('icon-contrast'));
@@ -160,27 +158,24 @@ class AppIndicatorPreferences extends Gtk.Box {
         widget.connect('value-changed', w => {
             this._settings.set_double('icon-contrast', w.get_value());
         });
-        if (imports.gi.versions.Gtk === '4.0') {
-            this.contrast_hbox.append(label);
-            this.contrast_hbox.append(widget);
-        } else {
-            this.contrast_hbox.pack_start(label, true, true, 0);
-            this.contrast_hbox.pack_start(widget, false, false, 0);
-        }
+        this.contrast_hbox.append(label);
+        this.contrast_hbox.append(widget);
 
         // Icon size
-        this.icon_size_hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL,
+        this.icon_size_hbox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
             spacing: 10,
             margin_start: 10,
             margin_end: 10,
             margin_top: 10,
-            margin_bottom: 10 });
+            margin_bottom: 10,
+        });
         label = new Gtk.Label({
             label: _('Icon size (min: 0, max: 96)'),
             hexpand: true,
             halign: Gtk.Align.START,
         });
-        widget = new Gtk.SpinButton({ halign: Gtk.Align.END });
+        widget = new Gtk.SpinButton({halign: Gtk.Align.END});
         widget.set_sensitive(true);
         widget.set_range(0, 96);
         widget.set_value(this._settings.get_int('icon-size'));
@@ -188,21 +183,18 @@ class AppIndicatorPreferences extends Gtk.Box {
         widget.connect('value-changed', w => {
             this._settings.set_int('icon-size', w.get_value_as_int());
         });
-        if (imports.gi.versions.Gtk === '4.0') {
-            this.icon_size_hbox.append(label);
-            this.icon_size_hbox.append(widget);
-        } else {
-            this.icon_size_hbox.pack_start(label, true, true, 0);
-            this.icon_size_hbox.pack_start(widget, false, false, 0);
-        }
+        this.icon_size_hbox.append(label);
+        this.icon_size_hbox.append(widget);
 
         // Tray position in panel
-        this.tray_position_hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL,
+        this.tray_position_hbox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
             spacing: 10,
             margin_start: 10,
             margin_end: 10,
             margin_top: 10,
-            margin_bottom: 10 });
+            margin_bottom: 10,
+        });
         label = new Gtk.Label({
             label: _('Tray horizontal alignment'),
             hexpand: true,
@@ -214,27 +206,16 @@ class AppIndicatorPreferences extends Gtk.Box {
         widget.append('right', _('Right'));
         this._settings.bind('tray-pos', widget, 'active-id',
             Gio.SettingsBindFlags.DEFAULT);
-        if (imports.gi.versions.Gtk === '4.0') {
-            this.tray_position_hbox.append(label);
-            this.tray_position_hbox.append(widget);
+        this.tray_position_hbox.append(label);
+        this.tray_position_hbox.append(widget);
 
-            this.preferences_vbox.append(this.opacity_hbox);
-            this.preferences_vbox.append(this.saturation_hbox);
-            this.preferences_vbox.append(this.brightness_hbox);
-            this.preferences_vbox.append(this.contrast_hbox);
-            this.preferences_vbox.append(this.icon_size_hbox);
-            this.preferences_vbox.append(this.tray_position_hbox);
-        } else {
-            this.tray_position_hbox.pack_start(label, true, true, 0);
-            this.tray_position_hbox.pack_start(widget, false, false, 0);
-
-            this.preferences_vbox.pack_start(this.opacity_hbox, true, false, 0);
-            this.preferences_vbox.pack_start(this.saturation_hbox, true, false, 0);
-            this.preferences_vbox.pack_start(this.brightness_hbox, true, false, 0);
-            this.preferences_vbox.pack_start(this.contrast_hbox, true, false, 0);
-            this.preferences_vbox.pack_start(this.icon_size_hbox, true, false, 0);
-            this.preferences_vbox.pack_start(this.tray_position_hbox, true, false, 0);
-        }
+        this.preferences_vbox.append(this.legacy_tray_hbox);
+        this.preferences_vbox.append(this.opacity_hbox);
+        this.preferences_vbox.append(this.saturation_hbox);
+        this.preferences_vbox.append(this.brightness_hbox);
+        this.preferences_vbox.append(this.contrast_hbox);
+        this.preferences_vbox.append(this.icon_size_hbox);
+        this.preferences_vbox.append(this.tray_position_hbox);
 
         // Custom icons section
 
@@ -273,7 +254,7 @@ class AppIndicatorPreferences extends Gtk.Box {
             sizing: Gtk.TreeViewColumnSizing.AUTOSIZE,
         });
 
-        const cellrenderer = new Gtk.CellRendererText({ editable: true });
+        const cellrenderer = new Gtk.CellRendererText({editable: true});
 
         indicatorIdColumn.pack_start(cellrenderer, true);
         customIconColumn.pack_start(cellrenderer, true);
@@ -317,20 +298,15 @@ class AppIndicatorPreferences extends Gtk.Box {
         iconIDTreeView.insert_column(iconIDTreeViewColumn, 0);
         iconIDTreeView.set_grid_lines(Gtk.TreeViewGridLines.BOTH);
 
-        if (imports.gi.versions.Gtk === '4.0') {
-            this.custom_icons_vbox.append(customTreeView);
-            this.custom_icons_vbox.append(iconIDTreeView);
-        } else {
-            this.custom_icons_vbox.pack_start(customTreeView, false, false, 0);
-            this.custom_icons_vbox.pack_start(iconIDTreeView, true, true, 0);
-        }
+        this.custom_icons_vbox.append(customTreeView);
+        this.custom_icons_vbox.append(iconIDTreeView);
 
         cellrenderer.connect('edited', (w, path, text) => {
             this.selection = customTreeView.get_selection();
             const title = customTreeView.get_cursor()[1].get_title();
             const columnIndex = customTitles.indexOf(title);
             const selection = this.selection.get_selected();
-            const iter = selection[2];
+            const iter = selection.at(2);
             const text2 = customListStore.get_value(iter, columnIndex ? 0 : 1);
             customListStore.set(iter, [columnIndex], [text]);
             const storeLength = customListStore.iter_n_children(null);
@@ -367,40 +343,16 @@ class AppIndicatorPreferences extends Gtk.Box {
 
         this.notebook = new Gtk.Notebook();
         this.notebook.append_page(this.preferences_vbox,
-            new Gtk.Label({ label: _('Preferences') }));
+            new Gtk.Label({label: _('Preferences')}));
         this.notebook.append_page(this.custom_icons_vbox,
-            new Gtk.Label({ label: _('Custom Icons') }));
+            new Gtk.Label({label: _('Custom Icons')}));
 
-        if (imports.gi.versions.Gtk === '4.0')
-            this.append(this.notebook);
-        else
-            this.add(this.notebook);
+        this.append(this.notebook);
     }
 });
 
-function buildPrefsWidget() {
-    let widget = new AppIndicatorPreferences();
-
-    if (widget.show_all)
-        widget.show_all();
-
-    return widget;
-}
-
-if (!Me) {
-    GLib.setenv('GSETTINGS_SCHEMA_DIR', './schemas', true);
-    Gtk.init(null);
-
-    const loop = GLib.MainLoop.new(null, false);
-    const win = new Gtk.Window();
-    if (win.set_child) {
-        win.set_child(buildPrefsWidget());
-        win.connect('close-request', () => loop.quit());
-    } else {
-        win.add(buildPrefsWidget());
-        win.connect('delete-event', () => loop.quit());
+export default class DockPreferences extends ExtensionPreferences {
+    getPreferencesWidget() {
+        return new AppIndicatorPreferences(this);
     }
-    win.present();
-
-    loop.run();
 }

@@ -65,6 +65,10 @@
         <arg name="y" type="i" direction="in"/>
     </method>
 
+    <method name="ProvideXdgActivationToken">
+        <arg name="token" type="s" direction="in"/>
+    </method>
+
     <method name="SecondaryActivate">
         <arg name="x" type="i" direction="in"/>
         <arg name="y" type="i" direction="in"/>
@@ -79,7 +83,7 @@
         <arg name="orientation" type="s" direction="in"/>
     </method>
 
-    <!-- Signals: the client wants to change something in the status-->
+    <!-- Signals: the client wants to change something in the status
     <signal name="NewTitle">
     </signal>
 
@@ -91,23 +95,26 @@
 
     <signal name="NewOverlayIcon">
     </signal>
-
+    -->
     <!-- We disable this as we don't support tooltip, so no need to go through it
     <signal name="NewToolTip">
     </signal>
     -->
 
+    <!--
     <signal name="NewStatus">
         <arg name="status" type="s"/>
     </signal>
+    -->
 
 
-    <!-- The following items are not supported by specs, but widely used -->
+    <!-- The following items are not supported by specs, but widely used
     <signal name="NewIconThemePath">
         <arg type="s" name="icon_theme_path" direction="out" />
     </signal>
 
     <signal name="NewMenu"></signal>
+    -->
 
     <!-- ayatana labels -->
     <!-- These are commented out because GDBusProxy would otherwise require them,

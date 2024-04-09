@@ -14,114 +14,31 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-/* exported refreshPropertyOnProxy, getUniqueBusName, getBusNames,
-   introspectBusObject, dbusNodeImplementsInterfaces, waitForStartupCompletion,
-   connectSmart, versionCheck, getDefaultTheme, BUS_ADDRESS_REGEX */
+import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
+import St from 'gi://St';
 
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const Gtk = imports.gi.Gtk;
-const Gdk = imports.gi.Gdk;
-const Main = imports.ui.main;
-const Meta = imports.gi.Meta;
-const GObject = imports.gi.GObject;
-const St = imports.gi.St;
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as Config from 'resource:///org/gnome/shell/misc/config.js';
+import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
 
-const Config = imports.misc.config;
-const ExtensionUtils = imports.misc.extensionUtils;
-const Extension = ExtensionUtils.getCurrentExtension();
-const Params = imports.misc.params;
-const PromiseUtils = Extension.imports.promiseUtils;
-const Signals = imports.signals;
+import {BaseStatusIcon} from './indicatorStatusIcon.js';
 
-var BUS_ADDRESS_REGEX = /([a-zA-Z0-9._-]+\.[a-zA-Z0-9.-]+)|(:[0-9]+\.[0-9]+)$/;
+export const BUS_ADDRESS_REGEX = /([a-zA-Z0-9._-]+\.[a-zA-Z0-9.-]+)|(:[0-9]+\.[0-9]+)$/;
 
-PromiseUtils._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
+Gio._promisify(Gio.DBusConnection.prototype, 'call');
+Gio._promisify(Gio._LocalFilePrototype, 'read');
+Gio._promisify(Gio.InputStream.prototype, 'read_bytes_async');
 
-async function refreshPropertyOnProxy(proxy, propertyName, params) {
-    if (!proxy._proxyCancellables)
-        proxy._proxyCancellables = new Map();
+export function indicatorId(service, busName, objectPath) {
+    if (service !== busName && service?.match(BUS_ADDRESS_REGEX))
+        return service;
 
-    params = Params.parse(params, {
-        skipEqualityCheck: false,
-    });
-
-    let cancellable = cancelRefreshPropertyOnProxy(proxy, {
-        propertyName,
-        addNew: true,
-    });
-
-    try {
-        const [valueVariant] = (await proxy.g_connection.call(proxy.g_name,
-            proxy.g_object_path, 'org.freedesktop.DBus.Properties', 'Get',
-            GLib.Variant.new('(ss)', [proxy.g_interface_name, propertyName]),
-            GLib.VariantType.new('(v)'), Gio.DBusCallFlags.NONE, -1,
-            cancellable)).deep_unpack();
-
-        proxy._proxyCancellables.delete(propertyName);
-
-        if (!params.skipEqualityCheck &&
-            proxy.get_cached_property(propertyName).equal(valueVariant))
-            return;
-
-        proxy.set_cached_property(propertyName, valueVariant);
-
-        // synthesize a batched property changed event
-        if (!proxy._proxyChangedProperties)
-            proxy._proxyChangedProperties = {};
-        proxy._proxyChangedProperties[propertyName] = valueVariant;
-
-        if (!proxy._proxyPropertiesEmit || !proxy._proxyPropertiesEmit.pending()) {
-            proxy._proxyPropertiesEmit = new PromiseUtils.TimeoutPromise(16,
-                GLib.PRIORITY_DEFAULT_IDLE, cancellable);
-            await proxy._proxyPropertiesEmit;
-            proxy.emit('g-properties-changed', GLib.Variant.new('a{sv}',
-                proxy._proxyChangedProperties), []);
-            delete proxy._proxyChangedProperties;
-        }
-    } catch (e) {
-        if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
-            // the property may not even exist, silently ignore it
-            Logger.debug(`While refreshing property ${propertyName}: ${e}`);
-            proxy._proxyCancellables.delete(propertyName);
-            delete proxy._proxyChangedProperties[propertyName];
-        }
-    }
+    return `${busName}@${objectPath}`;
 }
 
-function cancelRefreshPropertyOnProxy(proxy, params) {
-    if (!proxy._proxyCancellables)
-        return null;
-
-    params = Params.parse(params, {
-        propertyName: undefined,
-        addNew: false,
-    });
-
-    if (params.propertyName !== undefined) {
-        let cancellable = proxy._proxyCancellables.get(params.propertyName);
-        if (cancellable) {
-            cancellable.cancel();
-
-            if (!params.addNew)
-                proxy._proxyCancellables.delete(params.propertyName);
-        }
-
-        if (params.addNew) {
-            cancellable = new Gio.Cancellable();
-            proxy._proxyCancellables.set(params.propertyName, cancellable);
-            return cancellable;
-        }
-    } else {
-        proxy._proxyCancellables.forEach(c => c.cancel());
-        delete proxy._proxyChangedProperties;
-        delete proxy._proxyCancellables;
-    }
-
-    return null;
-}
-
-async function getUniqueBusName(bus, name, cancellable) {
+export async function getUniqueBusName(bus, name, cancellable) {
     if (name[0] === ':')
         return name;
 
@@ -136,7 +53,7 @@ async function getUniqueBusName(bus, name, cancellable) {
     return unique;
 }
 
-async function getBusNames(bus, cancellable) {
+export async function getBusNames(bus, cancellable) {
     if (!bus)
         bus = Gio.DBus.session;
 
@@ -144,49 +61,70 @@ async function getBusNames(bus, cancellable) {
         'ListNames', null, new GLib.VariantType('(as)'), Gio.DBusCallFlags.NONE,
         -1, cancellable)).deep_unpack();
 
-    const uniqueNames = new Set();
+    const uniqueNames = new Map();
     const requests = names.map(name => getUniqueBusName(bus, name, cancellable));
     const results = await Promise.allSettled(requests);
 
     for (let i = 0; i < results.length; i++) {
         const result = results[i];
-        if (result.status === 'fulfilled')
-            uniqueNames.add(result.value);
-        else if (!result.reason.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+        if (result.status === 'fulfilled') {
+            let namesForBus = uniqueNames.get(result.value);
+            if (!namesForBus) {
+                namesForBus = new Set();
+                uniqueNames.set(result.value, namesForBus);
+            }
+            namesForBus.add(result.value !== names[i] ? names[i] : null);
+        } else if (!result.reason.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
             Logger.debug(`Impossible to get the unique name of ${names[i]}: ${result.reason}`);
+        }
     }
 
     return uniqueNames;
 }
 
-async function introspectBusObject(bus, name, cancellable, path = undefined) {
+async function getProcessId(connectionName, cancellable = null, bus = Gio.DBus.session) {
+    const res = await bus.call('org.freedesktop.DBus', '/',
+        'org.freedesktop.DBus', 'GetConnectionUnixProcessID',
+        new GLib.Variant('(s)', [connectionName]),
+        new GLib.VariantType('(u)'),
+        Gio.DBusCallFlags.NONE,
+        -1,
+        cancellable);
+    const [pid] = res.deepUnpack();
+    return pid;
+}
+
+export async function getProcessName(connectionName, cancellable = null,
+    priority = GLib.PRIORITY_DEFAULT, bus = Gio.DBus.session) {
+    const pid = await getProcessId(connectionName, cancellable, bus);
+    const cmdFile = Gio.File.new_for_path(`/proc/${pid}/cmdline`);
+    const inputStream = await cmdFile.read_async(priority, cancellable);
+    const bytes = await inputStream.read_bytes_async(2048, priority, cancellable);
+    const textDecoder = new TextDecoder();
+    return textDecoder.decode(bytes.toArray().map(v => !v ? 0x20 : v));
+}
+
+export async function* introspectBusObject(bus, name, cancellable,
+    interfaces = undefined, path = undefined) {
     if (!path)
         path = '/';
 
     const [introspection] = (await bus.call(name, path, 'org.freedesktop.DBus.Introspectable',
         'Introspect', null, new GLib.VariantType('(s)'), Gio.DBusCallFlags.NONE,
-        -1, cancellable)).deep_unpack();
+        5000, cancellable)).deep_unpack();
 
     const nodeInfo = Gio.DBusNodeInfo.new_for_xml(introspection);
-    const nodes = [{ nodeInfo, path }];
+
+    if (!interfaces || dbusNodeImplementsInterfaces(nodeInfo, interfaces))
+        yield {nodeInfo, path};
 
     if (path === '/')
         path = '';
 
-    const requests = [];
-    for (const subNodes of nodeInfo.nodes) {
-        const subPath = `${path}/${subNodes.path}`;
-        requests.push(introspectBusObject(bus, name, cancellable, subPath));
+    for (const subNodeInfo of nodeInfo.nodes) {
+        const subPath = `${path}/${subNodeInfo.path}`;
+        yield* introspectBusObject(bus, name, cancellable, interfaces, subPath);
     }
-
-    for (const result of await Promise.allSettled(requests)) {
-        if (result.status === 'fulfilled')
-            result.value.forEach(n => nodes.push(n));
-        else if (!result.reason.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-            Logger.debug(`Impossible to get node info: ${result.reason}`);
-    }
-
-    return nodes;
 }
 
 function dbusNodeImplementsInterfaces(nodeInfo, interfaces) {
@@ -196,8 +134,10 @@ function dbusNodeImplementsInterfaces(nodeInfo, interfaces) {
     return interfaces.some(iface => nodeInfo.lookup_interface(iface));
 }
 
-var NameWatcher = class AppIndicatorsNameWatcher {
+export class NameWatcher extends Signals.EventEmitter {
     constructor(name) {
+        super();
+
         this._watcherId = Gio.DBus.session.watch_name(name,
             Gio.BusNameWatcherFlags.NONE, () => {
                 this._nameOnBus = true;
@@ -222,18 +162,20 @@ var NameWatcher = class AppIndicatorsNameWatcher {
     get nameOnBus() {
         return !!this._nameOnBus;
     }
-};
-Signals.addSignalMethods(NameWatcher.prototype);
+}
 
 function connectSmart3A(src, signal, handler) {
-    let id = src.connect(signal, handler);
+    const id = src.connect(signal, handler);
+    let destroyId = 0;
 
     if (src.connect && (!(src instanceof GObject.Object) || GObject.signal_lookup('destroy', src))) {
-        let destroyId = src.connect('destroy', () => {
+        destroyId = src.connect('destroy', () => {
             src.disconnect(id);
             src.disconnect(destroyId);
         });
     }
+
+    return [id, destroyId];
 }
 
 function connectSmart4A(src, signal, target, method) {
@@ -256,6 +198,8 @@ function connectSmart4A(src, signal, target, method) {
         GObject.signal_lookup('destroy', src)) ? src.connect('destroy', onDestroy) : 0;
     const tgtDestroyId = target.connect && (!(target instanceof GObject.Object) ||
         GObject.signal_lookup('destroy', target)) ? target.connect('destroy', onDestroy) : 0;
+
+    return [signalId, srcDestroyId, tgtDestroyId];
 }
 
 // eslint-disable-next-line valid-jsdoc
@@ -268,23 +212,50 @@ function connectSmart4A(src, signal, target, method) {
  * or
  *      Util.connectSmart(srcOb, 'signal', () => { ... })
  */
-function connectSmart(...args) {
+export function connectSmart(...args) {
     if (arguments.length === 4)
         return connectSmart4A(...args);
     else
         return connectSmart3A(...args);
 }
 
-function getDefaultTheme() {
-    if (Gdk.Screen.get_default()) {
-        const defaultTheme = Gtk.IconTheme.get_default();
-        if (defaultTheme)
-            return defaultTheme;
-    }
+function disconnectSmart3A(src, signalIds) {
+    const [id, destroyId] = signalIds;
+    src.disconnect(id);
 
-    const defaultTheme = new Gtk.IconTheme();
-    defaultTheme.set_custom_theme(St.Settings.get().gtk_icon_theme);
-    return defaultTheme;
+    if (destroyId)
+        src.disconnect(destroyId);
+}
+
+function disconnectSmart4A(src, tgt, signalIds) {
+    const [signalId, srcDestroyId, tgtDestroyId] = signalIds;
+
+    disconnectSmart3A(src, [signalId, srcDestroyId]);
+
+    if (tgtDestroyId)
+        tgt.disconnect(tgtDestroyId);
+}
+
+export function disconnectSmart(...args) {
+    if (arguments.length === 2)
+        return disconnectSmart3A(...args);
+    else if (arguments.length === 3)
+        return disconnectSmart4A(...args);
+
+    throw new TypeError('Unexpected number of arguments');
+}
+
+let _defaultTheme;
+export function getDefaultTheme() {
+    if (_defaultTheme)
+        return _defaultTheme;
+
+    _defaultTheme = new St.IconTheme();
+    return _defaultTheme;
+}
+
+export function destroyDefaultTheme() {
+    _defaultTheme = null;
 }
 
 // eslint-disable-next-line valid-jsdoc
@@ -292,19 +263,15 @@ function getDefaultTheme() {
  * Helper function to wait for the system startup to be completed.
  * Adding widgets before the desktop is ready to accept them can result in errors.
  */
-async function waitForStartupCompletion(cancellable) {
+export async function waitForStartupCompletion(cancellable) {
     if (Main.layoutManager._startingUp)
         await Main.layoutManager.connect_once('startup-complete', cancellable);
-
-    const displayManager = Gdk.DisplayManager.get();
-    if (!Meta.is_wayland_compositor() && !displayManager.get_default_display())
-        await displayManager.connect_once('display-opened', cancellable);
 }
 
 /**
  * Helper class for logging stuff
  */
-var Logger = class AppIndicatorsLogger {
+export class Logger {
     static _logStructured(logLevel, message, extraFields = {}) {
         if (!Object.values(GLib.LogLevelFlags).includes(logLevel)) {
             Logger._logStructured(GLib.LogLevelFlags.LEVEL_WARNING,
@@ -312,18 +279,20 @@ var Logger = class AppIndicatorsLogger {
             return;
         }
 
-        let domain = Extension.metadata.name;
+        if (!Logger._levels.includes(logLevel))
+            return;
+
         let fields = {
-            'SYSLOG_IDENTIFIER': Extension.metadata.uuid,
+            'SYSLOG_IDENTIFIER': this.uuid,
             'MESSAGE': `${message}`,
         };
 
         let thisFile = null;
-        let { stack } = new Error();
+        const {stack} = new Error();
         for (let stackLine of stack.split('\n')) {
             stackLine = stackLine.replace('resource:///org/gnome/Shell/', '');
-            let [code, line] = stackLine.split(':');
-            let [func, file] = code.split(/@(.+)/);
+            const [code, line] = stackLine.split(':');
+            const [func, file] = code.split(/@(.+)/);
 
             if (!thisFile || thisFile === file) {
                 thisFile = file;
@@ -339,7 +308,25 @@ var Logger = class AppIndicatorsLogger {
             break;
         }
 
-        GLib.log_structured(domain, logLevel, Object.assign(fields, extraFields));
+        GLib.log_structured(Logger._domain, logLevel, Object.assign(fields, extraFields));
+    }
+
+    static init(extension) {
+        if (Logger._domain)
+            return;
+
+        const allLevels = Object.values(GLib.LogLevelFlags);
+        const domains = GLib.getenv('G_MESSAGES_DEBUG');
+        const {name: domain} = extension.metadata;
+        this.uuid = extension.metadata.uuid;
+        Logger._domain = domain.replaceAll(' ', '-');
+
+        if (domains === 'all' || (domains && domains.split(' ').includes(Logger._domain))) {
+            Logger._levels = allLevels;
+        } else {
+            Logger._levels = allLevels.filter(
+                l => l <= GLib.LogLevelFlags.LEVEL_WARNING);
+        }
     }
 
     static debug(message) {
@@ -361,22 +348,86 @@ var Logger = class AppIndicatorsLogger {
     static critical(message) {
         Logger._logStructured(GLib.LogLevelFlags.LEVEL_CRITICAL, message);
     }
-};
-
-function versionCheck(required) {
-    if (ExtensionUtils.versionCheck instanceof Function)
-        return ExtensionUtils.versionCheck(required, Config.PACKAGE_VERSION);
-
-    const current = Config.PACKAGE_VERSION;
-    let currentArray = current.split('.');
-    let major = currentArray[0];
-    let minor = currentArray[1];
-    for (let i = 0; i < required.length; i++) {
-        let requiredArray = required[i].split('.');
-        if (requiredArray[0] === major &&
-            (requiredArray[1] === undefined && isFinite(minor) ||
-                requiredArray[1] === minor))
-            return true;
-    }
-    return false;
 }
+
+export function versionCheck(required) {
+    const current = Config.PACKAGE_VERSION;
+    const currentArray = current.split('.');
+    const [major] = currentArray;
+    return major >= required;
+}
+
+export function tryCleanupOldIndicators() {
+    const indicatorType = BaseStatusIcon;
+    const indicators = Object.values(Main.panel.statusArea).filter(i => i instanceof indicatorType);
+
+    try {
+        const panelBoxes = [
+            Main.panel._leftBox, Main.panel._centerBox, Main.panel._rightBox,
+        ];
+
+        panelBoxes.forEach(box =>
+            indicators.push(...box.get_children().filter(i => i instanceof indicatorType)));
+    } catch (e) {
+        logError(e);
+    }
+
+    new Set(indicators).forEach(i => i.destroy());
+}
+
+export const CancellableChild = GObject.registerClass({
+    Properties: {
+        'parent': GObject.ParamSpec.object(
+            'parent', 'parent', 'parent',
+            GObject.ParamFlags.READWRITE | GObject.ParamFlags.CONSTRUCT_ONLY,
+            Gio.Cancellable.$gtype),
+    },
+},
+class CancellableChild extends Gio.Cancellable {
+    _init(parent) {
+        if (parent && !(parent instanceof Gio.Cancellable))
+            throw TypeError('Not a valid cancellable');
+
+        super._init({parent});
+
+        if (parent) {
+            if (parent.is_cancelled()) {
+                this.cancel();
+                return;
+            }
+
+            this._connectToParent();
+        }
+    }
+
+    _connectToParent() {
+        this._connectId = this.parent.connect(() => {
+            this._realCancel();
+
+            if (this._disconnectIdle)
+                return;
+
+            this._disconnectIdle = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+                delete this._disconnectIdle;
+                this._disconnectFromParent();
+                return GLib.SOURCE_REMOVE;
+            });
+        });
+    }
+
+    _disconnectFromParent() {
+        if (this._connectId && !this._disconnectIdle) {
+            this.parent.disconnect(this._connectId);
+            delete this._connectId;
+        }
+    }
+
+    _realCancel() {
+        Gio.Cancellable.prototype.cancel.call(this);
+    }
+
+    cancel() {
+        this._disconnectFromParent();
+        this._realCancel();
+    }
+});

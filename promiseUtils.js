@@ -1,12 +1,13 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
-/* exported CancellablePromise, SignalConnectionPromise, IdlePromise,
-   TimeoutPromise, TimeoutSecondsPromise, MetaLaterPromise, _promisify,
-   _promisifySignals */
 
-const { Gio, GLib, GObject, Meta } = imports.gi;
-const Signals = imports.signals;
+import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
+import Meta from 'gi://GdkPixbuf';
 
-var CancellablePromise = class extends Promise {
+import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
+
+export class CancellablePromise extends Promise {
     constructor(executor, cancellable) {
         if (!(executor instanceof Function))
             throw TypeError('executor is not a function');
@@ -20,6 +21,9 @@ var CancellablePromise = class extends Promise {
             resolver = resolve;
             rejector = reject;
         });
+
+        const {stack: promiseStack} = new Error();
+        this._promiseStack = promiseStack;
 
         this._resolver = (...args) => {
             resolver(...args);
@@ -110,14 +114,16 @@ var CancellablePromise = class extends Promise {
             return this;
 
         this._cancelled = true;
-        this._rejector(new GLib.Error(Gio.IOErrorEnum,
-            Gio.IOErrorEnum.CANCELLED, 'Promise cancelled'));
+        const error = new GLib.Error(Gio.IOErrorEnum,
+            Gio.IOErrorEnum.CANCELLED, 'Promise cancelled');
+        error.stack += `## Promise created at:\n${this._promiseStack}`;
+        this._rejector(error);
 
         return this;
     }
-};
+}
 
-var SignalConnectionPromise = class extends CancellablePromise {
+export class SignalConnectionPromise extends CancellablePromise {
     constructor(object, signal, cancellable) {
         if (arguments.length === 1 && object instanceof Function) {
             super(object);
@@ -182,9 +188,9 @@ var SignalConnectionPromise = class extends CancellablePromise {
     get object() {
         return this._chainRoot._object;
     }
-};
+}
 
-var GSourcePromise = class extends CancellablePromise {
+export class GSourcePromise extends CancellablePromise {
     constructor(gsource, priority, cancellable) {
         if (arguments.length === 1 && gsource instanceof Function) {
             super(gsource);
@@ -228,9 +234,9 @@ var GSourcePromise = class extends CancellablePromise {
         }
         super._cleanup();
     }
-};
+}
 
-var IdlePromise = class extends GSourcePromise {
+export class IdlePromise extends GSourcePromise {
     constructor(priority, cancellable) {
         if (arguments.length === 1 && priority instanceof Function) {
             super(priority);
@@ -242,9 +248,9 @@ var IdlePromise = class extends GSourcePromise {
 
         super(GLib.idle_source_new(), priority, cancellable);
     }
-};
+}
 
-var TimeoutPromise = class extends GSourcePromise {
+export class TimeoutPromise extends GSourcePromise {
     constructor(interval, priority, cancellable) {
         if (arguments.length === 1 && interval instanceof Function) {
             super(interval);
@@ -256,9 +262,9 @@ var TimeoutPromise = class extends GSourcePromise {
 
         super(GLib.timeout_source_new(interval), priority, cancellable);
     }
-};
+}
 
-var TimeoutSecondsPromise = class extends GSourcePromise {
+export class TimeoutSecondsPromise extends GSourcePromise {
     constructor(interval, priority, cancellable) {
         if (arguments.length === 1 && interval instanceof Function) {
             super(interval);
@@ -270,9 +276,9 @@ var TimeoutSecondsPromise = class extends GSourcePromise {
 
         super(GLib.timeout_source_new_seconds(interval), priority, cancellable);
     }
-};
+}
 
-var MetaLaterPromise = class extends CancellablePromise {
+export class MetaLaterPromise extends CancellablePromise {
     constructor(laterType, cancellable) {
         if (arguments.length === 1 && laterType instanceof Function) {
             super(laterType);
@@ -303,9 +309,9 @@ var MetaLaterPromise = class extends CancellablePromise {
         }
         super._cleanup();
     }
-};
+}
 
-function _promisifySignals(proto) {
+export function _promisifySignals(proto) {
     if (proto.connect_once)
         return;
 
@@ -314,60 +320,5 @@ function _promisifySignals(proto) {
     };
 }
 
-const addSignalMethods = Signals.addSignalMethods;
-Signals.addSignalMethods = proto => {
-    addSignalMethods(proto);
-    _promisifySignals(proto);
-};
-
 _promisifySignals(GObject.Object.prototype);
-
-var _promisify = Gio._promisify;
-if (imports.system.version < 16501) {
-    /* This is backported from upstream gjs, so that all the features are available */
-    _promisify = function (proto, asyncFunc,
-        finishFunc = `${asyncFunc.replace(/_(begin|async)$/, '')}_finish`) {
-        if (proto[asyncFunc] === undefined)
-            throw new Error(`${proto} has no method named ${asyncFunc}`);
-
-        if (proto[finishFunc] === undefined)
-            throw new Error(`${proto} has no method named ${finishFunc}`);
-
-        if (proto[`_original_${asyncFunc}`] !== undefined)
-            return;
-        proto[`_original_${asyncFunc}`] = proto[asyncFunc];
-        proto[asyncFunc] = function (...args) {
-            if (!args.every(arg => typeof arg !== 'function'))
-                return this[`_original_${asyncFunc}`](...args);
-            return new Promise((resolve, reject) => {
-                const callStack = new Error().stack.split('\n').filter(line => !line.match(/promisify/)).join('\n');
-                this[`_original_${asyncFunc}`](...args, (source, res) => {
-                    try {
-                        const result = source !== null && source[finishFunc] !== undefined
-                            ? source[finishFunc](res)
-                            : proto[finishFunc](res);
-                        if (Array.isArray(result) && result.length > 1 && result[0] === true)
-                            result.shift();
-                        resolve(result);
-                    } catch (error) {
-                        if (error.stack)
-                            error.stack += `### Promise created here: ###\n${callStack}`;
-                        else
-                            error.stack = callStack;
-                        reject(error);
-                    }
-                });
-            });
-        };
-    };
-}
-
-if (!Promise.allSettled) {
-    Promise.allSettled = function (promises) {
-        let wrappedPromises = promises.map(p => Promise.resolve(p)
-            .then(
-                val => ({ status: 'fulfilled', value: val }),
-                err => ({ status: 'rejected', reason: err })));
-        return Promise.all(wrappedPromises);
-    };
-}
+_promisifySignals(Signals.EventEmitter.prototype);

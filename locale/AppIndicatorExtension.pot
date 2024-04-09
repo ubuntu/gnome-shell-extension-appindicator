@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AppIndicatorExtension\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-09-27 20:43+0200\n"
+"POT-Creation-Date: 2023-03-07 02:36+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,114 +17,122 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: prefs.js:67
+#: prefs.js:59
+msgid "Enable Legacy Tray Icons support"
+msgstr ""
+
+#: prefs.js:91
 msgid "Opacity (min: 0, max: 255)"
 msgstr ""
 
-#: prefs.js:95
+#: prefs.js:120
 msgid "Desaturation (min: 0.0, max: 1.0)"
 msgstr ""
 
-#: prefs.js:123
+#: prefs.js:148
 msgid "Brightness (min: -1.0, max: 1.0)"
 msgstr ""
 
-#: prefs.js:151
+#: prefs.js:176
 msgid "Contrast (min: -1.0, max: 1.0)"
 msgstr ""
 
-#: prefs.js:179
+#: prefs.js:204
 msgid "Icon size (min: 0, max: 96)"
 msgstr ""
 
-#: prefs.js:207
+#: prefs.js:232
 msgid "Tray horizontal alignment"
 msgstr ""
 
-#: prefs.js:212
+#: prefs.js:237
 msgid "Center"
 msgstr ""
 
-#: prefs.js:213
+#: prefs.js:238
 msgid "Left"
 msgstr ""
 
-#: prefs.js:214
+#: prefs.js:239
 msgid "Right"
 msgstr ""
 
-#: prefs.js:259
+#: prefs.js:286
 msgid "Indicator ID"
 msgstr ""
 
-#: prefs.js:260
+#: prefs.js:287
 msgid "Icon Name"
 msgstr ""
 
-#: prefs.js:261
+#: prefs.js:288
 msgid "Attention Icon Name"
 msgstr ""
 
-#: prefs.js:336
+#: prefs.js:363
 msgid "Preferences"
 msgstr ""
 
-#: prefs.js:338
+#: prefs.js:365
 msgid "Custom Icons"
 msgstr ""
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
-msgid "Saturation"
+msgid "Enable legacy tray icons support"
 msgstr ""
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
-msgid "Brightness"
+msgid "Saturation"
 msgstr ""
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
-msgid "Contrast"
+msgid "Brightness"
 msgstr ""
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
-msgid "Opacity"
+msgid "Contrast"
 msgstr ""
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
+msgid "Opacity"
+msgstr ""
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:25
 msgid "Icon size"
 msgstr ""
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:22
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
 msgid "Icon size in pixel"
 msgstr ""
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:30
 msgid "Icon spacing"
 msgstr ""
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:27
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
 msgid "Icon spacing within the tray"
 msgstr ""
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:35
 msgid "Position in tray"
 msgstr ""
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:32
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
 msgid "Set where the Icon tray should appear in Gnome tray"
 msgstr ""
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:40
 msgid "Order in tray"
 msgstr ""
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:37
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
 msgid "Set where the Icon tray should appear among other trays"
 msgstr ""
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:45
 msgid "Custom icons"
 msgstr ""
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:42
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:46
 msgid "Replace any icons with custom icons from themes"
 msgstr ""

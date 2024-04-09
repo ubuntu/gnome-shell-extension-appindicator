@@ -1,30 +1,30 @@
-# Slovak translation of gnome-shell-extension-appindicator.
+# Czech translation of gnome-shell-extension-appindicator.
 # Copyright (C) 2022
 # This file is distributed under the same license as the AppIndicatorExtension package.
-# Jose Riha <jose1711 gmail com>, 2022.
+# Daniel Rusek <mail@asciiwolf.com>, 2022.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: AppIndicatorExtension\n"
+"Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-09-27 20:43+0200\n"
-"PO-Revision-Date: 2022-04-09 12:26+0200\n"
+"PO-Revision-Date: 2022-04-09 00:16+0200\n"
+"Last-Translator: Daniel Rusek <mail@asciiwolf.com>\n"
 "Language-Team: \n"
+"Language: cs\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 3.0\n"
-"Last-Translator: Jose Riha <jose1711@gmail.com>\n"
 "Plural-Forms: nplurals=3; plural=((n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2);\n"
-"Language: sk\n"
+"X-Generator: Poedit 3.0.1\n"
 
 #: prefs.js:67
 msgid "Opacity (min: 0, max: 255)"
-msgstr "Krytie (min: 0, max: 255)"
+msgstr "Krytí (min: 0, max: 255)"
 
 #: prefs.js:95
 msgid "Desaturation (min: 0.0, max: 1.0)"
-msgstr "Odfarbenie (min: 0.0, max: 1.0)"
+msgstr "Odbarvení (min: 0.0, max: 1.0)"
 
 #: prefs.js:123
 msgid "Brightness (min: -1.0, max: 1.0)"
@@ -36,19 +36,19 @@ msgstr "Kontrast (min: -1.0, max: 1.0)"
 
 #: prefs.js:179
 msgid "Icon size (min: 0, max: 96)"
-msgstr "Veľkosť ikon (min: 0, max: 96)"
+msgstr "Velikost ikon (min: 0, max: 96)"
 
 #: prefs.js:207
 msgid "Tray horizontal alignment"
-msgstr "Vodorovné zarovnanie lišty"
+msgstr "Vodorovné zarovnání lišty"
 
 #: prefs.js:212
 msgid "Center"
-msgstr "V strede"
+msgstr "Ve středu"
 
 #: prefs.js:213
 msgid "Left"
-msgstr "Vľavo"
+msgstr "Vlevo"
 
 #: prefs.js:214
 msgid "Right"
@@ -60,23 +60,23 @@ msgstr "ID"
 
 #: prefs.js:260
 msgid "Icon Name"
-msgstr "Názov ikony"
+msgstr "Název ikony"
 
 #: prefs.js:261
 msgid "Attention Icon Name"
-msgstr "Názov ikony s upozornením"
+msgstr "Název ikony s upozorněním"
 
 #: prefs.js:336
 msgid "Preferences"
-msgstr "Predvoľby"
+msgstr "Předvolby"
 
 #: prefs.js:338
 msgid "Custom Icons"
-msgstr "Vlastné ikony"
+msgstr "Vlastní ikony"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
 msgid "Saturation"
-msgstr "Sýtosť"
+msgstr "Sytost"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
 msgid "Brightness"
@@ -88,44 +88,44 @@ msgstr "Kontrast"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
 msgid "Opacity"
-msgstr "Krytie"
+msgstr "Krytí"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
 msgid "Icon size"
-msgstr "Veľkosť ikony"
+msgstr "Velikost ikony"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:22
 msgid "Icon size in pixel"
-msgstr "Veľkosť ikony v pixeloch"
+msgstr "Velikost ikony v pixelech"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
 msgid "Icon spacing"
-msgstr "Rozstupy medzi ikonami"
+msgstr "Rozestupy mezi ikonami"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:27
 msgid "Icon spacing within the tray"
-msgstr "Rozstupy medzi ikonami na lište"
+msgstr "Rozestupy mezi ikonami na liště"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
 msgid "Position in tray"
-msgstr "Umiestnenie na lište"
+msgstr "Umístění na liště"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:32
 msgid "Set where the Icon tray should appear in Gnome tray"
-msgstr "Nastavte, kde na lište sa má lišta ikon zobrazovať"
+msgstr "Nastavte, kde na Gnome liště se má lišta ikon zobrazovat"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
 msgid "Order in tray"
-msgstr "Poradie na lište"
+msgstr "Pořadí na liště"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:37
 msgid "Set where the Icon tray should appear among other trays"
-msgstr "Nastavte, kde medzi ostatnými lištami sa má lišta ikon zobrazovať"
+msgstr "Nastavte, kde mezi ostatními lištami se má lišta ikon zobrazovat"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
 msgid "Custom icons"
-msgstr "Vlastné ikony"
+msgstr "Vlastní ikony"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:42
 msgid "Replace any icons with custom icons from themes"
-msgstr "Nahradiť ľubovoľné ikony vlastnými ikonami z motívov"
+msgstr "Nahradit libovolné ikony vlastními ikonami z motivů"
