@@ -47,13 +47,13 @@ export default class DashToDockExtension extends Extension.Extension {
             this._watchDog = null;
         };
         /* eslint-enable no-undef */
-        const settings = SettingsManager.getDefaultGSettings();
-        settings.reset('recent-icons'); // clear in preparation of new collection
     }
 
     enable() {
         this._isEnabled = true;
         SettingsManager.initialize(this);
+        const settings = SettingsManager.getDefault().gsettings;
+        settings.reset('recent-icons'); // clear in preparation of new collection
         Util.tryCleanupOldIndicators();
         this._maybeEnableAfterNameAvailable();
         TrayIconsManager.TrayIconsManager.initialize();
