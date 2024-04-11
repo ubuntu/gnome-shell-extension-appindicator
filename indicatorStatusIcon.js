@@ -420,13 +420,6 @@ class IndicatorStatusIcon extends BaseStatusIcon {
         return Clutter.EVENT_PROPAGATE;
     }
 
-    vfunc_button_release_event(event) {
-        if (!this._indicator.supportsActivation)
-            return this._maybeHandleDoubleClick(event);
-
-        return Clutter.EVENT_PROPAGATE;
-    }
-
     vfunc_scroll_event(event) {
         // Since Clutter 1.10, clutter will always send a smooth scrolling event
         // with explicit deltas, no matter what input device is used
