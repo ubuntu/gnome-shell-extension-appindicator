@@ -49,7 +49,7 @@ export class IconCache {
         }
 
         const oldIcon = this._cache.get(id);
-        if (!oldIcon || !oldIcon.equals(icon)) {
+        if (!oldIcon || !oldIcon.equal(icon)) {
             Util.Logger.debug(`IconCache: adding ${id}: ${icon}`);
             this._cache.set(id, icon);
         } else {
