@@ -37,6 +37,7 @@ Gio._promisify(GdkPixbuf.Pixbuf, 'get_file_info_async');
 Gio._promisify(GdkPixbuf.Pixbuf, 'new_from_stream_at_scale_async',
     'new_from_stream_finish');
 Gio._promisify(St.IconInfo.prototype, 'load_symbolic_async');
+Gio._promisify(Gio.DBusConnection.prototype, 'call');
 
 const MAX_UPDATE_FREQUENCY = 30; // In ms
 const FALLBACK_ICON_NAME = 'image-loading-symbolic';
@@ -432,6 +433,23 @@ export class AppIndicator extends Signals.EventEmitter {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
                 logError(e, `While initalizing proxy for ${this._uniqueId}`);
                 this.destroy();
+            }
+        }
+
+        // We try to lookup the activate method to see if the app supports it
+        try {
+            const introspectionVariant = await this._proxy.gConnection.call(
+                this._proxy.gNameOwner, this._proxy.gObjectPath,
+                'org.freedesktop.DBus.Introspectable', 'Introspect', null, null,
+                Gio.DBusCallFlags.NONE, -1, cancellable);
+            const [introspectionXml] = introspectionVariant.deep_unpack();
+            const nodeInfo = Gio.DBusNodeInfo.new_for_xml(introspectionXml);
+            const interfaceInfo = nodeInfo.lookup_interface(this._proxy.gInterfaceName);
+            this.supportsActivation = !!interfaceInfo.lookup_method('Activate');
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+                Util.Logger.debug(
+                    `${this.uniqueId}, check for Activation support: ${e.message}`);
             }
         }
 
