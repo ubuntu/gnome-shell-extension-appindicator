@@ -446,6 +446,8 @@ export class AppIndicator extends Signals.EventEmitter {
             const nodeInfo = Gio.DBusNodeInfo.new_for_xml(introspectionXml);
             const interfaceInfo = nodeInfo.lookup_interface(this._proxy.gInterfaceName);
             this.supportsActivation = !!interfaceInfo.lookup_method('Activate');
+            this._hasAyatanaSecondaryActivate =
+                !!interfaceInfo.lookup_method('XAyatanaSecondaryActivate');
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
                 Util.Logger.debug(
