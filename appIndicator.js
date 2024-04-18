@@ -200,10 +200,10 @@ class AppIndicatorProxy extends DBusProxy {
             }));
     }
 
-    _onSignal(...args) {
-        this._onSignalAsync(...args).catch(e => {
+    _onSignal(sender, signal, ...args) {
+        this._onSignalAsync(sender, signal, ...args).catch(e => {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                logError(e);
+                logError(e, `Error while processing signal '${signal}'`);
         });
     }
 
