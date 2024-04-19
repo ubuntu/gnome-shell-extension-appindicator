@@ -52,6 +52,8 @@ export default class AppIndicatorExtension extends Extension.Extension {
     enable() {
         this._isEnabled = true;
         SettingsManager.initialize(this);
+        const settings = SettingsManager.getDefault().gsettings;
+        settings.reset('recent-icons'); // clear in preparation of new collection
         Util.tryCleanupOldIndicators();
         this._maybeEnableAfterNameAvailable();
         TrayIconsManager.TrayIconsManager.initialize();
