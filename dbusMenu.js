@@ -517,12 +517,12 @@ export const DBusClient = GObject.registerClass({
                 ret.is_of_type(new GLib.VariantType('()')))
                 this._requestLayoutUpdate();
         } catch (e) {
+            Util.Logger.debug(`Error when calling 'AboutToShow()' in ${this.gName}, ${this.gObjectPath}, ${this.gInterfaceName}`);
             if (e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD) ||
                 e.matches(Gio.DBusError, Gio.DBusError.FAILED)) {
                 this._hasAboutToShow = false;
                 return;
             }
-            Util.Logger.debug(`Error when calling 'AboutToShow()' in ${this.gName}, ${this.gObjectPath}, ${this.gInterfaceName}`);
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 logError(e);
         }
