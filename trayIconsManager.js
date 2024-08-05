@@ -89,14 +89,8 @@ export class TrayIconsManager extends Signals.EventEmitter {
             return;
 
         IndicatorStatusIcon.getTrayIcons().forEach(i => i.destroy());
-        if (this._tray.unmanage_screen) {
-            this._tray.unmanage_screen();
-            this._tray = null;
-        } else {
-            // FIXME: This is very ugly, but it's needed by old shell versions
-            this._tray = null;
-            imports.system.gc(); // force finalizing tray to unmanage screen
-        }
+        this._tray.unmanage_screen();
+        this._tray = null;
     }
 
     onTrayIconAdded(_tray, icon) {
