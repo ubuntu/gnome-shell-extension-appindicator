@@ -194,7 +194,7 @@ class AppIndicatorProxy extends DBusProxy {
                     });
                 } catch (e) {
                     if (!AppIndicatorProxy.OPTIONAL_PROPERTIES.includes(p) ||
-                        !e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_PROPERTY))
+                        !(e instanceof Gio.DBusError))
                         logError(e);
                 }
             }));
