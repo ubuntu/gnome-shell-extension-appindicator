@@ -315,7 +315,8 @@ class AppIndicatorProxy extends DBusProxy {
                 Util.Logger.debug(`Error when calling 'Get(${propertyName})' ` +
                     `in ${this.gName}, ${this.gObjectPath}, ` +
                     `org.freedesktop.DBus.Properties, ${this.gInterfaceName} ` +
-                    `while refreshing property ${propertyName}: ${e}`);
+                    `while refreshing property ${propertyName}: ${e}\n` +
+                    `${e.stack}`);
                 this.set_cached_property(propertyName, null);
                 this._cancellables.delete(propertyName);
                 delete this._changedProperties[propertyName];
