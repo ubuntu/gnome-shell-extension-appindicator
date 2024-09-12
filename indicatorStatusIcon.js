@@ -424,18 +424,31 @@ class IndicatorStatusIcon extends BaseStatusIcon {
         }
 
         if (event.get_button() === Clutter.BUTTON_SECONDARY) {
-            this.menu.toggle();
+            if (this.menu.numMenuItems) {
+                this.menu.toggle();
+            } else {
+                // update menu if there's no entries
+                this._updateMenu();
+                // wait for menu update
+                this._waitForDoubleClick().catch(logError);
+            }
             return Clutter.EVENT_PROPAGATE;
         }
 
         const doubleClickHandled = this._maybeHandleDoubleClick(event);
         if (doubleClickHandled === Clutter.EVENT_PROPAGATE &&
-            event.get_button() === Clutter.BUTTON_PRIMARY &&
-            this.menu.numMenuItems) {
-            if (this._indicator.supportsActivation !== false)
+            event.get_button() === Clutter.BUTTON_PRIMARY) {
+            if (this.menu.numMenuItems) {
+                if (this._indicator.supportsActivation !== false)
+                    this._waitForDoubleClick().catch(logError);
+                else
+                    this.menu.toggle();
+            } else {
+                // update menu if there's no entries
+                this._updateMenu();
+                // wait for double click or menu update
                 this._waitForDoubleClick().catch(logError);
-            else
-                this.menu.toggle();
+            }
         }
 
         return Clutter.EVENT_PROPAGATE;
