@@ -44,6 +44,10 @@ install_data(metadata,
     install_dir: extension_dir)
 install_subdir('interfaces-xml',
     install_dir: extension_dir)
+install_subdir('preferences',
+    install_dir: extension_dir)
+install_subdir('icons/hicolor/scalable/actions',
+    install_dir: extension_dir / 'icons' / 'hicolor' / 'scalable')
 
 subdir('schemas')
 subdir('locale')
