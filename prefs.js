@@ -1,16 +1,27 @@
-// -*- mode: js2; indent-tabs-mode: nil; js2-basic-offset: 4 -*-
+try {
+    import GLib from 'gi://GLib';
+    import GObject from 'gi://GObject';
+    import Gio from 'gi://Gio';
+    import Gtk from 'gi://Gtk';
 
-/* exported init, buildPrefsWidget */
-
-import GLib from 'gi://GLib';
-import GObject from 'gi://GObject';
-import Gio from 'gi://Gio';
-import Gtk from 'gi://Gtk';
-
-import {
-    ExtensionPreferences,
-    gettext as _
-} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+    import {
+        ExtensionPreferences,
+        gettext as _
+    } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+} catch (error) {
+    if (error instanceof ImportError) {
+        logError(error, 'Failed to import necessary modules in prefs.js');
+        export default class AppIndicatorPreferences extends Gtk.Box {
+            _init() {
+                super._init({orientation: Gtk.Orientation.VERTICAL, spacing: 30});
+                this.append(new Gtk.Box());
+            }
+        }
+        return;
+    } else {
+        throw error;
+    }
+}
 
 const AppIndicatorPreferences = GObject.registerClass(
 class AppIndicatorPreferences extends Gtk.Box {
