@@ -1,14 +1,14 @@
 # Bulgarian translation file
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the AppIndicatorExtension package.
-# Iliya Iliev <iliq0000@proton.me>, 2024.
+# Iliya Iliev <iliq0000@proton.me>, 2024-2025.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: AppIndicatorExtension\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-07 02:36+0100\n"
-"PO-Revision-Date: 2024-09-12 09:03+0300\n"
+"PO-Revision-Date: 2025-04-24 23:17+0300\n"
 "Last-Translator: Iliya Iliev <iliq0000@proton.me>\n"
 "Language-Team: Bulgarian\n"
 "Language: bg\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Gtranslator 46.1\n"
+"X-Generator: Gtranslator 48.0\n"
 
 #: prefs.js:59
 msgid "Enable Legacy Tray Icons support"
@@ -24,7 +24,7 @@ msgstr "Поддръжка на икони, използващи стар ста
 
 #: prefs.js:91
 msgid "Opacity (min: 0, max: 255)"
-msgstr "Непрозрачност (мин: 0, макс: 255)"
+msgstr "Плътност (мин: 0, макс: 255)"
 
 #: prefs.js:120
 msgid "Desaturation (min: 0.0, max: 1.0)"
@@ -48,15 +48,15 @@ msgstr "Хоризонтално подравняване на иконите"
 
 #: prefs.js:237
 msgid "Center"
-msgstr "В средата"
+msgstr "Среда"
 
 #: prefs.js:238
 msgid "Left"
-msgstr "Вляво"
+msgstr "Ляво"
 
 #: prefs.js:239
 msgid "Right"
-msgstr "Вдясно"
+msgstr "Дясно"
 
 #: prefs.js:286
 msgid "Indicator ID"
@@ -76,43 +76,43 @@ msgstr "Настройки"
 
 #: prefs.js:365
 msgid "Custom Icons"
-msgstr ""
+msgstr "Персонализирани икони"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
 msgid "Enable legacy tray icons support"
-msgstr ""
+msgstr "Поддръжка на икони, използващи стар стандарт"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
 msgid "Saturation"
-msgstr ""
+msgstr "Наситеност"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
 msgid "Brightness"
-msgstr ""
+msgstr "Яркост"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
 msgid "Contrast"
-msgstr ""
+msgstr "Контраст"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
 msgid "Opacity"
-msgstr ""
+msgstr "Плътност"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:25
 msgid "Icon size"
-msgstr ""
+msgstr "Размер на иконите"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
 msgid "Icon size in pixel"
-msgstr ""
+msgstr "Размер на иконите в пиксели"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:30
 msgid "Icon spacing"
-msgstr ""
+msgstr "Разстояние между иконите"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
 msgid "Icon spacing within the tray"
-msgstr ""
+msgstr "Разстояние между иконите в системната област"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:35
 msgid "Position in tray"
@@ -132,8 +132,8 @@ msgstr ""
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:45
 msgid "Custom icons"
-msgstr ""
+msgstr "Персонализирани икони"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:46
 msgid "Replace any icons with custom icons from themes"
-msgstr ""
+msgstr "Замяна на иконите с персонализирани такива"
