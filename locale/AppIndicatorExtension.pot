@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AppIndicatorExtension\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-03-07 02:36+0100\n"
+"POT-Creation-Date: 2025-05-06 21:44+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,64 +17,71 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: prefs.js:59
+#: preferences/generalPage.js:15
+msgid "General"
+msgstr ""
+
+#: preferences/generalPage.js:26
 msgid "Enable Legacy Tray Icons support"
 msgstr ""
 
-#: prefs.js:91
-msgid "Opacity (min: 0, max: 255)"
+#: preferences/generalPage.js:27
+msgid "Add X11 legacy tray icons to the panel area"
 msgstr ""
 
-#: prefs.js:120
-msgid "Desaturation (min: 0.0, max: 1.0)"
+#: preferences/generalPage.js:38
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
+msgid "Opacity"
 msgstr ""
 
-#: prefs.js:148
-msgid "Brightness (min: -1.0, max: 1.0)"
+#: preferences/generalPage.js:47
+msgid "Desaturation"
 msgstr ""
 
-#: prefs.js:176
-msgid "Contrast (min: -1.0, max: 1.0)"
+#: preferences/generalPage.js:55
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
+msgid "Brightness"
 msgstr ""
 
-#: prefs.js:204
-msgid "Icon size (min: 0, max: 96)"
+#: preferences/generalPage.js:63
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
+msgid "Contrast"
 msgstr ""
 
-#: prefs.js:232
-msgid "Tray horizontal alignment"
+#: preferences/generalPage.js:71
+msgid "Icon Size"
 msgstr ""
 
-#: prefs.js:237
+#: preferences/generalPage.js:81
 msgid "Center"
 msgstr ""
 
-#: prefs.js:238
+#: preferences/generalPage.js:82
 msgid "Left"
 msgstr ""
 
-#: prefs.js:239
+#: preferences/generalPage.js:83
 msgid "Right"
 msgstr ""
 
-#: prefs.js:286
+#: preferences/generalPage.js:86
+msgid "Tray Horizontal Alignment"
+msgstr ""
+
+#: preferences/customIconPage.js:88
+msgid "Custom Icons"
+msgstr ""
+
+#: preferences/customIconPage.js:132
 msgid "Indicator ID"
 msgstr ""
 
-#: prefs.js:287
+#: preferences/customIconPage.js:133
 msgid "Icon Name"
 msgstr ""
 
-#: prefs.js:288
+#: preferences/customIconPage.js:134
 msgid "Attention Icon Name"
-msgstr ""
-
-#: prefs.js:363
-msgid "Preferences"
-msgstr ""
-
-#: prefs.js:365
-msgid "Custom Icons"
 msgstr ""
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
@@ -83,18 +90,6 @@ msgstr ""
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
 msgid "Saturation"
-msgstr ""
-
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
-msgid "Brightness"
-msgstr ""
-
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
-msgid "Contrast"
-msgstr ""
-
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
-msgid "Opacity"
 msgstr ""
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:25
