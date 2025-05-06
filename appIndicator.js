@@ -23,7 +23,6 @@ import St from 'gi://St';
 
 import * as Params from 'resource:///org/gnome/shell/misc/params.js';
 import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
-import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 
 import * as IconCache from './iconCache.js';
 import * as Util from './util.js';
@@ -43,7 +42,6 @@ Gio._promisify(Gio.DBusConnection.prototype, 'call');
 const MAX_UPDATE_FREQUENCY = 30; // In ms
 const FALLBACK_ICON_NAME = 'image-loading-symbolic';
 const PIXMAPS_FORMAT = imports.gi.Cogl.PixelFormat.ARGB_8888;
-const GNOME_48_PLUS = Number(Config.PACKAGE_VERSION.split(".")[0]) >= 48;
 
 export const SNICategory = Object.freeze({
     APPLICATION: 'ApplicationStatus',
@@ -1327,11 +1325,13 @@ class AppIndicatorsIconActor extends St.Icon {
             preferredHeight: height,
         });
 
-        const setBytesArgs = [pixmapVariant.get_data_as_bytes(), PIXMAPS_FORMAT, width, height, rowStride];
-        if (GNOME_48_PLUS) {
-            setBytesArgs.unshift(global.stage.context.get_backend().get_cogl_context());
-        }
-        imageContent.set_bytes(...setBytesArgs);
+        // Remove this dynamic check when we depend on GNOME 48.
+        const coglContext = [];
+        const mutterBackend = global.stage?.context?.get_backend?.();
+        if (imageContent.set_bytes.length === 6 && mutterBackend?.get_cogl_context)
+            coglContext.push(mutterBackend.get_cogl_context());
+        imageContent.set_bytes(...coglContext, pixmapVariant.get_data_as_bytes(),
+            PIXMAPS_FORMAT, width, height, rowStride);
 
         if (iconType !== SNIconType.OVERLAY && !this._indicator.hasOverlayIcon) {
             const scaledSize = iconSize * scaleFactor;
