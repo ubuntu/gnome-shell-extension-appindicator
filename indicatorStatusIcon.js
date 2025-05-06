@@ -15,6 +15,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import Clutter from 'gi://Clutter';
+import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
@@ -323,6 +324,16 @@ class IndicatorStatusIcon extends BaseStatusIcon {
         }
     }
 
+    _addToRecentIcons() {
+        const settings = SettingsManager.getDefaultGSettings();
+        const iconIDs = settings.get_value('recent-icons').deep_unpack();
+
+        if (this._indicator.id && !iconIDs.includes(this._indicator.id)) {
+            iconIDs.push(this._indicator.id);
+            settings.set_value('recent-icons', new GLib.Variant('as', iconIDs));
+        }
+    }
+
     _showIfReady() {
         if (!this.isReady())
             return;
@@ -330,6 +341,7 @@ class IndicatorStatusIcon extends BaseStatusIcon {
         this._updateLabel();
         this._updateStatus();
         this._updateMenu();
+        this._addToRecentIcons();
     }
 
     _updateClickCount(event) {

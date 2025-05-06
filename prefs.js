@@ -30,7 +30,7 @@ class AppIndicatorPreferences extends Gtk.Box {
             margin_bottom: 30,
         });
         this.custom_icons_vbox = new Gtk.Box({
-            orientation: Gtk.Orientation.HORIZONTAL,
+            orientation: Gtk.Orientation.VERTICAL,
             spacing: 10,
             margin_start: 10,
             margin_end: 10,
@@ -267,7 +267,39 @@ class AppIndicatorPreferences extends Gtk.Box {
         customTreeView.insert_column(customAttentionIconColumn, 2);
         customTreeView.set_grid_lines(Gtk.TreeViewGridLines.BOTH);
 
+        const iconIDListStore = new Gtk.ListStore();
+        iconIDListStore.set_column_types([
+            GObject.TYPE_STRING,
+        ]);
+        const iconIDListTrack = [];
+        const iconIDTreeView = new Gtk.TreeView({
+            model: iconIDListStore,
+        });
+        const iconIDTreeViewColumn = new Gtk.TreeViewColumn({
+            title: 'Recent Indicator IDs',
+        });
+
+        const updateRecentIcons = () => {
+            const iconIDs = this._settings.get_value('recent-icons').deep_unpack();
+            iconIDs.forEach(v => {
+                if (!iconIDListTrack.includes(v)) {
+                    iconIDListStore.set(iconIDListStore.append(), [0], [v]);
+                    iconIDListTrack.push(v);
+                }
+            });
+        };
+
+        this._settings.connect('changed::recent-icons', updateRecentIcons);
+        updateRecentIcons();
+
+        const standardCellRenderer = new Gtk.CellRendererText();
+        iconIDTreeViewColumn.pack_start(standardCellRenderer, true);
+        iconIDTreeViewColumn.add_attribute(standardCellRenderer, 'text', 0);
+        iconIDTreeView.insert_column(iconIDTreeViewColumn, 0);
+        iconIDTreeView.set_grid_lines(Gtk.TreeViewGridLines.BOTH);
+
         this.custom_icons_vbox.append(customTreeView);
+        this.custom_icons_vbox.append(iconIDTreeView);
 
         cellrenderer.connect('edited', (w, path, text) => {
             this.selection = customTreeView.get_selection();
