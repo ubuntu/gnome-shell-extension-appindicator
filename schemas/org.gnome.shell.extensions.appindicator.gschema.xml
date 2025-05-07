@@ -21,7 +21,7 @@
       <summary>Opacity</summary>
     </key>
     <key name="icon-size" type="i">
-      <default>0</default>
+      <default>20</default>
       <summary>Icon size</summary>
       <description>Icon size in pixel</description>
     </key>
