@@ -188,6 +188,10 @@ export class DbusMenuItem extends Signals.EventEmitter {
         return this._children_ids.map(el => this._client.getItem(el));
     }
 
+    hasChildren() {
+        return this._children_ids.length > 0;
+    }
+
     handleEvent(event, data, timestamp) {
         if (!data)
             data = GLib.Variant.new_int32(0);
@@ -477,14 +481,14 @@ export const DBusClient = GObject.registerClass({
 
     _onSignal(_sender, signal, params) {
         if (signal === 'LayoutUpdated') {
-            if (!this._active) {
+            if (!this._active && this.getRoot()?.hasChildren()) {
                 this._flagLayoutUpdateRequired = true;
                 return;
             }
 
             this._requestLayoutUpdate();
         } else if (signal === 'ItemsPropertiesUpdated') {
-            if (!this._active) {
+            if (!this._active && this.getRoot()?.hasChildren()) {
                 this._flagItemsUpdateRequired = true;
                 return;
             }
