@@ -475,16 +475,23 @@ export const DBusClient = GObject.registerClass({
         }
     }
 
+    _isEmptyMenu() {
+        const rootItem = this.getRoot();
+        return !rootItem || rootItem.getChildren().length === 0;
+    }
+
     _onSignal(_sender, signal, params) {
+        // an empty menu will not open, thus the signal "open-state-changed"
+        // will never be emitted, and thus `this._active` will always be false.
         if (signal === 'LayoutUpdated') {
-            if (!this._active) {
+            if (!this._active && !this._isEmptyMenu()) {
                 this._flagLayoutUpdateRequired = true;
                 return;
             }
 
             this._requestLayoutUpdate();
         } else if (signal === 'ItemsPropertiesUpdated') {
-            if (!this._active) {
+            if (!this._active && !this._isEmptyMenu()) {
                 this._flagItemsUpdateRequired = true;
                 return;
             }
