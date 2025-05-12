@@ -81,6 +81,8 @@ class IndicatorBaseStatusIcon extends PanelMenu.Button {
 
         this._setIconActor(iconActor);
         this._showIfReady();
+
+        this.set_style(IndicatorBaseStatusIcon.DEFAULT_STYLE);
     }
 
     _setIconActor(icon) {
@@ -169,7 +171,7 @@ class IndicatorBaseStatusIcon extends PanelMenu.Button {
 
             Util.disconnectSmart(settings, this, this._iconContrastIds);
             delete this._iconContrastIds;
-                
+
             Util.disconnectSmart(settings, this, this._compactModeEnabledIds);
             delete this._compactModeEnabledIds;
         } else if (this._icon && !monitoring) {
@@ -188,8 +190,17 @@ class IndicatorBaseStatusIcon extends PanelMenu.Button {
         }
     }
 
+    static get DEFAULT_STYLE() {
+        const settings = SettingsManager.getDefaultGSettings();
+        if (settings.get_boolean('compact-mode-enabled'))
+            return '-natural-hpadding: 10px';
+        else
+            return '-natural-hpadding: 16px'; // from .system-status-icon
+    }
+
     _updateCompactMode() {
         this._icon.set_style(AppIndicator.IconActor.DEFAULT_STYLE);
+        this.set_style(IndicatorBaseStatusIcon.DEFAULT_STYLE);
     }
 
     _updateSaturation() {
