@@ -81,6 +81,8 @@ class IndicatorBaseStatusIcon extends PanelMenu.Button {
 
         this._setIconActor(iconActor);
         this._showIfReady();
+
+        this.set_style(IndicatorBaseStatusIcon.DEFAULT_STYLE);
     }
 
     _setIconActor(icon) {
@@ -169,6 +171,9 @@ class IndicatorBaseStatusIcon extends PanelMenu.Button {
 
             Util.disconnectSmart(settings, this, this._iconContrastIds);
             delete this._iconContrastIds;
+
+            Util.disconnectSmart(settings, this, this._compactModeEnabledIds);
+            delete this._compactModeEnabledIds;
         } else if (this._icon && !monitoring) {
             this._iconSaturationIds =
                 Util.connectSmart(settings, 'changed::icon-saturation', this,
@@ -179,7 +184,23 @@ class IndicatorBaseStatusIcon extends PanelMenu.Button {
             this._iconContrastIds =
                 Util.connectSmart(settings, 'changed::icon-contrast', this,
                     this._updateBrightnessContrast);
+            this._compactModeEnabledIds =
+                Util.connectSmart(settings, 'changed::compact-mode-enabled', this,
+                    this._updateCompactMode);
         }
+    }
+
+    static get DEFAULT_STYLE() {
+        const settings = SettingsManager.getDefaultGSettings();
+        if (!settings.get_boolean('compact-mode-enabled'))
+            return null; // drop to default -natural-hpadding.
+
+        return '-natural-hpadding: 10px';
+    }
+
+    _updateCompactMode() {
+        this._icon.set_style(AppIndicator.IconActor.DEFAULT_STYLE);
+        this.set_style(IndicatorBaseStatusIcon.DEFAULT_STYLE);
     }
 
     _updateSaturation() {
