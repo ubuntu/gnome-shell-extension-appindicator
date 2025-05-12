@@ -169,6 +169,9 @@ class IndicatorBaseStatusIcon extends PanelMenu.Button {
 
             Util.disconnectSmart(settings, this, this._iconContrastIds);
             delete this._iconContrastIds;
+                
+            Util.disconnectSmart(settings, this, this._compactModeEnabledIds);
+            delete this._compactModeEnabledIds;
         } else if (this._icon && !monitoring) {
             this._iconSaturationIds =
                 Util.connectSmart(settings, 'changed::icon-saturation', this,
@@ -179,7 +182,14 @@ class IndicatorBaseStatusIcon extends PanelMenu.Button {
             this._iconContrastIds =
                 Util.connectSmart(settings, 'changed::icon-contrast', this,
                     this._updateBrightnessContrast);
+            this._compactModeEnabledIds =
+                Util.connectSmart(settings, 'changed::compact-mode-enabled', this,
+                    this._updateCompactMode);
         }
+    }
+
+    _updateCompactMode() {
+        this._icon.set_style(AppIndicator.IconActor.DEFAULT_STYLE);
     }
 
     _updateSaturation() {
