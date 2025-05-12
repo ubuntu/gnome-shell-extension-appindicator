@@ -882,7 +882,11 @@ const StTextureCacheSkippingFileIcon = GObject.registerClass({
 export const IconActor = GObject.registerClass(
 class AppIndicatorsIconActor extends St.Icon {
     static get DEFAULT_STYLE() {
-        return 'padding: 0';
+        const settings = SettingsManager.getDefaultGSettings();
+        if (!settings.get_boolean('compact-mode-enabled'))
+            return 'padding: 0';
+        else
+            return 'padding: 0; margin: 0';
     }
 
     static get USER_WRITABLE_PATHS() {
