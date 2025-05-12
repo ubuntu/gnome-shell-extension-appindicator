@@ -38,7 +38,7 @@ class AppIndicatorGeneralPage extends Adw.PreferencesPage {
         const compactModeSwitch = new Adw.SwitchRow({
             title: _('Compact Mode'),
             subtitle: _('Puts tray indicators closer together'),
-            active: this._settings.get_boolean(this._settingsKey.COMPACT_MODE_ENABLED)
+            active: this._settings.get_boolean(this._settingsKey.COMPACT_MODE_ENABLED),
         });
 
         compactModeSwitch.connect('notify::active', widget =>
