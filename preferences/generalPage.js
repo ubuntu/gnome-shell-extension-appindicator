@@ -27,10 +27,28 @@ class AppIndicatorGeneralPage extends Adw.PreferencesPage {
         });
 
         legacyTraySwitch.connect('notify::active', widget =>
-            this._settings.set_boolean(this._settingsKey.LEGACY_TRAY_ENABLED,
-                widget.get_active()));
+            this._settings.set_boolean(
+                this._settingsKey.LEGACY_TRAY_ENABLED,
+                widget.get_active()
+            )
+        );
 
         this.group.add(legacyTraySwitch);
+
+        const compactModeSwitch = new Adw.SwitchRow({
+            title: _('Compact Mode'),
+            subtitle: _('Puts tray indicators closer together'),
+            active: this._settings.get_boolean(this._settingsKey.COMPACT_MODE_ENABLED),
+        });
+
+        compactModeSwitch.connect('notify::active', widget =>
+            this._settings.set_boolean(
+                this._settingsKey.COMPACT_MODE_ENABLED,
+                widget.get_active()
+            )
+        );
+
+        this.group.add(compactModeSwitch);
 
         this._createSpinRow({
             title: _('Opacity'),
