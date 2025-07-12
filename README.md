@@ -30,7 +30,7 @@ gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com
 ```
 
 Under X11, you may need to restart GNOME Shell (<kbd>Alt</kbd>+<kbd>F2</kbd>, <kbd>r</kbd>, <kbd>⏎</kbd>)
-after that. Under Wayland you need to logout and login again.
+after that. 
 
 ### Applications dependencies
 
