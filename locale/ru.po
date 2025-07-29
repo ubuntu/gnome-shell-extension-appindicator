@@ -1,83 +1,89 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the PACKAGE package.
+# This file is distributed under the same license as the AppIndicatorExtension package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
+#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: \n"
+"Project-Id-Version: AppIndicatorExtension\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-03-07 02:36+0100\n"
-"PO-Revision-Date: 2023-09-05 12:07+0300\n"
-"Last-Translator: Aleksandr Melman <Alexmelman88@gmail.com>\n"
+"POT-Creation-Date: 2025-05-06 21:44+0200\n"
+"PO-Revision-Date: 2025-07-29 16:57+0300\n"
+"Last-Translator: Fraxinus Acer\n"
 "Language-Team: \n"
-"Language: ru_RU\n"
+"Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-"X-Generator: Poedit 3.3.2\n"
+"X-Generator: Poedit 3.6\n"
 
-#: prefs.js:59
+#: preferences/generalPage.js:15
+msgid "General"
+msgstr "Основные"
+
+#: preferences/generalPage.js:26
 msgid "Enable Legacy Tray Icons support"
 msgstr "Включить поддержку устаревших значков в трее"
 
-#: prefs.js:91
-msgid "Opacity (min: 0, max: 255)"
-msgstr "Прозрачность (от 0 до 255)"
+#: preferences/generalPage.js:27
+msgid "Add X11 legacy tray icons to the panel area"
+msgstr "Добавить устаревшие значки X11 в трей"
 
-#: prefs.js:120
-msgid "Desaturation (min: 0.0, max: 1.0)"
-msgstr "Насыщенность (от 0.0 до +1.0)"
+#: preferences/generalPage.js:38
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
+msgid "Opacity"
+msgstr "Прозрачность"
 
-#: prefs.js:148
-msgid "Brightness (min: -1.0, max: 1.0)"
-msgstr "Яркость (от -1.0 до +1.0)"
+#: preferences/generalPage.js:47
+msgid "Desaturation"
+msgstr "Обесцвечивание"
 
-#: prefs.js:176
-msgid "Contrast (min: -1.0, max: 1.0)"
-msgstr "Контрастность (от -1.0 до +1.0)"
+#: preferences/generalPage.js:55
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
+msgid "Brightness"
+msgstr "Яркость"
 
-#: prefs.js:204
-msgid "Icon size (min: 0, max: 96)"
-msgstr "Размер иконок (от 0 до 96)"
+#: preferences/generalPage.js:63
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
+msgid "Contrast"
+msgstr "Контрастность"
 
-#: prefs.js:232
-msgid "Tray horizontal alignment"
-msgstr "Горизонтальное выравнивание"
+#: preferences/generalPage.js:71
+msgid "Icon Size"
+msgstr "Размер иконок"
 
-#: prefs.js:237
+#: preferences/generalPage.js:81
 msgid "Center"
 msgstr "По центру"
 
-#: prefs.js:238
+#: preferences/generalPage.js:82
 msgid "Left"
 msgstr "Слева"
 
-#: prefs.js:239
+#: preferences/generalPage.js:83
 msgid "Right"
 msgstr "Справа"
 
-#: prefs.js:286
+#: preferences/generalPage.js:86
+msgid "Tray Horizontal Alignment"
+msgstr "Выравнивание трея по горизонтали"
+
+#: preferences/customIconPage.js:88
+msgid "Custom Icons"
+msgstr "Пользовательские значки"
+
+#: preferences/customIconPage.js:132
 msgid "Indicator ID"
 msgstr "Индикатор ID"
 
-#: prefs.js:287
+#: preferences/customIconPage.js:133
 msgid "Icon Name"
 msgstr "Имя значка"
 
-#: prefs.js:288
+#: preferences/customIconPage.js:134
 msgid "Attention Icon Name"
 msgstr "Заменяемое имя значка"
-
-#: prefs.js:363
-msgid "Preferences"
-msgstr "Параметры"
-
-#: prefs.js:365
-msgid "Custom Icons"
-msgstr "Пользовательские значки"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
 msgid "Enable legacy tray icons support"
@@ -85,19 +91,7 @@ msgstr "Включить поддержку устаревших значков 
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
 msgid "Saturation"
-msgstr "Насыщенность"
-
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
-msgid "Brightness"
 msgstr "Яркость"
-
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
-msgid "Contrast"
-msgstr "Контрастность"
-
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
-msgid "Opacity"
-msgstr "Прозрачность"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:25
 msgid "Icon size"
@@ -121,7 +115,7 @@ msgstr "Положение в трее"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
 msgid "Set where the Icon tray should appear in Gnome tray"
-msgstr "Установить, где должен отображаться значок в трее Gnome"
+msgstr "Установите, где должен отображаться трей значков в трее Gnome"
 
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:40
 msgid "Order in tray"
