@@ -1,0 +1,134 @@
+# Arabic translation for AppIndicatorExtension.
+# Copyright (C) 2025 AppIndicatorExtension's COPYRIGHT HOLDER
+# This file is distributed under the same license as the AppIndicatorExtension package.
+# Ahmed Najmawi <iramosu@protonmail.com>,  2025.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: AppIndicatorExtension\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-05-06 21:44+0200\n"
+"PO-Revision-Date: 2025-07-31 12:30+0300\n"
+"Last-Translator: Ahmed Najmawi <iramosu@protonmail.com>\n"
+"Language-Team: \n"
+"Language: ar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 3.6\n"
+
+#: preferences/generalPage.js:15
+msgid "General"
+msgstr "عام"
+
+#: preferences/generalPage.js:26
+msgid "Enable Legacy Tray Icons support"
+msgstr "فعّل دعم أيقونات الحافة التقليدية"
+
+#: preferences/generalPage.js:27
+msgid "Add X11 legacy tray icons to the panel area"
+msgstr "أضف أيقونات الحافة التقليدية لنظام X11 إلى منطقة اللوحة"
+
+#: preferences/generalPage.js:38
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
+msgid "Opacity"
+msgstr "اجعل مستوى الشفافية"
+
+#: preferences/generalPage.js:47
+msgid "Desaturation"
+msgstr "أزل التشبع اللوني"
+
+#: preferences/generalPage.js:55
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
+msgid "Brightness"
+msgstr "عدّل السطوع"
+
+#: preferences/generalPage.js:63
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
+msgid "Contrast"
+msgstr "ضبّط التباين"
+
+#: preferences/generalPage.js:71
+msgid "Icon Size"
+msgstr "حدد حجم الأيقونة"
+
+#: preferences/generalPage.js:81
+msgid "Center"
+msgstr "وسّط"
+
+#: preferences/generalPage.js:82
+msgid "Left"
+msgstr "ضع جهة اليسار"
+
+#: preferences/generalPage.js:83
+msgid "Right"
+msgstr "ضع جهة اليمين"
+
+#: preferences/generalPage.js:86
+msgid "Tray Horizontal Alignment"
+msgstr "حدد محاذاة الحافة أفقيًا"
+
+#: preferences/customIconPage.js:88
+msgid "Custom Icons"
+msgstr "استخدم أيقونات مخصصة"
+
+#: preferences/customIconPage.js:132
+msgid "Indicator ID"
+msgstr "أدخل معرف المؤشر"
+
+#: preferences/customIconPage.js:133
+msgid "Icon Name"
+msgstr "أدخل اسم الأيقونة"
+
+#: preferences/customIconPage.js:134
+msgid "Attention Icon Name"
+msgstr "اكتب اسم أيقونة التنبيه"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
+msgid "Enable legacy tray icons support"
+msgstr "فعّل دعم أيقونات الحافة التقليدية"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
+msgid "Saturation"
+msgstr "اضبط درجة التشبع"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:25
+msgid "Icon size"
+msgstr "حدد حجم الأيقونة"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
+msgid "Icon size in pixel"
+msgstr "اضبط حجم الأيقونة بوحدة البكسل"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:30
+msgid "Icon spacing"
+msgstr "اضبط تباعد الأيقونات"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
+msgid "Icon spacing within the tray"
+msgstr "حدّد تباعد الأيقونات داخل الحافة"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:35
+msgid "Position in tray"
+msgstr "اختر موقع الحافة"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
+msgid "Set where the Icon tray should appear in Gnome tray"
+msgstr "عيّن موضع ظهور حافة الأيقونة ضمن حافة جنوم"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:40
+msgid "Order in tray"
+msgstr "حدد ترتيب الظهور في الحافة"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
+msgid "Set where the Icon tray should appear among other trays"
+msgstr "عيّن موضع ظهور حافة الأيقونة بين الحواف الأخرى"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:45
+msgid "Custom icons"
+msgstr "فعّل الأيقونات المخصصة"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:46
+msgid "Replace any icons with custom icons from themes"
+msgstr "بدّل أي أيقونة بأيقونة مخصصة من السمات"
