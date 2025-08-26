@@ -1,0 +1,134 @@
+# Georgian translation for AppIndicatorExtension.
+# Copyright (C) 2025 AppIndicatorExtension's authors.
+# This file is distributed under the same license as the AppIndicatorExtension package.
+# Ekaterine Papava <papava.e@gtu.ge>, 2025.
+#
+
+msgid ""
+msgstr ""
+"Project-Id-Version: AppIndicatorExtension\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-05-06 21:44+0200\n"
+"PO-Revision-Date: 2025-08-26 06:12+0200\n"
+"Last-Translator: Temuri Doghonadze <temuri.doghonadze@gmail.com>\n"
+"Language-Team: Georgian <(nothing)>\n"
+"Language: ka\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 3.7\n"
+
+#: preferences/generalPage.js:15
+msgid "General"
+msgstr "ზოგადი"
+
+#: preferences/generalPage.js:26
+msgid "Enable Legacy Tray Icons support"
+msgstr "მოძველებული სისტემური კუთხის ხატულების მხარდაჭერა"
+
+#: preferences/generalPage.js:27
+msgid "Add X11 legacy tray icons to the panel area"
+msgstr "X11-ის მოძველებული სისტემური კუთხის ხატულების დამატება პანელის არეში"
+
+#: preferences/generalPage.js:38
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
+msgid "Opacity"
+msgstr "გაუმჭირვალობა"
+
+#: preferences/generalPage.js:47
+msgid "Desaturation"
+msgstr "გაუჯერებლობა"
+
+#: preferences/generalPage.js:55
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
+msgid "Brightness"
+msgstr "სიკაშკაშე"
+
+#: preferences/generalPage.js:63
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
+msgid "Contrast"
+msgstr "კონტრასტი"
+
+#: preferences/generalPage.js:71
+msgid "Icon Size"
+msgstr "ხატულების ზომა"
+
+#: preferences/generalPage.js:81
+msgid "Center"
+msgstr "ცენტრი"
+
+#: preferences/generalPage.js:82
+msgid "Left"
+msgstr "მარცხენა"
+
+#: preferences/generalPage.js:83
+msgid "Right"
+msgstr "მარჯვენა"
+
+#: preferences/generalPage.js:86
+msgid "Tray Horizontal Alignment"
+msgstr "პანელის ჰორიზონტალური სწორება"
+
+#: preferences/customIconPage.js:88
+msgid "Custom Icons"
+msgstr "ხატულების ხელით მითითება"
+
+#: preferences/customIconPage.js:132
+msgid "Indicator ID"
+msgstr "ინდიკატორის ID"
+
+#: preferences/customIconPage.js:133
+msgid "Icon Name"
+msgstr "ხატულას სახელი"
+
+#: preferences/customIconPage.js:134
+msgid "Attention Icon Name"
+msgstr "საყურადღებო ხატულის სახელი"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
+msgid "Enable legacy tray icons support"
+msgstr "მოძველებული სისტემური კუთხის ხატულების მხარდაჭერის ჩართვა"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
+msgid "Saturation"
+msgstr "გაჯერებულობა"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:25
+msgid "Icon size"
+msgstr "ხატულას ზომა"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
+msgid "Icon size in pixel"
+msgstr "ხატულას ზომა პიქსელებში"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:30
+msgid "Icon spacing"
+msgstr "ადგილი ხატულებს შორის"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
+msgid "Icon spacing within the tray"
+msgstr "ადგილი ხატულებს შორის სისტემურ კუთხეში"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:35
+msgid "Position in tray"
+msgstr "მდებარეობა სისტემურ კუთხეში"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
+msgid "Set where the Icon tray should appear in Gnome tray"
+msgstr "დააყენეთ, სად უნდა გამოჩნდეს ხატულების სისტემური კუთხე GNOME-ის პანელზე"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:40
+msgid "Order in tray"
+msgstr "მიმდევრობა სისტემურ კუთხეში"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
+msgid "Set where the Icon tray should appear among other trays"
+msgstr "დააყენეთ, სად უნდა გამოჩნდეს ხატულების სისტემური კუთხე სხვა პანელებზე"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:45
+msgid "Custom icons"
+msgstr "ხატულების ხელით მითითება"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:46
+msgid "Replace any icons with custom icons from themes"
+msgstr "ყველა ხატულას შეცვლა მორგებული ხატულებით თემებიდან"
