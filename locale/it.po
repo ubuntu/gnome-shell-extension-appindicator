@@ -43,7 +43,7 @@ msgstr "Abilita il supporto alle icone sul vassoio"
 
 #: preferences/generalPage.js:25
 msgid "Add X11 legacy tray icons to the panel area"
-msgstr "Aggiunge le icone del vassoio X11 sul pannello"
+msgstr "Aggiunge le icone X11 sul pannello"
 
 #: preferences/generalPage.js:36
 msgid "Opacity"
@@ -79,4 +79,4 @@ msgstr "Destra"
 
 #: preferences/generalPage.js:87
 msgid "Tray Horizontal Alignment"
-msgstr "Allineamento orizzontale del vassoio"
+msgstr "Allineamento orizzontale"
