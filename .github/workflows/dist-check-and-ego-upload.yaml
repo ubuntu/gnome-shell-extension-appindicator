@@ -1,0 +1,95 @@
+name: Build Dist
+
+on:
+  push:
+    pull_request:
+    branches:
+      - '*'
+    tags:
+      - '*'
+
+jobs:
+  distcheck:
+    name: Dist check
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup the container
+      uses: canonical/desktop-engineering/gh-actions/common/dpkg-install-speedup@main
+
+    - name: Install dependencies
+      run: |
+        sudo npm install eslint@8.57.0 -g
+        sudo apt install -y \
+          jq \
+          gettext \
+          meson \
+          zip
+
+    - name: Dist check extension
+      run: |
+        meson setup _build
+        meson test -C _build -v --print-errorlogs
+        ninja -C _build zip-file
+
+    - name: Save extension zip file
+      uses: actions/upload-artifact@v4
+      with:
+        name: extension-zip
+        path: _build/*.zip
+
+  ego-upload:
+    needs: distcheck
+    name: Upload to extensions.gnome.org
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+    - name: Download the extension zip-file
+      uses: actions/download-artifact@v5
+      with:
+        name: extension-zip
+
+    - name: Checkout GNOME extension tool
+      run: |
+        git clone --no-checkout https://gitlab.gnome.org/GNOME/gnome-shell.git \
+          --depth=1 extension-tool
+        cd extension-tool
+        git sparse-checkout init
+        git sparse-checkout set subprojects/extensions-tool
+        git checkout main
+
+    - name: Setup the container
+      uses: canonical/desktop-engineering/gh-actions/common/dpkg-install-speedup@main
+
+    - name: Install dependencies
+      run: |
+        sudo npm install eslint@8.57.0 -g
+        sudo apt install -y \
+          libjson-glib-dev \
+          libgnome-autoar-0-dev \
+          libsoup-3.0-dev \
+          gettext \
+          meson
+
+    - name: Compile GNOME extension tool
+      run: |
+        meson setup extension-tool-build \
+          extension-tool/subprojects/extensions-tool \
+          -Dman=false
+
+        ninja -C extension-tool-build
+        extension-tool-build/src/gnome-extensions upload
+
+    - name: Upload to EGO
+      env:
+        EGO_USER: ${{ secrets.EGO_USER }}
+        EGO_PASSWORD: ${{ secrets.EGO_PASSWORD }}
+      run: |
+        extension-tool-build/src/gnome-extensions upload \
+          --user="$EGO_USER" \
+          --password="$EGO_PASSWORD" \
+          --accept-tos \
+          appindicatorsupport@rgcjonas.gmail.com.zip
