@@ -39,7 +39,7 @@ msgstr "Generale"
 
 #: preferences/generalPage.js:24
 msgid "Enable Legacy Tray Icons support"
-msgstr "Abilita il supporto alle icone sul vassoio"
+msgstr "Abilita il supporto per le icone legacy"
 
 #: preferences/generalPage.js:25
 msgid "Add X11 legacy tray icons to the panel area"
