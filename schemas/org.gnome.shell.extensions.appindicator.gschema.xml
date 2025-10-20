@@ -25,10 +25,10 @@
       <summary>Icon size</summary>
       <description>Icon size in pixel</description>
     </key>
-    <key name="icon-spacing" type="i">
-      <default>12</default>
-      <summary>Icon spacing</summary>
-      <description>Icon spacing within the tray</description>
+    <key name="compact-mode-enabled" type="b">
+      <default>true</default>
+      <summary>Compact Mode</summary>
+      <description>Reduces the Spacing Between Indicators</description>
     </key>
     <key name="tray-pos" type="s">
       <default>"right"</default>
