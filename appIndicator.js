@@ -768,6 +768,11 @@ export class AppIndicator extends Signals.EventEmitter {
         const fakeAppInfo = Gio.AppInfo.create_from_commandline(
             this._commandLine || 'true', appName,
             Gio.AppInfoCreateFlags.SUPPORTS_STARTUP_NOTIFICATION);
+
+        // Guard against null fakeAppInfo to prevent SIGSEGV in get_startup_notify_id()
+        if (!fakeAppInfo)
+            return [launchContext, null];
+
         return [launchContext, launchContext.get_startup_notify_id(fakeAppInfo, [])];
     }
 
