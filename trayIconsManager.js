@@ -45,19 +45,6 @@ export class TrayIconsManager extends Signals.EventEmitter {
         this._changedId = SettingsManager.getDefaultGSettings().connect(
             'changed::legacy-tray-enabled', () => this._toggle());
 
-        // On theme changed, need to update the bg color to match style,
-        // This may not be required anymore on newer shell versions that use
-        // ARGBA visuals.
-        this._styleChangedID = Main.panel.connect('style-changed', () => {
-            const panelBgColor = this._getPanelBgColor();
-            const {bgColor} = this._tray ?? {bgColor: null};
-            if (bgColor === panelBgColor || bgColor?.equal(panelBgColor))
-                return;
-
-            this._disable();
-            this._toggle();
-        });
-
         this._toggle();
     }
 
@@ -110,7 +97,6 @@ export class TrayIconsManager extends Signals.EventEmitter {
     destroy() {
         this.emit('destroy');
         SettingsManager.getDefaultGSettings().disconnect(this._changedId);
-        Main.panel.disconnect(this._styleChangedID);
         this._disable();
         trayIconsManager = null;
     }
