@@ -763,9 +763,16 @@ export class AppIndicator extends Signals.EventEmitter {
 
     _getActivationToken(timestamp) {
         const launchContext = global.create_app_launch_context(timestamp, -1);
+        // Ensure appName is never null to prevent crash in g_app_info_get_name()
+        const appName = this.id || this._commandLine || 'unknown';
         const fakeAppInfo = Gio.AppInfo.create_from_commandline(
-            this._commandLine || 'true', this.id,
+            this._commandLine || 'true', appName,
             Gio.AppInfoCreateFlags.SUPPORTS_STARTUP_NOTIFICATION);
+
+        // Guard against null fakeAppInfo to prevent SIGSEGV in get_startup_notify_id()
+        if (!fakeAppInfo)
+            return [launchContext, null];
+
         return [launchContext, launchContext.get_startup_notify_id(fakeAppInfo, [])];
     }
 
