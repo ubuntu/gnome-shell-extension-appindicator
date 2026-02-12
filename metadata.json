@@ -4,7 +4,8 @@
         "46",
         "47",
         "48",
-	    "49"
+        "49",
+        "50"
     ],
     "gettext-domain": "AppIndicatorExtension",
     "settings-schema": "org.gnome.shell.extensions.appindicator",
