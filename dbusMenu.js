@@ -963,7 +963,15 @@ export class Client extends Signals.EventEmitter {
             this._rootItem.handleEvent('opened', null, 0).catch(logError);
             this._rootItem.sendAboutToShow();
         } else {
-            this._rootItem.handleEvent('closed', null, 0).catch(logError);
+            this._rootItem.handleEvent('closed', null, 0).catch(e => {
+                if (e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_OBJECT)) {
+                    // The menu hay have been removed at this point, thus do not
+                    // spam the users about this if it happens.
+                    return;
+                }
+
+                logError(e);
+            });
         }
     }
 
