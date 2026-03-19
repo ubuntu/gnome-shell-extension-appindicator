@@ -628,6 +628,8 @@ const MenuItemFactory = {
             shellItem, MenuItemFactory._onActivate);
 
         shellItem.connect('destroy', () => {
+            shellItem._dbusItemCancellable?.cancel();
+            shellItem._dbusItemCancellable = null;
             shellItem._dbusItem = null;
             shellItem._dbusClient = null;
             shellItem._icon = null;
@@ -756,10 +758,15 @@ const MenuItemFactory = {
             this._icon.icon_name = iconName;
         } else if (iconData) {
             try {
+                if (!this._dbusItemCancellable) {
+                    this._dbusItemCancellable = new Util.CancellableChild(
+                        this._dbusClient.cancellable);
+                }
+
                 const inputStream = Gio.MemoryInputStream.new_from_bytes(
                     iconData.get_data_as_bytes());
                 this._icon.gicon = await GdkPixbuf.Pixbuf.new_from_stream_async(
-                    inputStream, this._dbusClient.cancellable);
+                    inputStream, this._dbusItemCancellable);
             } catch (e) {
                 if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                     logError(e);
