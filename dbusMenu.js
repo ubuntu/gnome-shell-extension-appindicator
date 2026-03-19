@@ -196,7 +196,7 @@ export class DbusMenuItem extends Signals.EventEmitter {
         if (!data)
             data = GLib.Variant.new_int32(0);
 
-        this._client.sendEvent(this._id, event, data, timestamp);
+        return this._client.sendEvent(this._id, event, data, timestamp);
     }
 
     getId() {
@@ -533,14 +533,18 @@ export const DBusClient = GObject.registerClass({
         }
     }
 
-    sendEvent(id, event, params, timestamp) {
+    async sendEvent(id, event, params, timestamp) {
         if (!this.gNameOwner)
             return;
 
-        this.EventAsync(id, event, params, timestamp, this._cancellable).catch(e => {
-            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                logError(e);
-        });
+        try {
+            await this.EventAsync(id, event, params, timestamp, this._cancellable);
+        } catch (e) {
+            if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                return;
+
+            throw e;
+        }
     }
 
     _onPropertiesUpdated([changed, removed]) {
@@ -657,7 +661,7 @@ const MenuItemFactory = {
                 menu._parent._openedSubMenu = menu;
             }
 
-            this._dbusItem.handleEvent('opened', null, 0);
+            this._dbusItem.handleEvent('opened', null, 0).catch(logError);
             this._dbusItem.sendAboutToShow();
         } else {
             if (NEED_NESTED_SUBMENU_FIX) {
@@ -666,7 +670,7 @@ const MenuItemFactory = {
                     menu._openedSubMenu.close(false);
             }
 
-            this._dbusItem.handleEvent('closed', null, 0);
+            this._dbusItem.handleEvent('closed', null, 0).catch(logError);
         }
     },
 
@@ -676,7 +680,7 @@ const MenuItemFactory = {
             this._dbusClient.indicator.provideActivationToken(timestamp);
 
         this._dbusItem.handleEvent('clicked', GLib.Variant.new('i', 0),
-            timestamp);
+            timestamp).catch(logError);
     },
 
     _onPropertyChanged(dbusItem, prop, _value) {
@@ -956,10 +960,10 @@ export class Client extends Signals.EventEmitter {
             if (this._openedSubMenu && this._openedSubMenu.isOpen)
                 this._openedSubMenu.close();
 
-            this._rootItem.handleEvent('opened', null, 0);
+            this._rootItem.handleEvent('opened', null, 0).catch(logError);
             this._rootItem.sendAboutToShow();
         } else {
-            this._rootItem.handleEvent('closed', null, 0);
+            this._rootItem.handleEvent('closed', null, 0).catch(logError);
         }
     }
 
