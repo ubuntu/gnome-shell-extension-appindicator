@@ -879,7 +879,7 @@ export class Client extends Signals.EventEmitter {
             menu._setOpenedSubMenu = this._setOpenedSubmenu.bind(this);
 
         // connect handlers
-        Util.connectSmart(menu, 'open-state-changed', this, this._onMenuOpened);
+        Util.connectSmart(menu, 'open-state-changed', this, this._onMenuOpenStateChanged);
         Util.connectSmart(menu, 'destroy', this, this.destroy);
 
         Util.connectSmart(this._rootItem, 'child-added', this, this._onRootChildAdded);
@@ -946,7 +946,7 @@ export class Client extends Signals.EventEmitter {
         MenuUtils.moveItemInMenu(this._rootMenu, dbusItem, newpos);
     }
 
-    _onMenuOpened(menu, state) {
+    _onMenuOpenStateChanged(menu, state) {
         if (!this._rootItem)
             return;
 
