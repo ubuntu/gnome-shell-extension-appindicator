@@ -24,10 +24,8 @@ import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
 
 import {BaseStatusIcon} from './indicatorStatusIcon.js';
+import {BUS_ADDRESS_REGEX} from './dbusUtils.js';
 
-export const BUS_ADDRESS_REGEX = /([a-zA-Z0-9._-]+\.[a-zA-Z0-9.-]+)|(:[0-9]+\.[0-9]+)$/;
-
-Gio._promisify(Gio.DBusConnection.prototype, 'call');
 Gio._promisify(Gio._LocalFilePrototype, 'read');
 Gio._promisify(Gio.InputStream.prototype, 'read_bytes_async');
 
@@ -38,101 +36,6 @@ export function indicatorId(service, busName, objectPath) {
     return `${busName}@${objectPath}`;
 }
 
-export async function getUniqueBusName(bus, name, cancellable) {
-    if (name[0] === ':')
-        return name;
-
-    if (!bus)
-        bus = Gio.DBus.session;
-
-    const variantName = new GLib.Variant('(s)', [name]);
-    const [unique] = (await bus.call('org.freedesktop.DBus', '/', 'org.freedesktop.DBus',
-        'GetNameOwner', variantName, new GLib.VariantType('(s)'),
-        Gio.DBusCallFlags.NONE, -1, cancellable)).deep_unpack();
-
-    return unique;
-}
-
-export async function getBusNames(bus, cancellable) {
-    if (!bus)
-        bus = Gio.DBus.session;
-
-    const [names] = (await bus.call('org.freedesktop.DBus', '/', 'org.freedesktop.DBus',
-        'ListNames', null, new GLib.VariantType('(as)'), Gio.DBusCallFlags.NONE,
-        -1, cancellable)).deep_unpack();
-
-    const uniqueNames = new Map();
-    const requests = names.map(name => getUniqueBusName(bus, name, cancellable));
-    const results = await Promise.allSettled(requests);
-
-    for (let i = 0; i < results.length; i++) {
-        const result = results[i];
-        if (result.status === 'fulfilled') {
-            let namesForBus = uniqueNames.get(result.value);
-            if (!namesForBus) {
-                namesForBus = new Set();
-                uniqueNames.set(result.value, namesForBus);
-            }
-            namesForBus.add(result.value !== names[i] ? names[i] : null);
-        } else if (!result.reason.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
-            Logger.debug(`Impossible to get the unique name of ${names[i]}: ${result.reason}`);
-        }
-    }
-
-    return uniqueNames;
-}
-
-async function getProcessId(connectionName, cancellable = null, bus = Gio.DBus.session) {
-    const res = await bus.call('org.freedesktop.DBus', '/',
-        'org.freedesktop.DBus', 'GetConnectionUnixProcessID',
-        new GLib.Variant('(s)', [connectionName]),
-        new GLib.VariantType('(u)'),
-        Gio.DBusCallFlags.NONE,
-        -1,
-        cancellable);
-    const [pid] = res.deepUnpack();
-    return pid;
-}
-
-export async function getProcessName(connectionName, cancellable = null,
-    priority = GLib.PRIORITY_DEFAULT, bus = Gio.DBus.session) {
-    const pid = await getProcessId(connectionName, cancellable, bus);
-    const cmdFile = Gio.File.new_for_path(`/proc/${pid}/cmdline`);
-    const inputStream = await cmdFile.read_async(priority, cancellable);
-    const bytes = await inputStream.read_bytes_async(2048, priority, cancellable);
-    const textDecoder = new TextDecoder();
-    return textDecoder.decode(bytes.toArray().map(v => !v ? 0x20 : v));
-}
-
-export async function* introspectBusObject(bus, name, cancellable,
-    interfaces = undefined, path = undefined) {
-    if (!path)
-        path = '/';
-
-    const [introspection] = (await bus.call(name, path, 'org.freedesktop.DBus.Introspectable',
-        'Introspect', null, new GLib.VariantType('(s)'), Gio.DBusCallFlags.NONE,
-        5000, cancellable)).deep_unpack();
-
-    const nodeInfo = Gio.DBusNodeInfo.new_for_xml(introspection);
-
-    if (!interfaces || dbusNodeImplementsInterfaces(nodeInfo, interfaces))
-        yield {nodeInfo, path};
-
-    if (path === '/')
-        path = '';
-
-    for (const subNodeInfo of nodeInfo.nodes) {
-        const subPath = `${path}/${subNodeInfo.path}`;
-        yield* introspectBusObject(bus, name, cancellable, interfaces, subPath);
-    }
-}
-
-function dbusNodeImplementsInterfaces(nodeInfo, interfaces) {
-    if (!(nodeInfo instanceof Gio.DBusNodeInfo) || !Array.isArray(interfaces))
-        return false;
-
-    return interfaces.some(iface => nodeInfo.lookup_interface(iface));
-}
 
 export class NameWatcher extends Signals.EventEmitter {
     constructor(name) {

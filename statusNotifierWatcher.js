@@ -22,6 +22,7 @@ import * as IndicatorStatusIcon from './indicatorStatusIcon.js';
 import * as Interfaces from './interfaces.js';
 import * as PromiseUtils from './promiseUtils.js';
 import * as Util from './util.js';
+import * as DBusUtils from './dbusUtils.js';
 import * as DBusMenu from './dbusMenu.js';
 
 import {DBusProxy} from './dbusProxy.js';
@@ -148,9 +149,9 @@ export class StatusNotifierWatcher {
         // priority idle, so that it won't affect startup.
         const cancellable = this._cancellable;
         const bus = Gio.DBus.session;
-        const uniqueNames = await Util.getBusNames(bus, cancellable);
+        const uniqueNames = await DBusUtils.getBusNames(bus, cancellable);
         const introspectName = async name => {
-            const nodes = Util.introspectBusObject(bus, name, cancellable,
+            const nodes = DBusUtils.introspectBusObject(bus, name, cancellable,
                 ['org.kde.StatusNotifierItem']);
             const services = [...uniqueNames.get(name)];
 
@@ -181,9 +182,9 @@ export class StatusNotifierWatcher {
         if (service.charAt(0) === '/') { // looks like a path
             busName = invocation.get_sender();
             objPath = service;
-        } else if (service.match(Util.BUS_ADDRESS_REGEX)) {
+        } else if (service.match(DBusUtils.BUS_ADDRESS_REGEX)) {
             try {
-                busName = await Util.getUniqueBusName(invocation.get_connection(),
+                busName = await DBusUtils.getUniqueBusName(invocation.get_connection(),
                     service, this._cancellable);
             } catch (e) {
                 logError(e);

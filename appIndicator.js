@@ -24,6 +24,7 @@ import St from 'gi://St';
 import * as Params from 'resource:///org/gnome/shell/misc/params.js';
 import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
 
+import * as DBusUtils from './dbusUtils.js';
 import * as IconCache from './iconCache.js';
 import * as Util from './util.js';
 import * as Interfaces from './interfaces.js';
@@ -460,7 +461,7 @@ export class AppIndicator extends Signals.EventEmitter {
         }
 
         try {
-            this._commandLine = await Util.getProcessName(this.busName,
+            this._commandLine = await DBusUtils.getProcessName(this.busName,
                 cancellable, GLib.PRIORITY_LOW);
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
