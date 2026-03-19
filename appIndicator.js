@@ -218,6 +218,8 @@ class AppIndicatorProxy extends DBusProxy {
             return;
         }
 
+        const cancellable = this._cancellable;
+
         if (!params.get_type().equal(AppIndicatorProxy.TUPLE_TYPE)) {
             // If the property includes arguments, we can just queue the signal emission
             const [value] = params.unpack();
@@ -238,7 +240,7 @@ class AppIndicatorProxy extends DBusProxy {
             return;
 
         this._signalsAccumulator = new PromiseUtils.TimeoutPromise(
-            MAX_UPDATE_FREQUENCY, GLib.PRIORITY_DEFAULT_IDLE, this._cancellable);
+            MAX_UPDATE_FREQUENCY, GLib.PRIORITY_DEFAULT_IDLE, cancellable);
         try {
             await this._signalsAccumulator;
             const refreshPropertiesPromises =
