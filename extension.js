@@ -85,6 +85,6 @@ export default class AppIndicatorExtension extends Extension.Extension {
             return;
 
         this._statusNotifierWatcher = new StatusNotifierWatcher.StatusNotifierWatcher(
-            this._watchDog);
+            this, this._watchDog);
     }
 }

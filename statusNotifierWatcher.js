@@ -27,6 +27,10 @@ import * as DBusMenu from './dbusMenu.js';
 
 import {DBusProxy} from './dbusProxy.js';
 
+Gio._promisify(Gio.Subprocess.prototype, 'wait_async');
+Gio._promisify(Gio.Subprocess.prototype, 'communicate_async');
+Gio._promisify(Gio.DataInputStream.prototype, 'read_line_async', 'read_line_finish_utf8');
+
 
 // TODO: replace with org.freedesktop and /org/freedesktop when approved
 const KDE_PREFIX = 'org.kde';
@@ -40,7 +44,7 @@ const DEFAULT_ITEM_OBJECT_PATH = '/StatusNotifierItem';
  * The StatusNotifierWatcher class implements the StatusNotifierWatcher dbus object
  */
 export class StatusNotifierWatcher {
-    constructor(watchDog) {
+    constructor(extension, watchDog) {
         this._watchDog = watchDog;
         this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(Interfaces.StatusNotifierWatcher, this);
         try {
@@ -63,7 +67,7 @@ export class StatusNotifierWatcher {
             Util.Logger.warn(`Failed to notify registered host ${WATCHER_OBJECT}`);
         }
 
-        this._seekStatusNotifierItems().catch(e => {
+        this._seekStatusNotifierItems(extension).catch(e => {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 logError(e, 'Looking for StatusNotifierItem\'s');
         });
@@ -141,23 +145,38 @@ export class StatusNotifierWatcher {
         await this._registerItem(service, busName, objPath);
     }
 
-    async _seekStatusNotifierItems() {
+    async _seekStatusNotifierItems(extension) {
         // Some indicators (*coff*, dropbox, *coff*) do not re-register again
         // when the plugin is enabled/disabled, thus we need to manually look
         // for the objects in the session bus that implements the
         // StatusNotifierItem interface... However let's do it after a low
-        // priority idle, so that it won't affect startup.
+        // priority timeout, and using an external process so that it won't
+        // affect startup or memory (as it seems that gjs is not great at
+        // handling the memory of the bus analyzer async code).
         const cancellable = this._cancellable;
-        const bus = Gio.DBus.session;
-        const uniqueNames = await DBusUtils.getBusNames(bus, cancellable);
-        const introspectName = async name => {
-            const nodes = DBusUtils.introspectBusObject(bus, name, cancellable,
-                ['org.kde.StatusNotifierItem']);
-            const services = [...uniqueNames.get(name)];
+        await new PromiseUtils.TimeoutSecondsPromise(2, GLib.PRIORITY_LOW, cancellable);
+        const busAnalyzer = GLib.build_filenamev([
+            extension.path, 'tools', 'busAnalyzer.js',
+        ]);
 
-            for await (const node of nodes) {
-                const {path} = node;
-                const ids = services.map(s => Util.indicatorId(s, name, path));
+        const subProcess = Gio.Subprocess.new(['gjs', '-m', busAnalyzer],
+            Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
+
+        const stdOut = subProcess.get_stdout_pipe();
+        const dataInputStream = new Gio.DataInputStream({base_stream: stdOut});
+        const textDecoder = new TextDecoder();
+
+        while (true) {
+            // eslint-disable-next-line no-await-in-loop
+            const [line] = await dataInputStream.read_line_async(GLib.PRIORITY_DEFAULT,
+                cancellable);
+            if (!line)
+                break;
+
+            try {
+                const {services, name, path} = JSON.parse(textDecoder.decode(line));
+                const ids = [null, ...services].map(s => Util.indicatorId(s, name, path));
+
                 if (ids.every(id => !this._items.has(id))) {
                     const service = services.find(s =>
                         s && s.startsWith('org.kde.StatusNotifierItem')) || services[0];
@@ -165,11 +184,24 @@ export class StatusNotifierWatcher {
                         path === DEFAULT_ITEM_OBJECT_PATH ? service : null,
                         name, path);
                     Util.Logger.warn(`Using Brute-force mode for StatusNotifierItem ${id}`);
-                    this._registerItem(service, name, path);
+                    // eslint-disable-next-line no-await-in-loop
+                    await this._registerItem(service, name, path);
                 }
+            } catch (e) {
+                logError(e);
             }
-        };
-        await Promise.allSettled([...uniqueNames.keys()].map(n => introspectName(n)));
+        }
+
+        const [, stdErr] = await subProcess.communicate_async(null, cancellable);
+        await subProcess.wait_async(cancellable);
+
+        if (subProcess.get_exit_status() !== 0) {
+            const errorLines = textDecoder.decode(stdErr.toArray()).split('\n');
+            const error = new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.FAILED,
+                errorLines[0]);
+            error.stack = `${errorLines.slice(3).join('\n')}${error.stack}`;
+            throw error;
+        }
     }
 
     async RegisterStatusNotifierItemAsync(params, invocation) {

@@ -58,7 +58,8 @@ export async function getBusNames(bus, cancellable) {
                 namesForBus = new Set();
                 uniqueNames.set(result.value, namesForBus);
             }
-            namesForBus.add(result.value !== names[i] ? names[i] : null);
+            if (result.value !== names[i])
+                namesForBus.add(names[i]);
         } else if (!result.reason.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
             Logger.debug(`Impossible to get the unique name of ${names[i]}: ${result.reason}`);
         }
