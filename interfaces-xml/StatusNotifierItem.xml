@@ -25,6 +25,8 @@
         <annotation name="org.qtproject.QtDBus.QtTypeName" value="KDbusImageVector"/>
     </property>
 
+    <!-- <property name="IconAccessibleDesc" type="s" access="read"/> -->
+
     <property name="OverlayIconName" type="s" access="read"/>
 
     <property name="OverlayIconPixmap" type="a(iiay)" access="read">
@@ -34,6 +36,8 @@
 
     <!-- Requesting attention icon -->
     <property name="AttentionIconName" type="s" access="read"/>
+
+    <!-- <property name="AttentionAccessibleDesc" type="s" access="read"/> -->
 
     <!--same definition as image-->
     <property name="AttentionIconPixmap" type="a(iiay)" access="read">

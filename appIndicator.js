@@ -568,9 +568,9 @@ export class AppIndicator extends Signals.EventEmitter {
 
     get accessibleName() {
         const accessibleDesc = this.status === SNIStatus.NEEDS_ATTENTION
-            ? this._proxy.AccessibleDesc : this._proxy.IconAccessibleDesc;
+            ? this._proxy.AttentionAccessibleDesc : this._proxy.IconAccessibleDesc;
 
-        return accessibleDesc || this.title;
+        return (accessibleDesc || undefined) ?? this.title;
     }
 
     get menuPath() {
