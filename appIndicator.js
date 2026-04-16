@@ -786,7 +786,7 @@ export class AppIndicator extends Signals.EventEmitter {
 
             if (e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD))
                 this._hasProvideXdgActivationToken = false;
-            else
+            else if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 Util.Logger.warn(`${this.id}, failed to provide activation token: ${e.message}`);
         }
     }
