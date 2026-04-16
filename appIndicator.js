@@ -19,6 +19,7 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import GdkPixbuf from 'gi://GdkPixbuf';
 import Gio from 'gi://Gio';
+import Shell from 'gi://Shell';
 import St from 'gi://St';
 
 import * as Params from 'resource:///org/gnome/shell/misc/params.js';
@@ -128,6 +129,9 @@ class AppIndicatorProxy extends DBusProxy {
     }
 
     destroy() {
+        delete this._appInfo;
+        delete this._fakeAppInfo;
+
         const cachedProperties = this.get_cached_property_names();
         if (cachedProperties) {
             cachedProperties.forEach(propertyName =>
@@ -423,6 +427,12 @@ export class AppIndicator extends Signals.EventEmitter {
         Util.connectSmart(this._proxy, 'g-properties-changed', this, this._onPropertiesChanged);
         Util.connectSmart(this._proxy, 'notify::g-name-owner', this, this._nameOwnerChanged);
 
+        const appSystem = global.get_app_system();
+        Util.connectSmart(appSystem, 'installed-changed', this,
+            () => this._updateAppInfo(this._cancellable));
+        Util.connectSmart(appSystem, 'app-state-changed', this,
+            () => this._updateAppInfo(this._cancellable));
+
         if (this.uniqueId === service) {
             this._nameWatcher = new Util.NameWatcher(service);
             Util.connectSmart(this._nameWatcher, 'changed', this, this._nameOwnerChanged);
@@ -462,14 +472,43 @@ export class AppIndicator extends Signals.EventEmitter {
             }
         }
 
+        await this._updateAppInfo(cancellable);
+    }
+
+    async _updateAppInfo(cancellable) {
+        delete this._fakeAppInfo;
+
+        if (!this.hasNameOwner) {
+            delete this._appInfo;
+            return;
+        } else if (this._appInfo) {
+            return;
+        }
+
+        let commandLine;
         try {
-            this._commandLine = await DBusUtils.getProcessName(this.busName,
-                cancellable, GLib.PRIORITY_LOW);
-        } catch (e) {
-            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
-                Util.Logger.debug(
-                    `${this.uniqueId}, failed getting command line: ${e.message}`);
+            const pid = await DBusUtils.getProcessId(this.busName, cancellable);
+            this._appInfo =
+                Shell.WindowTracker.get_default().get_app_from_pid(pid)?.appInfo;
+
+            if (!this._appInfo) {
+                commandLine = await DBusUtils.getProcessNameForPid(pid,
+                    cancellable, GLib.PRIORITY_LOW);
             }
+        } catch (e) {
+            if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                return;
+
+            Util.Logger.debug(
+                `${this.uniqueId}, failed getting command line: ${e.message}\n${e.stack}`);
+        }
+
+        if (this._appInfo) {
+            this.emit('accessible-name');
+        } else {
+            this._fakeAppInfo = Gio.AppInfo.create_from_commandline(
+                commandLine ?? 'true', this.title ?? this.id,
+                Gio.AppInfoCreateFlags.SUPPORTS_STARTUP_NOTIFICATION);
         }
     }
 
@@ -570,7 +609,8 @@ export class AppIndicator extends Signals.EventEmitter {
         const accessibleDesc = this.status === SNIStatus.NEEDS_ATTENTION
             ? this._proxy.AttentionAccessibleDesc : this._proxy.IconAccessibleDesc;
 
-        return (accessibleDesc || undefined) ?? this.title;
+        return (accessibleDesc || undefined) ??
+            this._appInfo?.get_display_name() ?? this.title;
     }
 
     get menuPath() {
@@ -766,10 +806,8 @@ export class AppIndicator extends Signals.EventEmitter {
 
     _getActivationToken(timestamp) {
         const launchContext = global.create_app_launch_context(timestamp, -1);
-        const fakeAppInfo = Gio.AppInfo.create_from_commandline(
-            this._commandLine || 'true', this.id,
-            Gio.AppInfoCreateFlags.SUPPORTS_STARTUP_NOTIFICATION);
-        return [launchContext, launchContext.get_startup_notify_id(fakeAppInfo, [])];
+        return [launchContext, launchContext.get_startup_notify_id(
+            this._appInfo ?? this._fakeAppInfo, [])];
     }
 
     async provideActivationToken(timestamp) {

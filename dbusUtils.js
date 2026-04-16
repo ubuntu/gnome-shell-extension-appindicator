@@ -68,7 +68,7 @@ export async function getBusNames(bus, cancellable) {
     return uniqueNames;
 }
 
-async function getProcessId(connectionName, cancellable = null, bus = Gio.DBus.session) {
+export async function getProcessId(connectionName, cancellable = null, bus = Gio.DBus.session) {
     const res = await bus.call('org.freedesktop.DBus', '/',
         'org.freedesktop.DBus', 'GetConnectionUnixProcessID',
         new GLib.Variant('(s)', [connectionName]),
@@ -80,9 +80,8 @@ async function getProcessId(connectionName, cancellable = null, bus = Gio.DBus.s
     return pid;
 }
 
-export async function getProcessName(connectionName, cancellable = null,
-    priority = GLib.PRIORITY_DEFAULT, bus = Gio.DBus.session) {
-    const pid = await getProcessId(connectionName, cancellable, bus);
+export async function getProcessNameForPid(pid, cancellable = null,
+    priority = GLib.PRIORITY_DEFAULT) {
     const cmdFile = Gio.File.new_for_path(`/proc/${pid}/cmdline`);
     const inputStream = await cmdFile.read_async(priority, cancellable);
     const bytes = await inputStream.read_bytes_async(2048, priority, cancellable);
