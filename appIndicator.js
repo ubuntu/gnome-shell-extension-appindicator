@@ -609,7 +609,7 @@ export class AppIndicator extends Signals.EventEmitter {
         const accessibleDesc = this.status === SNIStatus.NEEDS_ATTENTION
             ? this._proxy.AttentionAccessibleDesc : this._proxy.IconAccessibleDesc;
 
-        return (accessibleDesc || undefined) ??
+        return (accessibleDesc || undefined) ?? this.label ??
             this._appInfo?.get_display_name() ?? this.title;
     }
 
@@ -736,8 +736,10 @@ export class AppIndicator extends Signals.EventEmitter {
             }
 
             // the label will be handled elsewhere
-            if (property === 'XAyatanaLabel')
+            if (property === 'XAyatanaLabel') {
                 signalsToEmit.add('label');
+                signalsToEmit.add('accessible-name');
+            }
 
             if (property === 'Menu') {
                 if (!checkIfReadyChanged() && this.isReady)
