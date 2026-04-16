@@ -174,6 +174,15 @@ class AppIndicatorProxy extends DBusProxy {
                     return v ? v.deep_unpack() : null;
                 },
             });
+
+            const value = this.get_cached_property(name);
+            if (value) {
+                this._queuePropertyUpdate(name, value,
+                    {skipEqualityCheck: true}).catch(e => {
+                    if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                        logError(e);
+                });
+            }
         }
 
         this._propertiesList.push(name);
