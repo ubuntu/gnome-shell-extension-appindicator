@@ -33,7 +33,8 @@ export default class AppIndicatorExtension extends Extension.Extension {
         this._isEnabled = false;
         this._statusNotifierWatcher = null;
         this._watchDog = new Util.NameWatcher(StatusNotifierWatcher.WATCHER_BUS_NAME);
-        this._watchDog.connect('vanished', () => this._maybeEnableAfterNameAvailable());
+        this._watchDogId = this._watchDog.connect('vanished',
+            () => this._maybeEnableAfterNameAvailable());
 
         // HACK: we want to leave the watchdog alive when disabling the extension,
         // but if we are being reloaded, we destroy it since it could be considered
@@ -44,6 +45,7 @@ export default class AppIndicatorExtension extends Extension.Extension {
 
         global['--appindicator-extension-on-reload'] = () => {
             Logger.debug('Reload detected, destroying old watchdog');
+            this._watchDog.disconnect(this._watchDogId);
             this._watchDog.destroy();
             this._watchDog = null;
         };
