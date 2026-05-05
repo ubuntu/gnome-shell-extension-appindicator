@@ -207,8 +207,7 @@ class AppIndicatorProxy extends DBusProxy {
                         skipEqualityCheck: p.endsWith('Pixmap'),
                     });
                 } catch (e) {
-                    if (!AppIndicatorProxy.OPTIONAL_PROPERTIES.includes(p) ||
-                        !(e instanceof Gio.DBusError))
+                    if (!AppIndicatorProxy.OPTIONAL_PROPERTIES.includes(p))
                         logError(e);
                 }
             }));
