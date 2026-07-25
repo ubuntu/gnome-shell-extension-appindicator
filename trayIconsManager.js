@@ -86,12 +86,11 @@ export class TrayIconsManager extends Signals.EventEmitter {
     }
 
     onTrayIconRemoved(_tray, icon) {
-        try {
-            const [trayIcon] = IndicatorStatusIcon.getTrayIcons().filter(i => i.icon === icon);
+        const [trayIcon] = IndicatorStatusIcon.getTrayIcons().filter(i => i.icon === icon);
+        if (trayIcon)
             trayIcon.destroy();
-        } catch (e) {
-            Util.Logger.warning(`No icon container found for ${icon.title} (${icon})`);
-        }
+        else
+            Util.Logger.warn(`No icon container found for ${icon.title} (${icon})`);
     }
 
     destroy() {

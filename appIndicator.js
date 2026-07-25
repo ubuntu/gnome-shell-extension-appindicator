@@ -226,7 +226,7 @@ class AppIndicatorProxy extends DBusProxy {
         if (!property)
             return;
 
-        if (this.status === SNIStatus.PASSIVE &&
+        if (this.Status === SNIStatus.PASSIVE &&
             ![...AppIndicator.NEEDED_PROPERTIES, 'Status'].includes(property)) {
             this._accumulatedProperties.add(property);
             return;
