@@ -701,7 +701,8 @@ export class AppIndicator extends Signals.EventEmitter {
                 e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_OBJECT) ||
                 e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_INTERFACE) ||
                 e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD) ||
-                e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_PROPERTY)) {
+                e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_PROPERTY) || 
+		e.matches(Gio.DBusError, Gio.DBusError.FAILED)) {
                 Util.Logger.warn(`${this.uniqueId}: not on bus anymore, removing it`);
                 this.destroy();
                 return;
