@@ -25,6 +25,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
 
 import * as DBusInterfaces from './interfaces.js';
+import * as MenuUtils from './menuUtils.js';
 import * as PromiseUtils from './promiseUtils.js';
 import * as Util from './util.js';
 import {DBusProxy} from './dbusProxy.js';
@@ -814,33 +815,6 @@ const MenuItemFactory = {
 
         // now destroy our old self
         this.destroy();
-    },
-};
-
-/**
- * Utility functions not necessarily belonging into the item factory
- */
-const MenuUtils = {
-    moveItemInMenu(menu, dbusItem, newpos) {
-        // HACK: we're really getting into the internals of the PopupMenu implementation
-
-        // First, find our wrapper. Children tend to lie. We do not trust the old positioning.
-        const family = menu._getMenuItems();
-        for (let i = 0; i < family.length; ++i) {
-            if (family[i]._dbusItem === dbusItem) {
-                // now, remove it
-                menu.box.remove_child(family[i]);
-
-                // and add it again somewhere else
-                if (newpos < family.length && family[newpos] !== family[i])
-                    menu.box.insert_child_below(family[i], family[newpos]);
-                else
-                    menu.box.add(family[i]);
-
-                // skip the rest
-                return;
-            }
-        }
     },
 };
 
