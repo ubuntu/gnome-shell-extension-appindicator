@@ -33,7 +33,7 @@ export function moveItemInMenu(menu, dbusItem, newpos) {
             if (newpos < family.length && family[newpos] !== family[i])
                 menu.box.insert_child_below(family[i], family[newpos]);
             else
-                menu.box.add(family[i]);
+                menu.box.add_child(family[i]);
 
             // skip the rest
             return;
