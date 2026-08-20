@@ -25,6 +25,7 @@ jobs:
         sudo apt install -y \
           jq \
           gettext \
+          gjs \
           meson \
           zip
 

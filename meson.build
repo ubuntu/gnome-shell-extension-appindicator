@@ -55,6 +55,14 @@ subdir('schemas')
 subdir('locale')
 
 
+gjs = find_program('gjs', required: false)
+if gjs.found()
+    test('menu-utils',
+        gjs,
+        args: ['-m', files('tests/testMenuUtils.js')],
+        protocol: 'tap')
+endif
+
 eslint = find_program('eslint', required: false)
 if eslint.found()
     test('eslint',
@@ -86,6 +94,7 @@ summary({
     'Extension UUID': uuid,
     'Gettext domain': gettext_domain,
     'ESLint': eslint.found(),
+    'GJS': gjs.found(),
     },
     section: 'Configuration')
 
