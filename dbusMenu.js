@@ -793,6 +793,11 @@ const MenuItemFactory = {
     },
 
     _replaceSelf(newSelf) {
+        // Late signal for an item that was already replaced/removed by a
+        // previous _replaceSelf() call -> nothing left to do.
+        if (!this._parent)
+            return;
+
         // create our new self if needed
         if (!newSelf)
             newSelf = MenuItemFactory.createItem(this._dbusClient, this._dbusItem);
@@ -805,8 +810,13 @@ const MenuItemFactory = {
                 pos = i;
         }
 
+        // Item was already detached by a concurrent layout update -> nothing
+        // to do. This used to `throw`, but since GJS doesn't stop signal
+        // dispatch on an unhandled exception, and the dbus client can keep
+        // emitting updates for this same stale reference, that re-triggered
+        // indefinitely and froze the shell.
         if (pos < 0)
-            throw new Error("DBusMenu: can't replace non existing menu item");
+            return;
 
 
         // add our new self while we're still alive
@@ -835,7 +845,7 @@ const MenuUtils = {
                 if (newpos < family.length && family[newpos] !== family[i])
                     menu.box.insert_child_below(family[i], family[newpos]);
                 else
-                    menu.box.add(family[i]);
+                    menu.box.add_child(family[i]);
 
                 // skip the rest
                 return;
