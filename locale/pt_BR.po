@@ -1,12 +1,12 @@
-# Brazilian Portuguese translations for TopIcons-Plus package
-# Traduções em português brasileiro para o pacote TopIcons-Plus.
-# Copyright (C) 2019 THE TopIcons-Plus'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the TopIcons-Plus package.
+# Brazilian Portuguese translation for AppIndicatorExtension.
+# Traduções em português brasileiro para o pacote AppIndicatorExtension.
+# Copyright (C) 2019 AppIndicatorExtension translators
+# This file is distributed under the same license as the AppIndicatorExtension package.
 # Rafael Fontenelle <rafaelff@gnome.org>, 2019.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: TopIcons-Plus\n"
+"Project-Id-Version: AppIndicatorExtension\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-09-27 20:43+0200\n"
 "PO-Revision-Date: 2019-04-17 23:02-0300\n"

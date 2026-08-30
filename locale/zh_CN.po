@@ -1,11 +1,12 @@
-# Chinese (China) translation for TopIcons-Plus.
-# Copyright (C) 2017-2017 TopIcons-Plus's COPYRIGHT HOLDER
-# This file is distributed under the same license as the TopIcons-Plus package.
+# Chinese (China) translation for AppIndicatorExtension.
+# Copyright (C) 2017-2023 AppIndicatorExtension translators
+# This file is distributed under the same license as the AppIndicatorExtension package.
 # Dingzhong Chen <wsxy162@gmail.com>, 2017.
+# Dee.H.Y <dongfengweixiao@hotmail.com>, 2023.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: TopIcons-Plus master\n"
+"Project-Id-Version: AppIndicatorExtension\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-07 02:36+0100\n"
 "PO-Revision-Date: 2023-07-08 15:34+0800\n"

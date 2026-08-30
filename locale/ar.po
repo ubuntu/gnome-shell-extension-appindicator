@@ -1,7 +1,7 @@
 # Arabic translation for AppIndicatorExtension.
-# Copyright (C) 2025 AppIndicatorExtension's COPYRIGHT HOLDER
+# Copyright (C) 2025 AppIndicatorExtension translators
 # This file is distributed under the same license as the AppIndicatorExtension package.
-# Ahmed Najmawi <iramosu@protonmail.com>,  2025.
+# Ahmed Najmawi <iramosu@protonmail.com>, 2025.
 #
 msgid ""
 msgstr ""
