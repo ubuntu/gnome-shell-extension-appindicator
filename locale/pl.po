@@ -1,7 +1,8 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# Polish translation for AppIndicatorExtension.
+# Copyright (C) 2022-2023 AppIndicatorExtension translators
 # This file is distributed under the same license as the AppIndicatorExtension package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# HydeFromT70s, 2022.
+# Maciej Karpinski <kontakt@karpinski.tech>, 2023.
 #
 msgid ""
 msgstr ""
