@@ -3,7 +3,6 @@
 # This file is distributed under the same license as the AppIndicatorExtension package.
 # Ahmed Najmawi <iramosu@protonmail.com>,  2025.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: AppIndicatorExtension\n"

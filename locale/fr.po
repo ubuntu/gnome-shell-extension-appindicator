@@ -1,7 +1,8 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# French translation for AppIndicatorExtension.
+# Copyright (C) 2017-2022 AppIndicatorExtension translators
+# This file is distributed under the same license as the AppIndicatorExtension package.
+# Jean-Christophe Baptiste <jc.baptiste@sysdream.com>, 2017.
+# roxfr <roxfr@outlook.fr>, 2022.
 #
 msgid ""
 msgstr ""

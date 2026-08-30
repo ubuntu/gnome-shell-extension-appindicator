@@ -1,7 +1,7 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# German translation for AppIndicatorExtension.
+# Copyright (C) 2017 AppIndicatorExtension translators
+# This file is distributed under the same license as the AppIndicatorExtension package.
+# Jonatan Hatakeyama Zeidler <jonatan_zeidler@gmx.de>, 2017.
 #
 msgid ""
 msgstr ""

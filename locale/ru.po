@@ -1,9 +1,10 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# Russian translation for AppIndicatorExtension.
+# Copyright (C) 2017-2025 AppIndicatorExtension translators
 # This file is distributed under the same license as the AppIndicatorExtension package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Alex Gluck <alexgluck@bk.ru>, 2017.
+# Aleksandr Melman <Alexmelman88@gmail.com>, 2022-2023.
+# Fraxinus Acer, 2025.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: AppIndicatorExtension\n"

@@ -1,7 +1,8 @@
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the PACKAGE package.
-#
+# Dutch translation for AppIndicatorExtension.
+# Copyright (C) 2019 AppIndicatorExtension translators
+# This file is distributed under the same license as the AppIndicatorExtension package.
 # Heimen Stoffels <vistausss@outlook.com>, 2019.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
