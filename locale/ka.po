@@ -1,9 +1,9 @@
 # Georgian translation for AppIndicatorExtension.
-# Copyright (C) 2025 AppIndicatorExtension's authors.
+# Copyright (C) 2025 AppIndicatorExtension translators
 # This file is distributed under the same license as the AppIndicatorExtension package.
 # Ekaterine Papava <papava.e@gtu.ge>, 2025.
+# Temuri Doghonadze <temuri.doghonadze@gmail.com>, 2025.
 #
-
 msgid ""
 msgstr ""
 "Project-Id-Version: AppIndicatorExtension\n"

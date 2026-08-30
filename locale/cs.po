@@ -1,7 +1,8 @@
-# Czech translation of gnome-shell-extension-appindicator.
-# Copyright (C) 2022
+# Czech translation for AppIndicatorExtension.
+# Copyright (C) 2022-2025 AppIndicatorExtension translators
 # This file is distributed under the same license as the AppIndicatorExtension package.
 # Daniel Rusek <mail@asciiwolf.com>, 2022.
+# Ludek Vydra <lvtran@u.k2.cz>, 2024-2025.
 #
 msgid ""
 msgstr ""
