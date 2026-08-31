@@ -1,5 +1,5 @@
 # Italian translation for AppIndicatorExtension.
-# Copyright (C) 2017-2025 AppIndicatorExtension's COPYRIGHT HOLDER
+# Copyright (C) 2017-2025 AppIndicatorExtension translators
 # This file is distributed under the same license as the AppIndicatorExtension package.
 # Jimmy Scionti <jimmy.scionti@gmail.com>, 2017-2025.
 #
