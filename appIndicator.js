@@ -817,8 +817,10 @@ export class AppIndicator extends Signals.EventEmitter {
 
     _getActivationToken(timestamp) {
         const launchContext = global.create_app_launch_context(timestamp, -1);
-        return [launchContext, launchContext.get_startup_notify_id(
-            this._appInfo ?? this._fakeAppInfo, [])];
+        // Prevent busy cursor, null appInfo is supported by mutter 49 and onwards
+        const appInfo = Util.versionCheck(49)
+            ? null : this._appInfo ?? this._fakeAppInfo;
+        return [launchContext, launchContext.get_startup_notify_id(appInfo, [])];
     }
 
     async provideActivationToken(timestamp) {
