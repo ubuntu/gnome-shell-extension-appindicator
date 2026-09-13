@@ -1137,8 +1137,10 @@ class AppIndicatorsIconActor extends St.Icon {
         const id = `${iconType}:${iconName}@${iconSize * iconScaling}:${themePath || ''}`;
         let gicon = this._iconCache.get(id);
 
-        if (gicon)
+        if (gicon) {
+            this._cancelLoadingByType(iconType);
             return gicon;
+        }
 
         const iconData = this._getIconData(iconName, themePath, iconSize, iconScaling);
         const loadingId = iconData.file ? iconData.file.get_path() : id;
