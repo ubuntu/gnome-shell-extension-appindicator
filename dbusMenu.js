@@ -180,7 +180,7 @@ export class DbusMenuItem extends Signals.EventEmitter {
         if (oldPos !== newPos) {
             this._children_ids.splice(oldPos, 1);
             this._children_ids.splice(newPos, 0, childId);
-            this.emit('child-moved', oldPos, newPos, this._client.getItem(childId));
+            this.emit('child-moved', this._client.getItem(childId), oldPos, newPos);
         }
     }
 
@@ -676,11 +676,17 @@ const MenuItemFactory = {
 
     _onActivate(_item, event) {
         const timestamp = event.get_time();
-        if (timestamp && this._dbusClient.indicator)
-            this._dbusClient.indicator.provideActivationToken(timestamp);
+        const handleEvent = () =>
+            this._dbusItem.handleEvent('clicked', GLib.Variant.new('i', 0),
+                timestamp).catch(logError);
 
-        this._dbusItem.handleEvent('clicked', GLib.Variant.new('i', 0),
-            timestamp).catch(logError);
+        if (timestamp && this._dbusClient.indicator) {
+            this._dbusClient.indicator.provideActivationToken(
+                timestamp).catch(logError).finally(handleEvent);
+            return;
+        }
+
+        handleEvent();
     },
 
     _onPropertyChanged(dbusItem, prop, _value) {
@@ -947,7 +953,7 @@ export class Client extends Signals.EventEmitter {
     }
 
     _onRootChildMoved(dbusItem, child, oldpos, newpos) {
-        MenuUtils.moveItemInMenu(this._rootMenu, dbusItem, newpos);
+        MenuUtils.moveItemInMenu(this._rootMenu, child, newpos);
     }
 
     _onMenuOpenStateChanged(menu, state) {

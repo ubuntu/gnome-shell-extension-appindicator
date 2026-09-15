@@ -66,7 +66,8 @@ const ScrollType = {
             iconFile.copy(newFile, Gio.FileCopyFlags.OVERWRITE, null, null);
 
             indicator.set_icon_theme_path(newFile.get_parent().get_path());
-            indicator.set_icon(newFile.get_basename().split('.').slice(0, -1).join(''));
+            indicator.set_icon_full(newFile.get_basename().split('.').slice(0, -1).join(''),
+                `Random icon ${newName}`);
         };
 
         var menu = new Gtk.Menu();
@@ -186,7 +187,8 @@ const ScrollType = {
         menu.append(item);
 
         item = Gtk.MenuItem.new_with_label('Set Random icon');
-        item.connect('activate', () => indicator.set_icon(getRandomIcon()));
+        item.connect('activate', () => indicator.set_icon_full(getRandomIcon(),
+            'Random icon'));
         menu.append(item);
 
         item = Gtk.MenuItem.new_with_label('Set Random custom theme icon');
@@ -263,8 +265,8 @@ const ScrollType = {
         var indicator = AppIndicator.Indicator.new('Hello', 'indicator-test', AppIndicator.IndicatorCategory.APPLICATION_STATUS);
 
         indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE);
-        indicator.set_icon(DEFAULT_ICON);
-        indicator.set_attention_icon(ATTENTION_ICON);
+        indicator.set_icon_full(DEFAULT_ICON, 'This is a default icon');
+        indicator.set_attention_icon_full(ATTENTION_ICON, 'This is an Attention icon');
         indicator.set_menu(menu);
         indicator.set_secondary_activate_target(toggleBrandingItem);
 

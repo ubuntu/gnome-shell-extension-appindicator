@@ -2,11 +2,11 @@ name: Build Dist
 
 on:
   push:
-    pull_request:
     branches:
       - '*'
     tags:
       - '*'
+  pull_request:
 
 jobs:
   distcheck:
@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v5
 
     - name: Setup the container
       uses: canonical/desktop-engineering/gh-actions/common/dpkg-install-speedup@main
@@ -35,7 +35,7 @@ jobs:
         ninja -C _build zip-file
 
     - name: Save extension zip file
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: extension-zip
         path: _build/*.zip
@@ -43,7 +43,7 @@ jobs:
   ego-upload:
     needs: distcheck
     name: Upload to extensions.gnome.org
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     if: startsWith(github.ref, 'refs/tags/')
 
     steps:
@@ -66,6 +66,7 @@ jobs:
 
     - name: Install dependencies
       run: |
+        sudo apt update -y
         sudo apt install -y \
           libjson-glib-dev \
           libgnome-autoar-0-dev \
