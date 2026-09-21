@@ -48,6 +48,7 @@ if git.found() and fs.exists(meson.source_root() / '.git')
         'ls-files', '--', ':(top,glob)**/*.js').stdout().strip().split('\n')
 else
     js_sources = run_command(sh, '-c', ls_cmd.format('*.js')).stdout().strip().split('\n')
+    all_js_sources = run_command('find', '-name', '*.js').stdout().strip().split('\n')
 endif
 
 install_data(metadata,
@@ -79,7 +80,7 @@ if eslint.found()
     test('eslint',
         eslint,
         env: {'ESLINT_USE_FLAT_CONFIG': 'false'},
-        args: [js_sources, '-f', 'tap'],
+        args: ['-f', 'tap'] + files(all_js_sources),
         workdir: meson.source_root(),
         protocol: 'tap')
 endif
