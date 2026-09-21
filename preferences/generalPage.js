@@ -92,6 +92,19 @@ class AppIndicatorGeneralPage extends Adw.PreferencesPage {
             round: true,
         });
 
+        const pinModeSwitch = new Adw.SwitchRow({
+            title: _('Pin Mode'),
+            subtitle: _('Right-click indicators to hide them '
+                + 'into the overflow menu'),
+            active: this._settings.get_boolean(
+                this._settingsKey.PIN_MODE_ENABLED),
+        });
+        pinModeSwitch.connect('notify::active', widget =>
+            this._settings.set_boolean(
+                this._settingsKey.PIN_MODE_ENABLED,
+                widget.get_active()));
+        this.group.add(pinModeSwitch);
+
         const alignmentList = new Gtk.StringList();
         const comboItems = [
             {pos: 'center', label: _('Center')},

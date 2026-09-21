@@ -606,6 +606,26 @@ export class AppIndicator extends Signals.EventEmitter {
         return this._uniqueId;
     }
 
+    /**
+     * Stable, app-specific identifier used for hide/show persistence.
+     *
+     * Electron apps register SNI items with the same generic id
+     * `chrome_status_icon_1`, which makes Bitwarden, Telegram, Pritunl
+     * and similar apps indistinguishable from each other when stored
+     * in GSettings. To work around that we derive the basename of the
+     * executable from `_commandLine` and use it as the identifier.
+     * Non-Electron apps continue to use their SNI id.
+     */
+    get appId() {
+        if (this._commandLine && this.id?.startsWith('chrome_status_icon')) {
+            const exe = this._commandLine.trim().split(/\s+/)[0];
+            const basename = exe.split('/').pop();
+            if (basename)
+                return basename.toLowerCase();
+        }
+        return this.id;
+    }
+
     get status() {
         return this._proxy.Status;
     }
