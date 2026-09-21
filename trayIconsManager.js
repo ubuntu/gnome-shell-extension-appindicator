@@ -90,7 +90,7 @@ export class TrayIconsManager extends Signals.EventEmitter {
             const [trayIcon] = IndicatorStatusIcon.getTrayIcons().filter(i => i.icon === icon);
             trayIcon.destroy();
         } catch (e) {
-            Util.Logger.warning(`No icon container found for ${icon.title} (${icon})`);
+            Util.Logger.warning(`No icon container found for ${icon.title} (${icon}): ${e}`);
         }
     }
 

@@ -106,7 +106,6 @@ function connectSmart4A(src, signal, target, method) {
     return [signalId, srcDestroyId, tgtDestroyId];
 }
 
-// eslint-disable-next-line valid-jsdoc
 /**
  * Connect signals to slots, and remove the connection when either source or
  * target are destroyed
@@ -115,6 +114,9 @@ function connectSmart4A(src, signal, target, method) {
  *      Util.connectSmart(srcOb, 'signal', tgtObj, 'handler')
  * or
  *      Util.connectSmart(srcOb, 'signal', () => { ... })
+ *
+ * @param {...*} args Signal connection arguments.
+ * @returns {number[]} Signal and destroy handler connection identifiers.
  */
 export function connectSmart(...args) {
     if (arguments.length === 4)
@@ -162,10 +164,12 @@ export function destroyDefaultTheme() {
     _defaultTheme = null;
 }
 
-// eslint-disable-next-line valid-jsdoc
 /**
  * Helper function to wait for the system startup to be completed.
  * Adding widgets before the desktop is ready to accept them can result in errors.
+ *
+ * @param {Gio.Cancellable} cancellable Cancellation object for the wait.
+ * @returns {Promise<void>} A promise that resolves after startup completes.
  */
 export async function waitForStartupCompletion(cancellable) {
     if (Main.layoutManager._startingUp)
