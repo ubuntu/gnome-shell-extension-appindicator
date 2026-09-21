@@ -585,7 +585,8 @@ export class AppIndicator extends Signals.EventEmitter {
             } catch (e) {
                 if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
                     Util.Logger.warn(`${this.uniqueId}, Impossible to get basic properties: ${e}`);
-                    this.checkAlive();
+                    this.checkAlive().catch(err =>
+                        Util.Logger.warn(`${this.uniqueId}, Failed to check if alive: ${err}`));
                 }
             }
         }
@@ -662,7 +663,7 @@ export class AppIndicator extends Signals.EventEmitter {
     get hasNameOwner() {
         if (this._nameWatcher && !this._nameWatcher.nameOnBus)
             return false;
-        return !!this._proxy.g_name_owner;
+        return !!this._proxy?.g_name_owner;
     }
 
     get cancellable() {
