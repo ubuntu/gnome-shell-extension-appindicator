@@ -6,6 +6,7 @@ project('gnome-shell-ubuntu-appindicators',
 
 gnome = import ('gnome')
 i18n = import('i18n')
+fs = import('fs')
 
 if get_option('local_install').auto()
     local_install = false
@@ -38,7 +39,17 @@ else
 endif
 
 ls_cmd = ' '.join(['ls', '-1', '@0@'])
-js_sources = run_command(sh, '-c', ls_cmd.format('*.js')).stdout().strip().split('\n')
+
+git = find_program('git', required: false)
+if git.found() and fs.exists(meson.source_root() / '.git')
+    js_sources = run_command(git, '-C', meson.source_root(),
+        'ls-files', '--', ':(top,glob)*.js').stdout().strip().split('\n')
+    all_js_sources = run_command(git, '-C', meson.source_root(),
+        'ls-files', '--', ':(top,glob)**/*.js').stdout().strip().split('\n')
+else
+    js_sources = run_command(sh, '-c', ls_cmd.format('*.js')).stdout().strip().split('\n')
+endif
+
 install_data(metadata,
     files(js_sources),
     install_dir: extension_dir)
@@ -68,7 +79,7 @@ if eslint.found()
     test('eslint',
         eslint,
         env: {'ESLINT_USE_FLAT_CONFIG': 'false'},
-        args: [meson.project_source_root(), '-f', 'tap'],
+        args: [js_sources, '-f', 'tap'],
         workdir: meson.source_root(),
         protocol: 'tap')
 endif
