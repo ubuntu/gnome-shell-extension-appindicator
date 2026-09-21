@@ -64,7 +64,7 @@ export class StatusNotifierWatcher {
         try {
             this._dbusImpl.emit_signal('StatusNotifierHostRegistered', null);
         } catch (e) {
-            Util.Logger.warn(`Failed to notify registered host ${WATCHER_OBJECT}`);
+            Util.Logger.warn(`Failed to notify registered host ${WATCHER_OBJECT}: ${e.message}`);
         }
 
         this._seekStatusNotifierItems(extension).catch(e => {
