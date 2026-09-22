@@ -230,6 +230,13 @@ export class StatusNotifierWatcher {
                 logError(e);
             }
             objPath = service.slice(pathIndex);
+        } else if (service.match(DBusUtils.BUS_SNI_NAME_REGEX)) {
+            // If the app uses a standard SNI name, use it as is, in this case,
+            // as some apps (look at you electron!) rely on the bus name and
+            // match rules to handle the requests.
+            // We still check they are registered in the bus though.
+            busName = service;
+            objPath = DEFAULT_ITEM_OBJECT_PATH;
         } else if (service.match(DBusUtils.BUS_ADDRESS_REGEX)) {
             try {
                 busName = await DBusUtils.getUniqueBusName(invocation.get_connection(),
