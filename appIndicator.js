@@ -235,7 +235,7 @@ class AppIndicatorProxy extends DBusProxy {
             return;
 
         if (this.status === SNIStatus.PASSIVE &&
-            ![...AppIndicator.NEEDED_PROPERTIES, 'Status'].includes(property)) {
+            !AppIndicator.NEEDED_PROPERTIES.includes(property)) {
             this._accumulatedProperties.add(property);
             return;
         }
@@ -426,7 +426,7 @@ class AppIndicatorProxy extends DBusProxy {
  */
 export class AppIndicator extends Signals.EventEmitter {
     static get NEEDED_PROPERTIES() {
-        return ['Id', 'Menu'];
+        return ['Id', 'Menu', 'Status'];
     }
 
     constructor(service, busName, object) {
