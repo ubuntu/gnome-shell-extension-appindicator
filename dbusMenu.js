@@ -911,7 +911,7 @@ export class Client extends Signals.EventEmitter {
         }).catch(e => {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 logError(e);
-        }).finally(() => this._itemsBeingAdded.delete(child));
+        }).finally(() => this._itemsBeingAdded?.delete(child));
     }
 
     _onRootChildRemoved(dbusItem, child) {
@@ -957,6 +957,8 @@ export class Client extends Signals.EventEmitter {
 
     destroy() {
         this.emit('destroy');
+
+        this.cancellable.cancel();
 
         if (this._client)
             this._client.destroy();
