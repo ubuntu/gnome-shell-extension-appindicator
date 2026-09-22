@@ -199,8 +199,16 @@ class AppIndicatorProxy extends DBusProxy {
 
     // The Author of the spec didn't like the PropertiesChanged signal, so he invented his own
     async _refreshOwnProperties(prop) {
+        const props = [prop, `${prop}Name`, `${prop}Pixmap`,
+            `${prop}AccessibleDesc`];
+
+        // NewIconThemePath is not a standard signal, so on icon update we need
+        // to also refresh the theme path.
+        if (prop.endsWith('Icon'))
+            props.unshift('IconThemePath');
+
         await Promise.all(
-            [prop, `${prop}Name`, `${prop}Pixmap`, `${prop}AccessibleDesc`].filter(p =>
+            props.filter(p =>
                 this._propertiesList.includes(p)).map(async p => {
                 try {
                     await this.refreshProperty(p, {

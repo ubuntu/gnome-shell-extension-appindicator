@@ -229,7 +229,7 @@ const ScrollType = {
         item = Gtk.CheckMenuItem.new_with_label('Crazy icons updates');
         item.connect('activate', it => {
             if (it.get_active()) {
-                item._timeoutID = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 16, () => {
+                item._timeoutID = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
                     setRandomIconPath();
                     indicator.set_label(`${new Date().getSeconds()}`, '');
                     return GLib.SOURCE_CONTINUE;
