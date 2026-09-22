@@ -441,11 +441,6 @@ export class AppIndicator extends Signals.EventEmitter {
             () => this._updateAppInfo(this._cancellable));
         Util.connectSmart(appSystem, 'app-state-changed', this,
             () => this._updateAppInfo(this._cancellable));
-
-        if (this.uniqueId === service && Gio.dbus_is_name(service)) {
-            this._nameWatcher = new Util.NameWatcher(service);
-            Util.connectSmart(this._nameWatcher, 'changed', this, this._nameOwnerChanged);
-        }
     }
 
     async _setupProxy() {
@@ -668,8 +663,6 @@ export class AppIndicator extends Signals.EventEmitter {
     }
 
     get hasNameOwner() {
-        if (this._nameWatcher && !this._nameWatcher.nameOnBus)
-            return false;
         return !!this._proxy?.g_name_owner;
     }
 
@@ -792,11 +785,8 @@ export class AppIndicator extends Signals.EventEmitter {
         this._cancellable.cancel();
         this._invalidatedPixmapsIcons.clear();
 
-        if (this._nameWatcher)
-            this._nameWatcher.destroy();
         delete this._cancellable;
         delete this._proxy;
-        delete this._nameWatcher;
     }
 
     _getPixmapProperty(iconType) {
