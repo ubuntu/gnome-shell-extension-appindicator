@@ -454,13 +454,16 @@ export class AppIndicator extends Signals.EventEmitter {
         try {
             await this._proxy.initAsync(cancellable);
             this._checkIfReady();
-            await this._checkNeededProperties();
+            await this._checkNeededProperties(cancellable);
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
                 logError(e, `While initalizing proxy for ${this._uniqueId}`);
                 this.destroy();
             }
         }
+
+        if (cancellable.is_cancelled())
+            return;
 
         // We try to lookup the activate method to see if the app supports it
         try {
@@ -541,12 +544,11 @@ export class AppIndicator extends Signals.EventEmitter {
         return false;
     }
 
-    async _checkNeededProperties() {
+    async _checkNeededProperties(cancellable) {
         if (this.id && this.menuPath)
             return true;
 
         const MAX_RETRIES = 3;
-        const cancellable = this._cancellable;
         for (let checks = 0; checks < MAX_RETRIES; ++checks) {
             this._delayCheck = new PromiseUtils.TimeoutSecondsPromise(1,
                 GLib.PRIORITY_DEFAULT_IDLE, cancellable);
@@ -581,7 +583,7 @@ export class AppIndicator extends Signals.EventEmitter {
             this._checkIfReady();
         } else {
             try {
-                await this._checkNeededProperties();
+                await this._checkNeededProperties(cancellable);
             } catch (e) {
                 if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
                     Util.Logger.warn(`${this.uniqueId}, Impossible to get basic properties: ${e}`);
@@ -591,10 +593,10 @@ export class AppIndicator extends Signals.EventEmitter {
             }
         }
 
-        this._updateAppInfo(cancellable).catch(logError);
-
         if (cancellable.is_cancelled())
             return;
+
+        this._updateAppInfo(cancellable).catch(logError);
 
         this.emit('name-owner-changed');
     }
