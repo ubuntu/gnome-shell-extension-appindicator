@@ -442,7 +442,7 @@ export class AppIndicator extends Signals.EventEmitter {
         Util.connectSmart(appSystem, 'app-state-changed', this,
             () => this._updateAppInfo(this._cancellable));
 
-        if (this.uniqueId === service) {
+        if (this.uniqueId === service && Gio.dbus_is_name(service)) {
             this._nameWatcher = new Util.NameWatcher(service);
             Util.connectSmart(this._nameWatcher, 'changed', this, this._nameOwnerChanged);
         }
