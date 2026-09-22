@@ -122,7 +122,7 @@ export class StatusNotifierWatcher {
             IndicatorStatusIcon.addIconToPanel(statusIcon);
 
             this._dbusImpl.emit_signal('StatusNotifierItemRegistered',
-                GLib.Variant.new('(s)', [indicator.uniqueId]));
+                GLib.Variant.new('(s)', [indicator.service]));
             this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems',
                 GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
         } catch (e) {
@@ -269,12 +269,12 @@ export class StatusNotifierWatcher {
     }
 
     _onIndicatorDestroyed(indicator) {
-        const {uniqueId} = indicator;
+        const {uniqueId, service} = indicator;
         this._items.delete(uniqueId);
 
         try {
             this._dbusImpl.emit_signal('StatusNotifierItemUnregistered',
-                GLib.Variant.new('(s)', [uniqueId]));
+                GLib.Variant.new('(s)', [service]));
             this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems',
                 GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
         } catch (e) {
@@ -294,7 +294,7 @@ export class StatusNotifierWatcher {
     }
 
     get RegisteredStatusNotifierItems() {
-        return Array.from(this._items.values()).map(i => i.uniqueId);
+        return Array.from(this._items.values()).map(i => i.service);
     }
 
     get IsStatusNotifierHostRegistered() {
