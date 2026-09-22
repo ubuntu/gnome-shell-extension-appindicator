@@ -434,6 +434,7 @@ export class AppIndicator extends Signals.EventEmitter {
 
         this.isReady = false;
         this.busName = busName;
+        this._service = service;
         this._uniqueId = Util.indicatorId(service, busName, object);
 
         this._cancellable = new Gio.Cancellable();
@@ -615,6 +616,10 @@ export class AppIndicator extends Signals.EventEmitter {
 
     get uniqueId() {
         return this._uniqueId;
+    }
+
+    get service() {
+        return this._service;
     }
 
     get status() {
