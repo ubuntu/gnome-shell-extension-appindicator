@@ -33,6 +33,7 @@ export default class AppIndicatorExtension extends Extension.Extension {
         this._isEnabled = false;
         this._statusNotifierWatcher = null;
         this._watchDog = new Util.NameWatcher(StatusNotifierWatcher.WATCHER_BUS_NAME);
+        // shexli-ci: EGO-L-001 - the watchdog is deliberately kept alive while we're disabled
         this._watchDogId = this._watchDog.connect('vanished',
             () => this._maybeEnableAfterNameAvailable());
 
