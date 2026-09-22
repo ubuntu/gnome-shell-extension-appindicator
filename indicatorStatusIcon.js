@@ -276,8 +276,9 @@ class IndicatorStatusIcon extends BaseStatusIcon {
             this._updateStatus();
             this._updateLabel();
         });
-        Util.connectSmart(this._indicator, 'accessible-name', this, () =>
-            this.set_accessible_name(this._indicator.accessibleName));
+        Util.connectSmart(this._indicator, 'accessible-name', this, () => {
+            this.accessibleName = this._indicator.accessibleName;
+        });
         Util.connectSmart(this._indicator, 'destroy', this, () => this.destroy());
 
         this.connect('notify::visible', () => this._updateMenu());
