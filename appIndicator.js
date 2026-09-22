@@ -593,6 +593,9 @@ export class AppIndicator extends Signals.EventEmitter {
 
         this._updateAppInfo(cancellable).catch(logError);
 
+        if (cancellable.is_cancelled())
+            return;
+
         this.emit('name-owner-changed');
     }
 
