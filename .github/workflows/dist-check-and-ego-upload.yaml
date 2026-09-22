@@ -41,6 +41,42 @@ jobs:
         name: extension-zip
         path: _build/*.zip
 
+  shexli:
+    name: Run shexli
+    runs-on: ubuntu-latest
+    if: >-
+      (github.event_name == 'pull_request' &&
+       github.base_ref == 'master') ||
+      github.ref == 'refs/heads/master' ||
+      startsWith(github.ref, 'refs/tags/v')
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v5
+
+    - name: Setup the container
+      uses: canonical/desktop-engineering/gh-actions/common/dpkg-install-speedup@main
+
+    - name: Install dependencies
+      run: |
+        sudo apt install -y \
+          jq \
+          gettext \
+          meson \
+          zip
+
+    - name: Build extension
+      run: |
+        meson setup _build
+        ninja -C _build zip-file
+
+    - name: Run shexli
+      uses: 3v1n0/shexli-ci@main
+      with:
+        path: _build/appindicatorsupport@rgcjonas.gmail.com.zip
+        exclude: |
+          schemas/gschemas.compiled
+          tools/busAnalyzer.js
+
   ego-upload:
     needs: distcheck
     name: Upload to extensions.gnome.org
