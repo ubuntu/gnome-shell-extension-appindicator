@@ -821,7 +821,11 @@ export class AppIndicator extends Signals.EventEmitter {
         // Prevent busy cursor, null appInfo is supported by mutter 49 and onwards
         const appInfo = Util.versionCheck(49)
             ? null : this._appInfo ?? this._fakeAppInfo;
-        return [launchContext, launchContext.get_startup_notify_id(appInfo, [])];
+
+        const startupNotifyID = appInfo !== undefined
+            ? launchContext.get_startup_notify_id(appInfo, []) : null;
+
+        return [launchContext, startupNotifyID];
     }
 
     async provideActivationToken(timestamp) {
@@ -829,6 +833,9 @@ export class AppIndicator extends Signals.EventEmitter {
             return;
 
         const [launchContext, activationToken] = this._getActivationToken(timestamp);
+        if (!activationToken)
+            return;
+
         try {
             await this._proxy.ProvideXdgActivationTokenAsync(activationToken,
                 this._cancellable);
