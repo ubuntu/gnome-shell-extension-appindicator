@@ -212,9 +212,24 @@ export class StatusNotifierWatcher {
         const [service] = params;
         let busName, objPath;
 
-        if (service.charAt(0) === '/') { // looks like a path
+        Util.Logger.debug(`Received registration request for service: '${params}'`);
+        const pathIndex = service.indexOf('/');
+
+        if (pathIndex === 0) { // looks like a path
             busName = invocation.get_sender();
             objPath = service;
+        } else if (pathIndex > 0) {
+            // Electron started another non-standard format: yay!
+            // They're now providing the service name as first element, followed
+            // by a DBus path. This is wrong, but not much we can do about it.
+            const name = service.slice(0, pathIndex);
+            try {
+                busName = await DBusUtils.getUniqueBusName(invocation.get_connection(),
+                    name, this._cancellable);
+            } catch (e) {
+                logError(e);
+            }
+            objPath = service.slice(pathIndex);
         } else if (service.match(DBusUtils.BUS_ADDRESS_REGEX)) {
             try {
                 busName = await DBusUtils.getUniqueBusName(invocation.get_connection(),
