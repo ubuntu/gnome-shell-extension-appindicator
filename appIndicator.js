@@ -480,8 +480,6 @@ export class AppIndicator extends Signals.EventEmitter {
                     `${this.uniqueId}, check for Activation support: ${e.message}`);
             }
         }
-
-        await this._updateAppInfo(cancellable);
     }
 
     async _updateAppInfo(cancellable) {
@@ -577,6 +575,8 @@ export class AppIndicator extends Signals.EventEmitter {
     }
 
     async _nameOwnerChanged() {
+        const cancellable = this._cancellable;
+
         if (!this.hasNameOwner) {
             this._checkIfReady();
         } else {
@@ -590,6 +590,8 @@ export class AppIndicator extends Signals.EventEmitter {
                 }
             }
         }
+
+        this._updateAppInfo(cancellable).catch(logError);
 
         this.emit('name-owner-changed');
     }
