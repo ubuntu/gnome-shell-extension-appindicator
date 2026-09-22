@@ -457,7 +457,7 @@ export class AppIndicator extends Signals.EventEmitter {
         try {
             await this._proxy.initAsync(cancellable);
             this._checkIfReady();
-            await this._checkNeededProperties(cancellable);
+            await this._proxy.refreshAllProperties();
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
                 logError(e, `While initalizing proxy for ${this._uniqueId}`);
