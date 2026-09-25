@@ -8,7 +8,7 @@ import GLib from 'gi://GLib';
 import {gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 const IconData = GObject.registerClass({
-    GTypeName: 'IconData',
+    GTypeName: 'AppIndicatorSupportIconData',
     Properties: {
         'id': GObject.ParamSpec.string(
             'id',
@@ -81,8 +81,9 @@ const IconData = GObject.registerClass({
     }
 });
 
-export var CustomIconPage = GObject.registerClass(
-class AppIndicatorCustomIconPage extends Adw.PreferencesPage {
+export var CustomIconPage = GObject.registerClass({
+    GTypeName: 'AppIndicatorSupportCustomIconPage',
+}, class AppIndicatorCustomIconPage extends Adw.PreferencesPage {
     _init(settings, settingsKey) {
         super._init({
             title: _('Custom Icons'),

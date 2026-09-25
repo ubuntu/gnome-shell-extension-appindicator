@@ -6,8 +6,9 @@ import GObject from 'gi://GObject';
 import {gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 
-export var GeneralPage = GObject.registerClass(
-class AppIndicatorGeneralPage extends Adw.PreferencesPage {
+export var GeneralPage = GObject.registerClass({
+    GTypeName: 'AppIndicatorSupportGeneralPage',
+}, class AppIndicatorGeneralPage extends Adw.PreferencesPage {
     _init(settings, settingsKey) {
         super._init({
             title: _('General'),
