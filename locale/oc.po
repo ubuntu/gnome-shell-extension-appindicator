@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AppIndicatorExtension\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-09-27 20:43+0200\n"
-"PO-Revision-Date: 2022-03-31 20:14+0200\n"
+"POT-Creation-Date: 2025-05-06 21:44+0200\n"
+"PO-Revision-Date: 2026-04-10 11:28+0200\n"
 "Last-Translator: Quentin PAGÈS\n"
 "Language-Team: \n"
 "Language: oc\n"
@@ -16,116 +16,137 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"X-Generator: Poedit 3.0.1\n"
+"X-Generator: Poedit 3.9\n"
 
-#: prefs.js:67
-msgid "Opacity (min: 0, max: 255)"
-msgstr "Opacitat (min : 0, max : 255)"
+#: preferences/generalPage.js:15
+msgid "General"
+msgstr "General"
 
-#: prefs.js:95
-msgid "Desaturation (min: 0.0, max: 1.0)"
-msgstr "Desaturacion (min : 0.0, max : 1.0)"
+#: preferences/generalPage.js:26
+msgid "Enable Legacy Tray Icons support"
+msgstr "Activar la presa en carga de las icònas ancianas del tirador"
 
-#: prefs.js:123
-msgid "Brightness (min: -1.0, max: 1.0)"
-msgstr "Luminositat (min : -1.0, max : 1.0)"
+#: preferences/generalPage.js:27
+msgid "Add X11 legacy tray icons to the panel area"
+msgstr "Apondre las icònas ancianas del tirador X11 dins lo panèl"
 
-#: prefs.js:151
-msgid "Contrast (min: -1.0, max: 1.0)"
-msgstr "Contraste  (min: -1.0, max : 1.0)"
-
-#: prefs.js:179
-msgid "Icon size (min: 0, max: 96)"
-msgstr "Talha d’icòna (min : 0, max : 96)"
-
-#: prefs.js:207
-msgid "Tray horizontal alignment"
-msgstr "Alinhament orizontal del tirador"
-
-#: prefs.js:212
-msgid "Center"
-msgstr "Centre"
-
-#: prefs.js:213
-msgid "Left"
-msgstr "Esquèrra"
-
-#: prefs.js:214
-msgid "Right"
-msgstr "Drecha"
-
-#: prefs.js:259
-msgid "Indicator ID"
-msgstr "ID indicador"
-
-#: prefs.js:260
-msgid "Icon Name"
-msgstr "Nom de l'icòna"
-
-#: prefs.js:261
-msgid "Attention Icon Name"
-msgstr "Nom de l’icòna d’atencion"
-
-#: prefs.js:336
-msgid "Preferences"
-msgstr "Preferéncias"
-
-#: prefs.js:338
-msgid "Custom Icons"
-msgstr "Icònas personalizadas"
-
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
-msgid "Saturation"
-msgstr "Saturacion"
-
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
-msgid "Brightness"
-msgstr "Luminositat"
-
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
-msgid "Contrast"
-msgstr "Contraste"
-
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
+#: preferences/generalPage.js:38
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
 msgid "Opacity"
 msgstr "Opacitat"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
+#: preferences/generalPage.js:47
+msgid "Desaturation"
+msgstr "Desaturacion"
+
+#: preferences/generalPage.js:55
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
+msgid "Brightness"
+msgstr "Luminositat"
+
+#: preferences/generalPage.js:63
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
+msgid "Contrast"
+msgstr "Contraste"
+
+#: preferences/generalPage.js:71
+msgid "Icon Size"
+msgstr "Talha d'icòna"
+
+#: preferences/generalPage.js:81
+msgid "Center"
+msgstr "Centre"
+
+#: preferences/generalPage.js:82
+msgid "Left"
+msgstr "Esquèrra"
+
+#: preferences/generalPage.js:83
+msgid "Right"
+msgstr "Drecha"
+
+#: preferences/generalPage.js:86
+msgid "Tray Horizontal Alignment"
+msgstr "Alinhament orizontal del tirador"
+
+#: preferences/customIconPage.js:88
+msgid "Custom Icons"
+msgstr "Icònas personalizadas"
+
+#: preferences/customIconPage.js:132
+msgid "Indicator ID"
+msgstr "ID indicador"
+
+#: preferences/customIconPage.js:133
+msgid "Icon Name"
+msgstr "Nom de l'icòna"
+
+#: preferences/customIconPage.js:134
+msgid "Attention Icon Name"
+msgstr "Nom de l’icòna d’atencion"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
+msgid "Enable legacy tray icons support"
+msgstr "Activar la presa en carga de las icònas anciana del tirador"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
+msgid "Saturation"
+msgstr "Saturacion"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:25
 msgid "Icon size"
 msgstr "Talha de las icònas"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:22
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
 msgid "Icon size in pixel"
 msgstr "Talha de las icònas en pixèl"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:30
 msgid "Icon spacing"
 msgstr "Espaçament de las icònas"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:27
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
 msgid "Icon spacing within the tray"
 msgstr "Espaçament de las icònas dedins lo tirador"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:35
 msgid "Position in tray"
 msgstr "Posicion pel tirador"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:32
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
 msgid "Set where the Icon tray should appear in Gnome tray"
 msgstr "Indica se l’icòna del tirador deu aparéisser pel panèl Gnome"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:40
 msgid "Order in tray"
 msgstr "Òrdre dins lo tirador"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:37
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
 msgid "Set where the Icon tray should appear among other trays"
 msgstr "Definís se l’icòna del tirador deu aparéisser demest los autres panèls"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:45
 msgid "Custom icons"
 msgstr "Icònas personalizadas"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:42
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:46
 msgid "Replace any icons with custom icons from themes"
 msgstr "Remplaçar quina icòna que siá per una icòna personalizada dels tèmas"
+
+#~ msgid "Opacity (min: 0, max: 255)"
+#~ msgstr "Opacitat (min : 0, max : 255)"
+
+#~ msgid "Desaturation (min: 0.0, max: 1.0)"
+#~ msgstr "Desaturacion (min : 0.0, max : 1.0)"
+
+#~ msgid "Brightness (min: -1.0, max: 1.0)"
+#~ msgstr "Luminositat (min : -1.0, max : 1.0)"
+
+#~ msgid "Contrast (min: -1.0, max: 1.0)"
+#~ msgstr "Contraste  (min: -1.0, max : 1.0)"
+
+#~ msgid "Icon size (min: 0, max: 96)"
+#~ msgstr "Talha d’icòna (min : 0, max : 96)"
+
+#~ msgid "Preferences"
+#~ msgstr "Preferéncias"
