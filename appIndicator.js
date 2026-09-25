@@ -42,6 +42,18 @@ Gio._promisify(St.IconInfo.prototype, 'load_symbolic_async');
 Gio._promisify(Gio.DBusConnection.prototype, 'call');
 
 const MAX_UPDATE_FREQUENCY = 30; // In ms
+// Trailing-edge settle delays: when a refresh leaves a base icon family with
+// nothing paintable (empty/failed pixmap fetch, i.e. the signal arrived
+// before the data), re-fetch with bounded backoff once the burst settled, so
+// the last update is guaranteed a successful paint. Attempts are capped and
+// generation-guarded; slow-starting apps are covered without polling.
+const SETTLE_RETRY_DELAYS = [350, 2000, 8000]; // In ms
+// Base icon families covered by the settle guarantee. Overlays are NOT
+// included: an empty overlay is usually the app removing it.
+const BASE_ICON_FAMILIES = ['Icon', 'AttentionIcon'];
+// Sentinel returned when a pixmap was painted directly via Clutter content
+// instead of a GIcon, so callers can tell success apart from "no icon".
+const CONTENT_PAINTED = Object.freeze({painted: true});
 const FALLBACK_ICON_NAME = 'image-loading-symbolic';
 const PIXMAPS_FORMAT = imports.gi.Cogl.PixelFormat.ARGB_8888;
 
@@ -120,6 +132,7 @@ class AppIndicatorProxy extends DBusProxy {
         this._accumulatedProperties = new Set();
         this._cancellables = new Map();
         this._changedProperties = Object.create(null);
+        this._refreshSerials = Object.create(null);
     }
 
     async initAsync(cancellable) {
@@ -198,7 +211,18 @@ class AppIndicatorProxy extends DBusProxy {
     }
 
     // The Author of the spec didn't like the PropertiesChanged signal, so he invented his own
-    async _refreshOwnProperties(prop) {
+    async _refreshOwnProperties(prop, params) {
+        params = Params.parse(params, {
+            isRetry: false,
+            serial: null,
+        });
+
+        // Generation guard: a delayed settle retry must never overwrite state
+        // fetched by a newer refresh cycle (stale-overwrite races).
+        if (!params.isRetry)
+            this._refreshSerials[prop] = (this._refreshSerials[prop] ?? 0) + 1;
+        const serial = this._refreshSerials[prop] ?? 0;
+
         const props = [prop, `${prop}Name`, `${prop}Pixmap`,
             `${prop}AccessibleDesc`];
 
@@ -211,15 +235,120 @@ class AppIndicatorProxy extends DBusProxy {
             props.filter(p =>
                 this._propertiesList.includes(p)).map(async p => {
                 try {
-                    await this.refreshProperty(p, {
+                    const fetchParams = {
                         skipEqualityCheck: p.endsWith('Pixmap'),
-                    });
+                    };
+                    if (params.isRetry) {
+                        // Bind this retry's writes (and failure cleanup) to
+                        // its generation: if a newer cycle started meanwhile,
+                        // they are dropped instead of clobbering newer state.
+                        fetchParams.serialGuard = {prop, serial: params.serial};
+                    }
+                    await this.refreshProperty(p, fetchParams);
                 } catch (e) {
                     if (!AppIndicatorProxy.OPTIONAL_PROPERTIES.includes(p) ||
                         !(e instanceof Gio.DBusError))
                         logError(e);
                 }
             }));
+
+        if (!params.isRetry)
+            this._scheduleSettleRefresh(prop, serial);
+    }
+
+    // True when the app currently exports nothing paintable for this base
+    // icon family: no pixmap pixels and no icon name, while the indicator
+    // is visible and owned. This detects the "signal arrived before data"
+    // transient; any pixels the app did export are trusted and painted.
+    _needsSettleRefresh(prop) {
+        const status = this.get_cached_property('Status');
+        const statusValue = status ? status.unpack() : null;
+        if (statusValue === SNIStatus.PASSIVE)
+            return false;
+
+        // An empty attention icon is the healthy steady state unless the
+        // indicator is actually demanding attention; never "heal" that.
+        if (prop === 'AttentionIcon' && statusValue !== SNIStatus.NEEDS_ATTENTION)
+            return false;
+
+        if (!this.gNameOwner)
+            return false;
+
+        const pixProp = `${prop}Pixmap`;
+        if (!this._propertiesList || !this._propertiesList.includes(pixProp))
+            return false;
+
+        const name = this.get_cached_property(`${prop}Name`);
+        if (name && name.unpack())
+            return false; // a name is paintable, nothing to heal
+
+        const pixmap = this.get_cached_property(pixProp);
+        if (!pixmap || !pixmap.n_children())
+            return true; // nothing to display
+
+        // Malformed payloads (byte count not matching the dimensions) can
+        // not be painted either. Lengths only, no pixel scan.
+        for (let i = 0; i < pixmap.n_children(); i++) {
+            const item = pixmap.get_child_value(i);
+            const width = item.get_child_value(0).unpack();
+            const height = item.get_child_value(1).unpack();
+            if (item.get_child_value(2).n_children() !== width * height * 4)
+                return true;
+        }
+
+        return false; // has paintable pixels, trusted and painted as-is
+    }
+
+    // Entry point for fresh registrations (called on the false->true ready
+    // transition): settle-guard the base icon families with whatever serial
+    // is current, so later signal cycles supersede this via the guard.
+    scheduleInitialSettleRefresh() {
+        for (const prop of BASE_ICON_FAMILIES) {
+            this._refreshSerials[prop] ??= 0;
+            this._scheduleSettleRefresh(prop, this._refreshSerials[prop]);
+        }
+    }
+
+    // Rungs of one bounded backoff chain per undisplayable episode: each
+    // rung re-checks generation and need before firing, and only the last
+    // rung gives up. Retries never bump the serial, so any newer signal
+    // cycle supersedes the whole chain via the guard.
+    _scheduleSettleRefresh(prop, serial, attempt = 0) {
+        if (!BASE_ICON_FAMILIES.includes(prop))
+            return;
+
+        if (!this._needsSettleRefresh(prop))
+            return;
+
+        const owner = this.gName ?? this.g_name_owner;
+        const reportError = e => {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                logError(e);
+        };
+        const delay = SETTLE_RETRY_DELAYS[
+            Math.min(attempt, SETTLE_RETRY_DELAYS.length - 1)];
+        Util.Logger.debug(`${owner}, scheduling settle refresh for ${prop} ` +
+            `(attempt ${attempt + 1}/${SETTLE_RETRY_DELAYS.length})`);
+
+        const cancellable = this._cancellable;
+        new PromiseUtils.TimeoutPromise(delay,
+            GLib.PRIORITY_DEFAULT_IDLE, cancellable).then(async () => {
+            if (this._isSupersededRetry({prop, serial}))
+                return; // superseded by a newer cycle, it owns the paint
+            if (!this._needsSettleRefresh(prop))
+                return; // healed meanwhile, nothing to do
+            Util.Logger.debug(`${owner}, running settle refresh for ${prop} ` +
+                `(attempt ${attempt + 1}/${SETTLE_RETRY_DELAYS.length})`);
+            try {
+                await this._refreshOwnProperties(prop,
+                    {isRetry: true, serial});
+            } catch (e) {
+                reportError(e);
+            }
+            if (attempt + 1 < SETTLE_RETRY_DELAYS.length &&
+                this._needsSettleRefresh(prop))
+                this._scheduleSettleRefresh(prop, serial, attempt + 1);
+        }).catch(reportError);
     }
 
     _onSignal(sender, signal, ...args) {
@@ -319,6 +448,10 @@ class AppIndicatorProxy extends DBusProxy {
     async refreshProperty(propertyName, params) {
         params = Params.parse(params, {
             skipEqualityCheck: false,
+            // Carried through to _queuePropertyUpdate for the settle-retry
+            // generation guard; unused on the normal path. A single token
+            // ({prop, serial}) so the generation identity travels as one.
+            serialGuard: null,
         });
 
         const cancellable = this._cancelRefreshProperties({
@@ -341,18 +474,30 @@ class AppIndicatorProxy extends DBusProxy {
                     `org.freedesktop.DBus.Properties, ${this.gInterfaceName} ` +
                     `while refreshing property ${propertyName}: ${e}\n` +
                     `${e.stack}`);
-                this.set_cached_property(propertyName, null);
-                this._cancellables.delete(propertyName);
-                delete this._changedProperties[propertyName];
+                if (!this._isSupersededRetry(params.serialGuard)) {
+                    this.set_cached_property(propertyName, null);
+                    this._cancellables.delete(propertyName);
+                    delete this._changedProperties[propertyName];
+                }
                 throw e;
             }
         }
+    }
+
+    // True when a settle-retry write (or its failure cleanup) belongs to a
+    // superseded generation and must not touch shared state. Takes the
+    // serialGuard token ({prop, serial} | null) so every check shares one
+    // spelling.
+    _isSupersededRetry(serialGuard) {
+        return !!(serialGuard &&
+            serialGuard.serial !== this._refreshSerials[serialGuard.prop]);
     }
 
     async _queuePropertyUpdate(propertyName, value, params) {
         params = Params.parse(params, {
             skipEqualityCheck: false,
             cancellable: null,
+            serialGuard: null,
         });
 
         if (!params.skipEqualityCheck) {
@@ -361,6 +506,13 @@ class AppIndicatorProxy extends DBusProxy {
             if (value && cachedProperty &&
                 value.equal(this.get_cached_property(propertyName)))
                 return;
+        }
+
+        if (this._isSupersededRetry(params.serialGuard)) {
+            // Superseded retry: a newer cycle owns the paint. Dropping is
+            // safe: the newer cycle carries the newer state (or schedules
+            // its own settle handling on failure).
+            return;
         }
 
         this.set_cached_property(propertyName, value);
@@ -542,6 +694,13 @@ export class AppIndicator extends Signals.EventEmitter {
             }
 
             this.emit('ready');
+            // A fresh registration may have snapshotted an empty pixmap
+            // (signal-before-data at registration scale: name and object
+            // exist before the app populates its pixels). If the freshly
+            // fetched state is undisplayable, give the app a settle window
+            // and re-fetch with bounded backoff. Later signal cycles supersede this via
+            // the serial guard; healthy registrations skip it entirely.
+            this._proxy.scheduleInitialSettleRefresh();
             return true;
         }
 
@@ -1403,18 +1562,27 @@ class AppIndicatorsIconActor extends St.Icon {
             preferredHeight: height,
         });
 
+        const bytes = pixmapVariant.get_data_as_bytes();
+        const expectedSize = height * rowStride;
+        if (bytes.get_size() !== expectedSize) {
+            throw new Error(`${this.debugId}, bogus pixmap data for ${width}x${height}: ` +
+                `got ${bytes.get_size()} bytes, expected ${expectedSize}`);
+        }
+
         // Remove this dynamic check when we depend on GNOME 48.
         const coglContext = [];
         const mutterBackend = global.stage?.context?.get_backend?.();
         if (imageContent.set_bytes.length === 6 && mutterBackend?.get_cogl_context)
             coglContext.push(mutterBackend.get_cogl_context());
-        imageContent.set_bytes(...coglContext, pixmapVariant.get_data_as_bytes(),
+        imageContent.set_bytes(...coglContext, bytes,
             PIXMAPS_FORMAT, width, height, rowStride);
 
         if (iconType !== SNIconType.OVERLAY && !this._indicator.hasOverlayIcon) {
             const scaledSize = iconSize * scaleFactor;
             this._setImageContent(imageContent, scaledSize, scaledSize);
-            return null;
+            // Content was painted directly (not via gicon): report success
+            // explicitly so callers don't mistake it for "no icon".
+            return CONTENT_PAINTED;
         }
 
         const cancellable = this._getIconLoadingCancellable(iconType, id);
@@ -1510,12 +1678,32 @@ class AppIndicatorsIconActor extends St.Icon {
                 e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.PENDING))
                 return null;
 
-            if (iconType === SNIconType.OVERLAY) {
+            if (iconType === SNIconType.OVERLAY)
                 logError(e, `${this.debugId} unable to update icon emblem`);
-            } else {
-                this.fallbackIconName = FALLBACK_ICON_NAME;
+            else
                 logError(e, `${this.debugId} unable to update icon`);
+        }
+
+        // Pixmap icons painted directly via content report success explicitly:
+        // the visible content is already up to date, there is no gicon to set.
+        if (gicon === CONTENT_PAINTED)
+            return gicon;
+
+        if (!gicon && iconType !== SNIconType.OVERLAY) {
+            // Never blank a working base icon. Pixmap-only apps (e.g. WeChat
+            // with empty IconName) sometimes deliver an empty/bogus update;
+            // clearing here used to leave a blank slot behind (position kept,
+            // nothing painted) with no recovery until the next successful
+            // NewIcon. Overlays are excluded on purpose: an empty overlay
+            // usually means the app removed it, and a stale leftover emblem
+            // is exactly the upstream #468 complaint.
+            if (this.gicon || this.content) {
+                Util.Logger.debug(`${this.debugId}, keeping old icon (update yielded nothing)`);
+                return null;
             }
+
+            // No working icon to keep: fall through to clear + fallback below.
+            this.fallbackIconName = FALLBACK_ICON_NAME;
         }
 
         try {
