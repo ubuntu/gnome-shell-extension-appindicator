@@ -439,8 +439,24 @@ class IndicatorStatusIcon extends BaseStatusIcon {
         }
 
         if (event.get_button() === Clutter.BUTTON_SECONDARY) {
+            if (this._indicator.isWineWithoutDBusMenu) {
+                if (Main.panel.menuManager.activeMenu)
+                    Main.panel.menuManager._closeMenu(true, Main.panel.menuManager.activeMenu);
+                this._indicator.contextMenu(...event.get_coords());
+                return Clutter.EVENT_STOP;
+            }
+
             this.menu.toggle();
             return Clutter.EVENT_PROPAGATE;
+        }
+
+        // Wine's native SNI backend recognizes double-clicks from two Activate calls.
+        if (event.get_button() === Clutter.BUTTON_PRIMARY &&
+            this._indicator.isWineWithoutDBusMenu) {
+            if (Main.panel.menuManager.activeMenu)
+                Main.panel.menuManager._closeMenu(true, Main.panel.menuManager.activeMenu);
+            this._indicator.open(...event.get_coords(), event.get_time());
+            return Clutter.EVENT_STOP;
         }
 
         const doubleClickHandled = this._maybeHandleDoubleClick(event);
