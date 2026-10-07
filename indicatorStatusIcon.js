@@ -53,11 +53,11 @@ export function addIconToPanel(statusIcon) {
     Main.panel.addToStatusArea(indicatorId, statusIcon, 1,
         settings.get_string('tray-pos'));
 
-    if (statusIcon instanceof IndicatorStatusIcon) {
-        const manager = OverflowManager.OverflowManager.getDefault();
-        if (manager)
-            manager.registerIcon(statusIcon);
-    }
+    // Legacy XEmbed icons are tracked too: they have no SNI, but the class
+    // of their X window identifies them well enough to be hidden
+    const manager = OverflowManager.OverflowManager.getDefault();
+    if (manager)
+        manager.registerIcon(statusIcon);
 
     Util.connectSmart(settings, 'changed::tray-pos', statusIcon, () =>
         addIconToPanel(statusIcon));
@@ -146,6 +146,7 @@ class IndicatorBaseStatusIcon extends PanelMenu.Button {
     setOverflowed(overflowed) {
         if (this._isOverflowed === overflowed)
             return;
+
         this._isOverflowed = overflowed;
         if (overflowed)
             this.visible = false;
@@ -357,6 +358,21 @@ class IndicatorStatusIcon extends BaseStatusIcon {
 
     get uniqueId() {
         return this._indicator.uniqueId;
+    }
+
+    // The same surface a legacy icon offers, so whoever holds an icon does
+    // not have to know which of the two kinds it got
+    get appId() {
+        return this._indicator.appId;
+    }
+
+    get app() {
+        return WindowManager.findDesktopApp(this._indicator);
+    }
+
+    get title() {
+        return this.app?.get_name() || this._indicator.title ||
+            this._indicator.id || this.appId;
     }
 
     isReady() {
@@ -667,6 +683,20 @@ class IndicatorTrayIcon extends BaseStatusIcon {
 
     get uniqueId() {
         return `legacy:${this._icon.wm_class}:${this._icon.pid}`;
+    }
+
+    // The pid changes with every start, the class of the X window does not,
+    // so that is what the hidden set is keyed by
+    get appId() {
+        return this._icon.wm_class ? `legacy:${this._icon.wm_class}` : null;
+    }
+
+    get app() {
+        return WindowManager.findTrayIconApp(this._icon);
+    }
+
+    get title() {
+        return this.app?.get_name() || this._icon.wm_class;
     }
 
     vfunc_navigate_focus(from, direction) {
