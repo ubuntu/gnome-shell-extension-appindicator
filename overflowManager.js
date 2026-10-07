@@ -24,6 +24,8 @@ import {OverflowButton} from './overflowButton.js';
 import * as SettingsManager from './settingsManager.js';
 import * as Util from './util.js';
 
+const OVERFLOW_BUTTON_ROLE = 'appindicator-overflow';
+
 let overflowManager;
 
 export class OverflowManager extends Signals.EventEmitter {
@@ -206,6 +208,7 @@ export class OverflowManager extends Signals.EventEmitter {
                 this._addOverflowButtonToPanel();
             }
             this._overflowButton.updateMenu(overflowedIcons);
+            this._placeOverflowButton();
         } else if (this._overflowButton) {
             this._overflowButton.destroy();
             this._overflowButton = null;
@@ -217,25 +220,57 @@ export class OverflowManager extends Signals.EventEmitter {
             return;
 
         const settings = SettingsManager.getDefaultGSettings();
-        const indicatorId = 'appindicator-overflow';
 
-        const currentButton =
-            Main.panel.statusArea[indicatorId];
+        // Same re-add idiom as addIconToPanel(): addToStatusArea() throws
+        // if the role is still set, so clear it first
+        const currentButton = Main.panel.statusArea[OVERFLOW_BUTTON_ROLE];
         if (currentButton) {
             if (currentButton !== this._overflowButton)
                 currentButton.destroy();
-            Main.panel.statusArea[indicatorId] = null;
+            Main.panel.statusArea[OVERFLOW_BUTTON_ROLE] = null;
         }
 
-        Main.panel.addToStatusArea(indicatorId,
+        Main.panel.addToStatusArea(OVERFLOW_BUTTON_ROLE,
             this._overflowButton, -1,
             settings.get_string('tray-pos'));
 
     }
 
+    // Moves the button right after the last indicator icon of its panel box.
+    // Icons are always inserted at index 1, so once placed the button stays
+    // after them without further moves.
+    _placeOverflowButton() {
+        const container = this._overflowButton?.container;
+        const parent = container?.get_parent();
+        if (!parent)
+            return;
+
+        const children = parent.get_children();
+        let lastIconIndex = -1;
+        for (const icon of this._trackedIcons.values()) {
+            lastIconIndex = Math.max(lastIconIndex,
+                children.indexOf(icon.container));
+        }
+
+        if (lastIconIndex < 0)
+            return;
+
+        // set_child_at_index() removes the child before inserting it again
+        const currentIndex = children.indexOf(container);
+        const targetIndex = currentIndex < lastIconIndex
+            ? lastIconIndex : lastIconIndex + 1;
+        if (currentIndex !== targetIndex)
+            parent.set_child_at_index(container, targetIndex);
+    }
+
     _onTrayPosChanged() {
-        if (this._overflowButton)
-            this._addOverflowButtonToPanel();
+        if (!this._overflowButton)
+            return;
+
+        this._addOverflowButtonToPanel();
+        // Icons move to the new box in their own tray-pos handlers, place the
+        // button again once all of them are done
+        this._scheduleUpdate();
     }
 
     destroy() {
