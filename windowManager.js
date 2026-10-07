@@ -40,6 +40,18 @@ export function toggleWindows(indicator, timestamp) {
         () => indicator.executable);
 }
 
+/**
+ * Same as toggleWindows() for a legacy XEmbed tray icon.
+ *
+ * @param {Shell.TrayIcon} trayIcon - the legacy tray icon
+ * @param {number} timestamp - event time
+ * @returns {boolean} true if handled, false to forward the click to the icon
+ */
+export function toggleTrayIconWindows(trayIcon, timestamp) {
+    return _toggleWindowsOf(findTrayIconApp(trayIcon), timestamp,
+        () => _getPidExecutable(trayIcon.pid));
+}
+
 function _toggleWindowsOf(app, timestamp, getExecutable) {
     if (!app || (!app.get_windows().length && !_reopensWindow(app, getExecutable)))
         return false;
@@ -55,6 +67,26 @@ function _toggleWindowsOf(app, timestamp, getExecutable) {
 function _reopensWindow(app, getExecutable) {
     return app.appInfo?.get_boolean('DBusActivatable') ||
         _isElectron(getExecutable());
+}
+
+/**
+ * Find the app behind a legacy XEmbed tray icon, whether it has windows or
+ * not. Same as findDesktopApp() for the icons that carry no SNI.
+ *
+ * @param {Shell.TrayIcon} trayIcon - the legacy tray icon
+ * @returns {Shell.App|null} the app, if any
+ */
+export function findTrayIconApp(trayIcon) {
+    if (!trayIcon)
+        return null;
+
+    const app = trayIcon.pid
+        ? WindowTracker.get_app_from_pid(trayIcon.pid) : null;
+    if (app)
+        return app;
+
+    return _cachedLookup(trayIcon, trayIcon.wm_class, () =>
+        _lookupApp(_getPidExecutable(trayIcon.pid), [trayIcon.wm_class]));
 }
 
 /**
@@ -178,6 +210,17 @@ function _lookupApp(exe, names) {
     }
 
     return best;
+}
+
+function _getPidExecutable(pid) {
+    if (!pid)
+        return null;
+
+    try {
+        return GLib.file_read_link(`/proc/${pid}/exe`);
+    } catch (e) {
+        return null;
+    }
 }
 
 const _electronPaths = new Map();

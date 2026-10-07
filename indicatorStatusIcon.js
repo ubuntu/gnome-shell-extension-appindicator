@@ -563,12 +563,20 @@ class IndicatorTrayIcon extends BaseStatusIcon {
         this.add_style_class_name('appindicator-icon');
         this.add_style_class_name('tray-icon');
 
-        this.connect('button-press-event', (_actor, _event) => {
-            this.add_style_pseudo_class('active');
+        this.connect('button-press-event', (_actor, event) => {
+            // Only highlight the click we handle ourselves: for the other
+            // buttons the app grabs the pointer to show its own menu, so the
+            // release never arrives here and the highlight would be stuck
+            if (event.get_button() === Clutter.BUTTON_PRIMARY)
+                this.add_style_pseudo_class('active');
             return Clutter.EVENT_PROPAGATE;
         });
         this.connect('button-release-event', (_actor, event) => {
-            this._icon.click(event);
+            // Left click raises or minimizes the app windows, like a taskbar
+            // entry; the icon only gets the click when no app is found
+            if (event.get_button() !== Clutter.BUTTON_PRIMARY ||
+                !WindowManager.toggleTrayIconWindows(this._icon, event.get_time()))
+                this._icon.click(event);
             this.remove_style_pseudo_class('active');
             return Clutter.EVENT_PROPAGATE;
         });
