@@ -65,12 +65,15 @@ export default class AppIndicatorExtension extends Extension.Extension {
     disable() {
         this._isEnabled = false;
         TrayIconsManager.TrayIconsManager.destroy();
-        OverflowManager.OverflowManager.destroy();
 
         if (this._statusNotifierWatcher !== null) {
             this._statusNotifierWatcher.destroy();
             this._statusNotifierWatcher = null;
         }
+
+        // Destroy icons first: restoring overflowed icons right before their
+        // destruction maps them and makes IconActor access disposed objects
+        OverflowManager.OverflowManager.destroy();
 
         SettingsManager.destroy();
     }
