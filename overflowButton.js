@@ -18,6 +18,7 @@ import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
@@ -61,12 +62,17 @@ class IndicatorOverflowButton extends PanelMenu.Button {
         const box = new St.BoxLayout({
             style_class: 'panel-status-indicators-box',
         });
-        const icon = new St.Icon({
-            icon_name: 'pan-down-symbolic',
+        this._arrowIcon = new St.Icon({
+            icon_name: 'pan-up-symbolic',
             style_class: 'system-status-icon',
         });
-        box.add_child(icon);
+        box.add_child(this._arrowIcon);
         this.add_child(box);
+
+        this.menu.connect('open-state-changed', () => this._updateArrow());
+        // The panel the button sits in is only known once it is on the stage
+        this.connect('notify::mapped', () => this._updateArrow());
+        this._updateArrow();
 
         const settings = SettingsManager.getDefaultGSettings();
         const updateStyle = () =>
@@ -83,6 +89,29 @@ class IndicatorOverflowButton extends PanelMenu.Button {
             return Clutter.EVENT_STOP;
         }
         return Clutter.EVENT_PROPAGATE;
+    }
+
+    // The arrow points the way the menu goes: down while the menu is closed
+    // on a panel at the top of the screen, up on a panel at the bottom, and
+    // the other way round while the menu is open
+    _updateArrow() {
+        const pointsDown = this._opensDownwards() !== this.menu.isOpen;
+        this._arrowIcon.icon_name = pointsDown
+            ? 'pan-down-symbolic' : 'pan-up-symbolic';
+    }
+
+    _opensDownwards() {
+        // Asking for the geometry of a button that is not on the stage yet
+        // answers nothing useful and makes St complain about the theme node
+        if (!this.get_stage())
+            return true;
+
+        const [, y] = this.get_transformed_position();
+        const monitor = Main.layoutManager.findMonitorForActor(this);
+        if (!monitor || !Number.isFinite(y))
+            return true;
+
+        return y + this.height / 2 < monitor.y + monitor.height / 2;
     }
 
     updateMenu(overflowedIcons) {
@@ -194,6 +223,11 @@ class IndicatorOverflowButton extends PanelMenu.Button {
         }
 
         this.visible = overflowedIcons.length > 0;
+
+        // A panel that moves the button (dash-to-panel at the bottom of the
+        // screen) does so without allocating it again, so the side it sits on
+        // is checked whenever the menu is rebuilt
+        this._updateArrow();
     }
 
     _attachIndicatorMenu(section, indicator) {
