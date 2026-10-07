@@ -55,6 +55,7 @@ export class OverflowManager extends Signals.EventEmitter {
         this._trackedIcons = new Map();
         this._overflowButton = null;
         this._updateTimeoutId = 0;
+        this._destroyed = false;
 
         const settings = SettingsManager.getDefaultGSettings();
         this._settingsChangedIds = [
@@ -68,13 +69,15 @@ export class OverflowManager extends Signals.EventEmitter {
     }
 
     registerIcon(statusIcon) {
-        if (this._trackedIcons.has(statusIcon.uniqueId))
+        const {uniqueId} = statusIcon;
+        if (this._destroyed || this._trackedIcons.has(uniqueId))
             return;
 
-        this._trackedIcons.set(statusIcon.uniqueId, statusIcon);
+        this._trackedIcons.set(uniqueId, statusIcon);
 
-        statusIcon.connect('destroy', () => {
-            this._trackedIcons.delete(statusIcon.uniqueId);
+        // 4-arg form: the handler is dropped when the manager is destroyed
+        Util.connectSmart(statusIcon, 'destroy', this, () => {
+            this._trackedIcons.delete(uniqueId);
             this._scheduleUpdate();
         });
 
@@ -143,7 +146,7 @@ export class OverflowManager extends Signals.EventEmitter {
     }
 
     _scheduleUpdate() {
-        if (this._updateTimeoutId)
+        if (this._destroyed || this._updateTimeoutId)
             return;
 
         this._updateTimeoutId = GLib.idle_add(
@@ -155,6 +158,9 @@ export class OverflowManager extends Signals.EventEmitter {
     }
 
     _updateVisibility() {
+        if (this._destroyed)
+            return;
+
         const settings = SettingsManager.getDefaultGSettings();
         const pinMode =
             settings.get_boolean('pin-mode-enabled');
@@ -205,14 +211,18 @@ export class OverflowManager extends Signals.EventEmitter {
     _updateOverflowButton(overflowedIcons) {
         if (overflowedIcons.length > 0) {
             if (!this._overflowButton) {
-                this._overflowButton = new OverflowButton();
+                const button = new OverflowButton();
+                button.connect('destroy', () => {
+                    if (this._overflowButton === button)
+                        this._overflowButton = null;
+                });
+                this._overflowButton = button;
                 this._addOverflowButtonToPanel();
             }
             this._overflowButton.updateMenu(overflowedIcons);
             this._placeOverflowButton();
-        } else if (this._overflowButton) {
-            this._overflowButton.destroy();
-            this._overflowButton = null;
+        } else {
+            this._overflowButton?.destroy();
         }
     }
 
@@ -234,7 +244,6 @@ export class OverflowManager extends Signals.EventEmitter {
         Main.panel.addToStatusArea(OVERFLOW_BUTTON_ROLE,
             this._overflowButton, -1,
             settings.get_string('tray-pos'));
-
     }
 
     // Moves the button right after the last indicator icon of its panel box.
@@ -275,6 +284,12 @@ export class OverflowManager extends Signals.EventEmitter {
     }
 
     destroy() {
+        if (this._destroyed)
+            return;
+
+        this._destroyed = true;
+
+        // Drops all the connectSmart() handlers targeting this manager
         this.emit('destroy');
 
         if (this._updateTimeoutId) {
@@ -282,10 +297,7 @@ export class OverflowManager extends Signals.EventEmitter {
             this._updateTimeoutId = 0;
         }
 
-        if (this._overflowButton) {
-            this._overflowButton.destroy();
-            this._overflowButton = null;
-        }
+        this._overflowButton?.destroy();
 
         const settings = SettingsManager.getDefaultGSettings();
         for (const id of this._settingsChangedIds)
