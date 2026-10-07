@@ -50,6 +50,20 @@ class AppIndicatorGeneralPage extends Adw.PreferencesPage {
 
         this.group.add(compactModeSwitch);
 
+        const spacingRow = this._createSpinRow({
+            title: _('Icon Spacing in Compact Mode'),
+            settingsKey: this._settingsKey.ICON_SPACING,
+            from: 0,
+            to: 24,
+            step: 1,
+            round: true,
+        });
+
+        spacingRow.sensitive = compactModeSwitch.active;
+        compactModeSwitch.connect('notify::active', widget => {
+            spacingRow.sensitive = widget.get_active();
+        });
+
         this._createSpinRow({
             title: _('Opacity'),
             settingsKey: this._settingsKey.ICON_OPACITY,
@@ -91,6 +105,19 @@ class AppIndicatorGeneralPage extends Adw.PreferencesPage {
             step: 2,
             round: true,
         });
+
+        const pinModeSwitch = new Adw.SwitchRow({
+            title: _('Pin Mode'),
+            subtitle: _('Right-click indicators to hide them ' +
+                'into the overflow menu'),
+            active: this._settings.get_boolean(
+                this._settingsKey.PIN_MODE_ENABLED),
+        });
+        pinModeSwitch.connect('notify::active', widget =>
+            this._settings.set_boolean(
+                this._settingsKey.PIN_MODE_ENABLED,
+                widget.get_active()));
+        this.group.add(pinModeSwitch);
 
         const alignmentList = new Gtk.StringList();
         const comboItems = [
@@ -153,6 +180,8 @@ class AppIndicatorGeneralPage extends Adw.PreferencesPage {
         });
 
         this.group.add(spin);
+
+        return spin;
     }
 });
 

@@ -818,6 +818,29 @@ const MenuItemFactory = {
     },
 };
 
+/**
+ * Keeps at most one submenu of a menu open. A submenu the DBus menu created
+ * inside an entry reports its open state to the top menu too
+ * (PopupSubMenu._getTopMenu() skips itself), and the default handler of the
+ * shell would collapse the entry that holds it.
+ *
+ * @param {PopupMenu.PopupMenu} menu - the menu to track the submenus of
+ */
+export function trackOpenedSubMenu(menu) {
+    if (!NEED_NESTED_SUBMENU_FIX)
+        return;
+
+    menu._setOpenedSubMenu = submenu => {
+        const opened = menu._openedSubMenu;
+        if (!submenu || submenu._parent !== menu || submenu === opened)
+            return;
+
+        if (opened?.isOpen)
+            opened.close(true);
+
+        menu._openedSubMenu = submenu;
+    };
+}
 
 /**
  * Processes DBus events, creates the menu items and handles the actions
@@ -859,8 +882,7 @@ export class Client extends Signals.EventEmitter {
         // cleanup: remove existing children (just in case)
         this._rootMenu.removeAll();
 
-        if (NEED_NESTED_SUBMENU_FIX)
-            menu._setOpenedSubMenu = this._setOpenedSubmenu.bind(this);
+        trackOpenedSubMenu(menu);
 
         // connect handlers
         Util.connectSmart(menu, 'open-state-changed', this, this._onMenuOpenStateChanged);
@@ -879,22 +901,6 @@ export class Client extends Signals.EventEmitter {
             this._onRootChildAdded(this._rootItem, child));
     }
 
-    _setOpenedSubmenu(submenu) {
-        if (!submenu)
-            return;
-
-        if (submenu._parent !== this._rootMenu)
-            return;
-
-        if (submenu === this._openedSubMenu)
-            return;
-
-        if (this._openedSubMenu && this._openedSubMenu.isOpen)
-            this._openedSubMenu.close(true);
-
-        this._openedSubMenu = submenu;
-    }
-
     _onRootChildAdded(dbusItem, child, position) {
         // Menu additions can be expensive, so let's do it in different chunks
         const basePriority = this.isOpen ? GLib.PRIORITY_DEFAULT : GLib.PRIORITY_LOW;
@@ -903,7 +909,8 @@ export class Client extends Signals.EventEmitter {
         this._itemsBeingAdded.add(child);
 
         idlePromise.then(() => {
-            if (!this._itemsBeingAdded.has(child))
+            // The client may have been destroyed while the item was pending
+            if (!this._itemsBeingAdded?.has(child))
                 return;
 
             this._rootMenu.addMenuItem(
@@ -923,7 +930,7 @@ export class Client extends Signals.EventEmitter {
         if (item)
             item.destroy();
         else
-            this._itemsBeingAdded.delete(child);
+            this._itemsBeingAdded?.delete(child);
     }
 
     _onRootChildMoved(dbusItem, child, oldpos, newpos) {
@@ -937,8 +944,8 @@ export class Client extends Signals.EventEmitter {
         this._client.active = state;
 
         if (state) {
-            if (this._openedSubMenu && this._openedSubMenu.isOpen)
-                this._openedSubMenu.close();
+            if (menu._openedSubMenu?.isOpen)
+                menu._openedSubMenu.close();
 
             this._rootItem.handleEvent('opened', null, 0).catch(logError);
             this._rootItem.sendAboutToShow();
@@ -958,6 +965,8 @@ export class Client extends Signals.EventEmitter {
     destroy() {
         this.emit('destroy');
 
+        // Stops the item insertions that are still pending: their
+        // continuations would run against the fields cleared below
         this.cancellable.cancel();
 
         if (this._client)

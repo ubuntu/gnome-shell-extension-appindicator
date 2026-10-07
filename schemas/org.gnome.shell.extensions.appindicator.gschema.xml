@@ -30,6 +30,12 @@
       <summary>Compact Mode</summary>
       <description>Reduces the Spacing Between Indicators</description>
     </key>
+    <key name="icon-spacing" type="i">
+      <default>10</default>
+      <range min="0" max="24"/>
+      <summary>Icon Spacing in Compact Mode</summary>
+      <description>Horizontal padding of each indicator, in pixels</description>
+    </key>
     <key name="tray-pos" type="s">
       <default>"right"</default>
       <summary>Position in tray</summary>
@@ -44,6 +50,21 @@
       <default>[]</default>
       <summary>Custom icons</summary>
       <description>Replace any icons with custom icons from themes</description>
+    </key>
+    <key name="pin-mode-enabled" type="b">
+      <default>false</default>
+      <summary>Enable hide mode</summary>
+      <description>When enabled, indicators marked as hidden are moved from the panel into an overflow menu.</description>
+    </key>
+    <key name="hidden-icons" type="as">
+      <default>[]</default>
+      <summary>Hidden indicator IDs</summary>
+      <description>List of indicator IDs hidden from the panel into the overflow menu.</description>
+    </key>
+    <key name="known-indicators" type="a(ss)">
+      <default>[]</default>
+      <summary>Known indicators</summary>
+      <description>List of (appId, title) pairs for indicators seen by the extension, used by the preferences UI to manage hidden icons.</description>
     </key>
   </schema>
 </schemalist>
