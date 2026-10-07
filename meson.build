@@ -41,6 +41,7 @@ ls_cmd = ' '.join(['ls', '-1', '@0@'])
 js_sources = run_command(sh, '-c', ls_cmd.format('*.js')).stdout().strip().split('\n')
 install_data(metadata,
     files(js_sources),
+    files('stylesheet.css'),
     install_dir: extension_dir)
 install_data(files('tools/busAnalyzer.js'),
     install_dir: extension_dir / 'tools')

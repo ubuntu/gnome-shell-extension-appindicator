@@ -33,7 +33,7 @@ import * as SettingsManager from './settingsManager.js';
 import * as Util from './util.js';
 import * as DBusMenu from './dbusMenu.js';
 
-const DEFAULT_ICON_SIZE = Panel.PANEL_ICON_SIZE || 16;
+export const DEFAULT_ICON_SIZE = Panel.PANEL_ICON_SIZE || 16;
 
 export function addIconToPanel(statusIcon) {
     if (!(statusIcon instanceof BaseStatusIcon))

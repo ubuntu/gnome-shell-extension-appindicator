@@ -21,6 +21,7 @@ import St from 'gi://St';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
+import * as AppIndicator from './appIndicator.js';
 import * as DBusMenu from './dbusMenu.js';
 import * as IndicatorStatusIcon from './indicatorStatusIcon.js';
 import * as OverflowManagerModule from './overflowManager.js';
@@ -28,7 +29,14 @@ import * as SettingsManager from './settingsManager.js';
 import * as Util from './util.js';
 import * as WindowManager from './windowManager.js';
 
-const FALLBACK_ICON_NAME = 'application-x-executable-symbolic';
+// Whether an event happened on the expander of a submenu item. The expander
+// is reactive, so it is the actor the stage delivers its events to. A button
+// event carries no source to ask instead
+function _isOnExpander(expander, event) {
+    const actor = global.stage.get_event_actor(event);
+
+    return !!expander && !!actor && expander.contains(actor);
+}
 
 export const OverflowButton = GObject.registerClass(
 class IndicatorOverflowButton extends PanelMenu.Button {
@@ -79,36 +87,72 @@ class IndicatorOverflowButton extends PanelMenu.Button {
             if (!indicator)
                 continue;
 
-            const appId = indicator.appId;
+            const {appId} = indicator;
             const label = indicator.title || appId || 'Unknown';
 
-            // Use PopupSubMenuMenuItem: left click = activate window,
-            // right click / expand arrow = show app menu + "Show on Panel"
-            const subMenu =
-                new PopupMenu.PopupSubMenuMenuItem(label);
+            // Use PopupSubMenuMenuItem: left click = activate window, click
+            // on the arrow, right click or keyboard = show app menu +
+            // "Show on Panel"
+            const subMenu = new PopupMenu.PopupSubMenuMenuItem(label, false);
 
-            // Use gicon from the actual tray icon for proper rendering
-            const gicon = statusIcon._icon?.gicon;
-            const menuIcon = gicon
-                ? new St.Icon({gicon, style_class: 'popup-menu-icon'})
-                : new St.Icon({
-                    icon_name: FALLBACK_ICON_NAME,
-                    style_class: 'popup-menu-icon',
-                });
-            subMenu.insert_child_below(
-                menuIcon, subMenu.label);
+            // Same icon as on the panel: a live icon actor of the indicator,
+            // at the panel size, following icon changes
+            const iconActor = new AppIndicator.IconActor(indicator,
+                IndicatorStatusIcon.DEFAULT_ICON_SIZE);
+            iconActor.reactive = false;
+            subMenu.insert_child_at_index(iconActor, 0);
 
-            // Left click on the row = activate/toggle window + close overflow
-            subMenu.connect('button-press-event', (_actor, event) => {
-                if (event.get_button() === Clutter.BUTTON_PRIMARY) {
-                    if (!WindowManager.toggleWindows(indicator, event.get_time()))
-                        indicator.open(
-                            ...event.get_coords(), event.get_time());
+            // Split button look: the expander is a target of its own, set
+            // off by a divider line, with the arrow centered on it
+            const expander = subMenu._triangleBin;
+            if (expander) {
+                expander.add_style_class_name('appindicator-overflow-expander');
+                expander.y_align = Clutter.ActorAlign.FILL;
+                expander.reactive = true;
+                expander.track_hover = true;
+
+                // The expander of the shell fills the row, which makes the
+                // half with the arrow as wide as the entry. Let the label
+                // take the room instead, so the arrow keeps to its own edge
+                expander.x_expand = false;
+                subMenu.label.x_expand = true;
+
+                // Without a layout manager the arrow is placed at the origin
+                // of the actor, which leaves it off center inside the padding
+                expander.layout_manager = new Clutter.BinLayout();
+            }
+
+            // Left click on the row = activate/toggle window + close overflow.
+            // Answers whether the click was taken.
+            const takeClick = event => {
+                if (event?.type() !== Clutter.EventType.BUTTON_RELEASE ||
+                    event.get_button() !== Clutter.BUTTON_PRIMARY)
+                    return false;
+
+                // Let the expander arrow open the app menu, as in the panel
+                if (_isOnExpander(expander, event))
+                    return false;
+
+                // A tray only app has no window to raise, so the click stays
+                // a plain click: let the item open the app menu, which is
+                // all such an app has to offer
+                const raised = WindowManager.toggleWindows(indicator,
+                    event.get_time());
+                if (raised)
                     this.menu.close();
-                    return Clutter.EVENT_STOP;
-                }
-                return Clutter.EVENT_PROPAGATE;
-            });
+
+                return raised;
+            };
+
+            // Every way to activate the item ends in activate(), which
+            // toggles its submenu: the click action of the shell (a gesture
+            // since 49) takes the release, so a handler of the row itself
+            // comes too late or not at all
+            const activate = subMenu.activate.bind(subMenu);
+            subMenu.activate = event => {
+                if (!takeClick(event))
+                    activate(event);
+            };
 
             this._attachIndicatorMenu(
                 subMenu, indicator);
