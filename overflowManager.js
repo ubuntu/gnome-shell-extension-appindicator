@@ -77,21 +77,21 @@ export class OverflowManager extends Signals.EventEmitter {
             this._scheduleUpdate();
         });
 
+        const refresh = () => {
+            this._recordKnownIndicator(statusIcon);
+            this._scheduleUpdate();
+        };
+
         if (statusIcon._indicator) {
-            Util.connectSmart(statusIcon._indicator, 'ready',
-                this, () => {
-                    this._recordKnownIndicator(statusIcon);
-                    this._scheduleUpdate();
-                    // Re-check after commandLine loads (needed for
-                    // Electron apps sharing chrome_status_icon_1 ID)
-                    this._scheduleDelayedUpdate();
-                });
+            // The appId of apps with an unstable SNI id (Electron, Go systray)
+            // is only known once the app behind the process is resolved
+            ['ready', 'app-info'].forEach(signal =>
+                Util.connectSmart(statusIcon._indicator, signal, this, refresh));
             Util.connectSmart(statusIcon._indicator, 'status',
                 this, () => this._scheduleUpdate());
         }
 
-        this._recordKnownIndicator(statusIcon);
-        this._scheduleUpdate();
+        refresh();
     }
 
     hideIcon(indicatorId) {
@@ -154,22 +154,6 @@ export class OverflowManager extends Signals.EventEmitter {
             });
     }
 
-    _scheduleDelayedUpdate() {
-        if (this._delayedUpdateId)
-            return;
-
-        // Re-check after 3s — gives time for _commandLine to load
-        this._delayedUpdateId = GLib.timeout_add(
-            GLib.PRIORITY_DEFAULT, 3000, () => {
-                this._delayedUpdateId = 0;
-                // Re-record known indicators with resolved appIds
-                for (const icon of this._trackedIcons.values())
-                    this._recordKnownIndicator(icon);
-                this._updateVisibility();
-                return GLib.SOURCE_REMOVE;
-            });
-    }
-
     _updateVisibility() {
         const settings = SettingsManager.getDefaultGSettings();
         const pinMode =
@@ -187,41 +171,31 @@ export class OverflowManager extends Signals.EventEmitter {
 
         // Hide mode: all visible by default, hidden go to overflow
         const hiddenIds = settings.get_strv('hidden-icons');
-
-        // Active icons: ready and not PASSIVE
-        const activeIcons = allIcons.filter(icon =>
-            icon._indicator &&
-            icon._indicator.isReady &&
-            icon._indicator.status !== SNIStatus.PASSIVE
-        );
-
-        const visibleIcons = activeIcons.filter(icon =>
-            !icon._indicator.appId ||
-            !hiddenIds.includes(icon._indicator.appId)
-        );
-
-        const hiddenIcons = activeIcons.filter(icon =>
-            icon._indicator.appId &&
-            hiddenIds.includes(icon._indicator.appId)
-        );
-
-        // Visible icons — shown on panel
-        for (const icon of visibleIcons)
-            icon.setOverflowed(false);
-
-        // Hidden icons — go to overflow
         const overflowedIcons = [];
-        for (const icon of hiddenIcons) {
-            icon.setOverflowed(true);
-            overflowedIcons.push(icon);
-        }
 
-        // Inactive icons — not overflowed (own logic hides them)
-        const inactiveIcons = allIcons.filter(icon =>
-            !activeIcons.includes(icon)
-        );
-        for (const icon of inactiveIcons)
-            icon.setOverflowed(false);
+        for (const icon of allIcons) {
+            const indicator = icon._indicator;
+
+            // An icon whose appId is not final yet stays off the panel: it
+            // may well be a hidden one, and showing it until the id arrives
+            // makes it flash. It is kept out of the overflow menu too, as its
+            // entry would carry the name and icon of an unidentified app.
+            if (indicator?.appIdPending) {
+                icon.setOverflowed(true);
+                continue;
+            }
+
+            // The decision does not depend on the SNI status, so an icon the
+            // app turns active again does not appear on the panel first
+            const appId = indicator?.appId;
+            const hidden = !!appId && hiddenIds.includes(appId);
+            icon.setOverflowed(hidden);
+
+            // Only the icons the app currently shows belong in the menu
+            if (hidden && icon.isReady() &&
+                indicator?.status !== SNIStatus.PASSIVE)
+                overflowedIcons.push(icon);
+        }
 
         this._updateOverflowButton(overflowedIcons);
     }
@@ -279,11 +253,6 @@ export class OverflowManager extends Signals.EventEmitter {
         if (this._updateTimeoutId) {
             GLib.source_remove(this._updateTimeoutId);
             this._updateTimeoutId = 0;
-        }
-
-        if (this._delayedUpdateId) {
-            GLib.source_remove(this._delayedUpdateId);
-            this._delayedUpdateId = 0;
         }
 
         if (this._overflowButton) {
