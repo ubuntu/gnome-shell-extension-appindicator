@@ -20,7 +20,6 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
 
 import {SNIStatus} from './appIndicator.js';
-import * as StatusIcon from './indicatorStatusIcon.js';
 import {OverflowButton} from './overflowButton.js';
 import * as SettingsManager from './settingsManager.js';
 import * as Util from './util.js';
@@ -232,14 +231,6 @@ export class OverflowManager extends Signals.EventEmitter {
             this._overflowButton, -1,
             settings.get_string('tray-pos'));
 
-        this._overflowButton._appIndicatorOwned = true;
-
-        // Patch menuManager to skip hover-switching for overflow button
-        if (this._overflowButton.menu) {
-            StatusIcon.patchMenuManager();
-            this._overflowButton.menu.connect('open-state-changed',
-                (_m, isOpen) => { StatusIcon.setTrayMenuOpen(isOpen); });
-        }
     }
 
     _onTrayPosChanged() {
