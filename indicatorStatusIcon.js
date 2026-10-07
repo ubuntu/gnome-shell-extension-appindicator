@@ -93,7 +93,7 @@ class IndicatorBaseStatusIcon extends PanelMenu.Button {
         this._setIconActor(iconActor);
         this._showIfReady();
 
-        this.set_style(IndicatorBaseStatusIcon.DEFAULT_STYLE);
+        updateCompactModeStyle(this);
     }
 
     _setIconActor(icon) {
@@ -199,6 +199,9 @@ class IndicatorBaseStatusIcon extends PanelMenu.Button {
 
             Util.disconnectSmart(settings, this, this._compactModeEnabledIds);
             delete this._compactModeEnabledIds;
+
+            Util.disconnectSmart(settings, this, this._iconSpacingIds);
+            delete this._iconSpacingIds;
         } else if (this._icon && !monitoring) {
             this._iconSaturationIds =
                 Util.connectSmart(settings, 'changed::icon-saturation', this,
@@ -212,20 +215,15 @@ class IndicatorBaseStatusIcon extends PanelMenu.Button {
             this._compactModeEnabledIds =
                 Util.connectSmart(settings, 'changed::compact-mode-enabled', this,
                     this._updateCompactMode);
+            this._iconSpacingIds =
+                Util.connectSmart(settings, 'changed::icon-spacing', this,
+                    this._updateCompactMode);
         }
-    }
-
-    static get DEFAULT_STYLE() {
-        const settings = SettingsManager.getDefaultGSettings();
-        if (!settings.get_boolean('compact-mode-enabled'))
-            return null; // drop to default -natural-hpadding.
-
-        return '-natural-hpadding: 10px';
     }
 
     _updateCompactMode() {
         this._icon.set_style(AppIndicator.IconActor.DEFAULT_STYLE);
-        this.set_style(IndicatorBaseStatusIcon.DEFAULT_STYLE);
+        updateCompactModeStyle(this);
     }
 
     _updateSaturation() {
@@ -262,6 +260,33 @@ class IndicatorBaseStatusIcon extends PanelMenu.Button {
         }
     }
 });
+
+/**
+ * The horizontal padding of a panel button in compact mode, taken from
+ * icon-spacing, or null to fall back to the padding of the theme.
+ *
+ * @returns {string|null} the inline style, if any
+ */
+function compactModeStyle() {
+    const settings = SettingsManager.getDefaultGSettings();
+    if (!settings.get_boolean('compact-mode-enabled'))
+        return null;
+
+    const spacing = Math.max(settings.get_int('icon-spacing'), 0);
+    return `-natural-hpadding: ${spacing}px; ` +
+        `-minimum-hpadding: ${Math.min(spacing, 6)}px`;
+}
+
+/**
+ * Applies the compact mode padding to a panel button.
+ *
+ * @param {PanelMenu.Button} button - the panel button to style
+ */
+export function updateCompactModeStyle(button) {
+    button.set_style(compactModeStyle());
+    // ButtonBox only caches the paddings on style change, it does not relayout
+    button.queue_relayout();
+}
 
 /*
  * IndicatorStatusIcon implements an icon in the system status area

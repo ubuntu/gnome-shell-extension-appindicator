@@ -22,8 +22,10 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import * as DBusMenu from './dbusMenu.js';
+import * as IndicatorStatusIcon from './indicatorStatusIcon.js';
 import * as OverflowManagerModule from './overflowManager.js';
 import * as SettingsManager from './settingsManager.js';
+import * as Util from './util.js';
 import * as WindowManager from './windowManager.js';
 
 const FALLBACK_ICON_NAME = 'application-x-executable-symbolic';
@@ -51,7 +53,12 @@ class IndicatorOverflowButton extends PanelMenu.Button {
         box.add_child(icon);
         this.add_child(box);
 
-        this._applyStyle();
+        const settings = SettingsManager.getDefaultGSettings();
+        const updateStyle = () =>
+            IndicatorStatusIcon.updateCompactModeStyle(this);
+        Util.connectSmart(settings, 'changed::compact-mode-enabled', this, updateStyle);
+        Util.connectSmart(settings, 'changed::icon-spacing', this, updateStyle);
+        updateStyle();
     }
 
     vfunc_event(event) {
@@ -61,14 +68,6 @@ class IndicatorOverflowButton extends PanelMenu.Button {
             return Clutter.EVENT_STOP;
         }
         return Clutter.EVENT_PROPAGATE;
-    }
-
-    _applyStyle() {
-        const settings = SettingsManager.getDefaultGSettings();
-        if (settings.get_boolean('compact-mode-enabled'))
-            this.set_style('-natural-hpadding: 10px');
-        else
-            this.set_style(null);
     }
 
     updateMenu(overflowedIcons) {
