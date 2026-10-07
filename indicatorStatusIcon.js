@@ -78,7 +78,13 @@ class IndicatorBaseStatusIcon extends PanelMenu.Button {
     _init(menuAlignment, nameText, iconActor, dontCreateMenu) {
         super._init(menuAlignment, nameText, dontCreateMenu);
 
-        this._isOverflowed = false;
+        // The icon waits off the panel until the manager has classified it:
+        // showing it first and hiding it once the appId is known makes the
+        // hidden ones flash, most visibly when the shell enables the
+        // extension again after the lock screen. Must be set before the
+        // first _showIfReady() call below.
+        this._isOverflowed = !!OverflowManager.OverflowManager.getDefault() &&
+            SettingsManager.getDefaultGSettings().get_boolean('pin-mode-enabled');
 
         const settings = SettingsManager.getDefaultGSettings();
         Util.connectSmart(settings, 'changed::icon-opacity', this, this._updateOpacity);
@@ -302,6 +308,12 @@ class IndicatorStatusIcon extends BaseStatusIcon {
 
         this._indicator = indicator;
 
+        // Last visibility derived from the SNI status only (overflow ignored),
+        // so checkAlive() is triggered by status changes and not by overflow.
+        // An item counts as Active until it says otherwise, which is what the
+        // upstream logic assumed by comparing to a fresh actor.
+        this._statusVisible = true;
+
         this._lastClickTime = -1;
         this._lastClickX = -1;
         this._lastClickY = -1;
@@ -375,10 +387,14 @@ class IndicatorStatusIcon extends BaseStatusIcon {
     }
 
     _updateStatus() {
-        const wasVisible = this.visible;
-        this.visible = this._indicator.status !== AppIndicator.SNIStatus.PASSIVE;
+        const wasStatusVisible = this._statusVisible;
+        this._statusVisible =
+            this._indicator.status !== AppIndicator.SNIStatus.PASSIVE;
 
-        if (this.visible !== wasVisible)
+        // An overflowed icon must never reappear on the panel
+        this.visible = !this._isOverflowed && this._statusVisible;
+
+        if (this._statusVisible !== wasStatusVisible)
             this._indicator.checkAlive().catch(logError);
     }
 
@@ -407,8 +423,13 @@ class IndicatorStatusIcon extends BaseStatusIcon {
     }
 
     _showIfReady() {
-        if (!this.isReady())
+        // The override runs from the base constructor too, before there is an
+        // indicator, and an actor is visible by default: an icon that is not
+        // ready yet has to be hidden here, or it shows up empty
+        if (!this.isReady()) {
+            this.visible = false;
             return;
+        }
 
         this._updateLabel();
         this._updateStatus();
