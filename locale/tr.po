@@ -1,13 +1,13 @@
-# Ubuntu AppIndicator Turkish Translate.
-# Copyright (C) 2019-2023 Ubuntu AppIndicator'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Ubuntu AppIndicator package.
+# Turkish translation for AppIndicatorExtension.
+# Copyright (C) 2019-2023 AppIndicatorExtension translators
+# This file is distributed under the same license as the AppIndicatorExtension package.
 #
 # Serdar Sağlam <teknomobil@yandex.com>, 2019.
 # Sabri Ünal <libreajans@gmail.com>, 2023.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Ubuntu AppIndicator\n"
+"Project-Id-Version: AppIndicatorExtension\n"
 "Report-Msgid-Bugs-To: https://github.com/ubuntu/gnome-shell-extension-appindicator\n"
 "POT-Creation-Date: 2023-03-07 02:36+0100\n"
 "PO-Revision-Date: 2023-04-20 12:56+0300\n"

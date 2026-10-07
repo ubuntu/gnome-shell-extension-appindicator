@@ -1,7 +1,9 @@
 # Hungarian translation for AppIndicator GNOME Shell Extension.
+# Copyright (C) 2017 AppIndicatorExtension translators
 # Copyright (C) 2022, 2023 Free Software Foundation, Inc.
 # This file is distributed under the same license as the gnome-shell-extension-appindicator package.
 #
+# Falu <falu@gmx.us>, 2017.
 # Balázs Úr <ur.balazs at fsf dot hu>, 2022, 2023.
 msgid ""
 msgstr ""

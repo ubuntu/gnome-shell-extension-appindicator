@@ -1,5 +1,5 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# Translations template for AppIndicatorExtension.
+# Copyright (C) 2025 AppIndicatorExtension translators
 # This file is distributed under the same license as the AppIndicatorExtension package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
@@ -14,7 +14,7 @@ msgstr ""
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 #: preferences/generalPage.js:15

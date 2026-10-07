@@ -64,7 +64,7 @@ export class StatusNotifierWatcher {
         try {
             this._dbusImpl.emit_signal('StatusNotifierHostRegistered', null);
         } catch (e) {
-            Util.Logger.warn(`Failed to notify registered host ${WATCHER_OBJECT}`);
+            Util.Logger.warn(`Failed to notify registered host ${WATCHER_OBJECT}: ${e.message}`);
         }
 
         this._seekStatusNotifierItems(extension).catch(e => {
@@ -122,7 +122,7 @@ export class StatusNotifierWatcher {
             IndicatorStatusIcon.addIconToPanel(statusIcon);
 
             this._dbusImpl.emit_signal('StatusNotifierItemRegistered',
-                GLib.Variant.new('(s)', [indicator.uniqueId]));
+                GLib.Variant.new('(s)', [indicator.service]));
             this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems',
                 GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
         } catch (e) {
@@ -212,9 +212,31 @@ export class StatusNotifierWatcher {
         const [service] = params;
         let busName, objPath;
 
-        if (service.charAt(0) === '/') { // looks like a path
+        Util.Logger.debug(`Received registration request for service: '${params}'`);
+        const pathIndex = service.indexOf('/');
+
+        if (pathIndex === 0) { // looks like a path
             busName = invocation.get_sender();
             objPath = service;
+        } else if (pathIndex > 0) {
+            // Electron started another non-standard format: yay!
+            // They're now providing the service name as first element, followed
+            // by a DBus path. This is wrong, but not much we can do about it.
+            const name = service.slice(0, pathIndex);
+            try {
+                busName = await DBusUtils.getUniqueBusName(invocation.get_connection(),
+                    name, this._cancellable);
+            } catch (e) {
+                logError(e);
+            }
+            objPath = service.slice(pathIndex);
+        } else if (service.match(DBusUtils.BUS_SNI_NAME_REGEX)) {
+            // If the app uses a standard SNI name, use it as is, in this case,
+            // as some apps (look at you electron!) rely on the bus name and
+            // match rules to handle the requests.
+            // We still check they are registered in the bus though.
+            busName = service;
+            objPath = DEFAULT_ITEM_OBJECT_PATH;
         } else if (service.match(DBusUtils.BUS_ADDRESS_REGEX)) {
             try {
                 busName = await DBusUtils.getUniqueBusName(invocation.get_connection(),
@@ -247,12 +269,12 @@ export class StatusNotifierWatcher {
     }
 
     _onIndicatorDestroyed(indicator) {
-        const {uniqueId} = indicator;
+        const {uniqueId, service} = indicator;
         this._items.delete(uniqueId);
 
         try {
             this._dbusImpl.emit_signal('StatusNotifierItemUnregistered',
-                GLib.Variant.new('(s)', [uniqueId]));
+                GLib.Variant.new('(s)', [service]));
             this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems',
                 GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
         } catch (e) {
@@ -272,7 +294,7 @@ export class StatusNotifierWatcher {
     }
 
     get RegisteredStatusNotifierItems() {
-        return Array.from(this._items.values()).map(i => i.uniqueId);
+        return Array.from(this._items.values()).map(i => i.service);
     }
 
     get IsStatusNotifierHostRegistered() {
@@ -312,7 +334,6 @@ export class StatusNotifierWatcher {
         DBusProxy.destroy();
         Util.destroyDefaultTheme();
 
-        this._dbusImpl.run_dispose();
         delete this._dbusImpl;
 
         delete this._items;

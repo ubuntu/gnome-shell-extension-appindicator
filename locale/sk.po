@@ -1,5 +1,5 @@
-# Slovak translation of gnome-shell-extension-appindicator.
-# Copyright (C) 2022
+# Slovak translation for AppIndicatorExtension.
+# Copyright (C) 2022 AppIndicatorExtension translators
 # This file is distributed under the same license as the AppIndicatorExtension package.
 # Jose Riha <jose1711 gmail com>, 2022.
 #

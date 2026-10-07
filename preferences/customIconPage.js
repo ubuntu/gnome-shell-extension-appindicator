@@ -147,41 +147,41 @@ class AppIndicatorCustomIconPage extends Adw.PreferencesPage {
 
         const factoryId = new Gtk.SignalListItemFactory();
         factoryId.connect('setup', (_widget, item) => {
-            const label = new Gtk.EditableLabel({text: ''});
-            item.set_child(label);
+            const entry = new Gtk.Entry({hexpand: true, max_width_chars: 20});
+            item.set_child(entry);
         });
         factoryId.connect('bind', (_widget, item) => {
-            const label = item.get_child();
+            const entry = item.get_child();
             const data = item.get_item();
-            label.set_text(data.id);
-            label.bind_property('text', data, 'id', GObject.BindingFlags.SYNC_CREATE);
-            label.connect('changed', () => this._autoSave(item));
+            entry.set_text(data.id);
+            entry.bind_property('text', data, 'id', GObject.BindingFlags.SYNC_CREATE);
+            entry.connect('changed', () => this._autoSave(item));
         });
 
         const factoryName = new Gtk.SignalListItemFactory();
         factoryName.connect('setup', (_widget, item) => {
-            const label = new Gtk.EditableLabel({text: ''});
-            item.set_child(label);
+            const entry = new Gtk.Entry({hexpand: true, max_width_chars: 20});
+            item.set_child(entry);
         });
         factoryName.connect('bind', (_widget, item) => {
-            const label = item.get_child();
+            const entry = item.get_child();
             const data = item.get_item();
-            label.set_text(data.name);
-            label.bind_property('text', data, 'name', GObject.BindingFlags.SYNC_CREATE);
-            label.connect('changed', () => this._autoSave(item));
+            entry.set_text(data.name);
+            entry.bind_property('text', data, 'name', GObject.BindingFlags.SYNC_CREATE);
+            entry.connect('changed', () => this._autoSave(item));
         });
 
         const factoryItName = new Gtk.SignalListItemFactory();
         factoryItName.connect('setup', (_widget, item) => {
-            const label = new Gtk.EditableLabel({text: ''});
-            item.set_child(label);
+            const entry = new Gtk.Entry({hexpand: true, max_width_chars: 20});
+            item.set_child(entry);
         });
         factoryItName.connect('bind', (_widget, item) => {
-            const label = item.get_child();
+            const entry = item.get_child();
             const data = item.get_item();
-            label.set_text(data.atName);
-            label.bind_property('text', data, 'at-name', GObject.BindingFlags.SYNC_CREATE);
-            label.connect('changed', () => this._autoSave(item));
+            entry.set_text(data.atName);
+            entry.bind_property('text', data, 'at-name', GObject.BindingFlags.SYNC_CREATE);
+            entry.connect('changed', () => this._autoSave(item));
         });
 
         indicatorIdColumn.set_factory(factoryId);

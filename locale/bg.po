@@ -1,5 +1,5 @@
-# Bulgarian translation file
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# Bulgarian translation for AppIndicatorExtension.
+# Copyright (C) 2024-2025 AppIndicatorExtension translators
 # This file is distributed under the same license as the AppIndicatorExtension package.
 # Iliya Iliev <iliq0000@proton.me>, 2024-2025.
 #

@@ -1,7 +1,7 @@
-# Chinese translations for AppIndicatorExtension package.
-# Copyright (C) 2024 THE AppIndicatorExtension'S COPYRIGHT HOLDER
+# Chinese (Traditional) translation for AppIndicatorExtension.
+# Copyright (C) 2024 AppIndicatorExtension translators
 # This file is distributed under the same license as the AppIndicatorExtension package.
-# Peter Hsu <hsu@peterdavehello.org>, 2024.
+# Peter Dave Hello <hsu@peterdavehello.org>, 2024.
 #
 msgid ""
 msgstr ""

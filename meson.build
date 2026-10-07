@@ -1,11 +1,12 @@
 project('gnome-shell-ubuntu-appindicators',
-  version : '64',
+  version : '66',
   meson_version : '>= 0.53',
   license: 'GPL2',
 )
 
 gnome = import ('gnome')
 i18n = import('i18n')
+fs = import('fs')
 
 if get_option('local_install').auto()
     local_install = false
@@ -38,7 +39,18 @@ else
 endif
 
 ls_cmd = ' '.join(['ls', '-1', '@0@'])
-js_sources = run_command(sh, '-c', ls_cmd.format('*.js')).stdout().strip().split('\n')
+
+git = find_program('git', required: false)
+if git.found() and fs.exists(meson.source_root() / '.git')
+    js_sources = run_command(git, '-C', meson.source_root(),
+        'ls-files', '--', ':(top,glob)*.js').stdout().strip().split('\n')
+    all_js_sources = run_command(git, '-C', meson.source_root(),
+        'ls-files', '--', ':(top,glob)**/*.js').stdout().strip().split('\n')
+else
+    js_sources = run_command(sh, '-c', ls_cmd.format('*.js')).stdout().strip().split('\n')
+    all_js_sources = run_command('find', '-name', '*.js').stdout().strip().split('\n')
+endif
+
 install_data(metadata,
     files(js_sources),
     files('stylesheet.css'),
@@ -56,11 +68,20 @@ subdir('schemas')
 subdir('locale')
 
 
+gjs = find_program('gjs', required: false)
+if gjs.found()
+    test('menu-utils',
+        gjs,
+        args: ['-m', files('tests/testMenuUtils.js')],
+        protocol: 'tap')
+endif
+
 eslint = find_program('eslint', required: false)
 if eslint.found()
     test('eslint',
         eslint,
-        args: [meson.project_source_root(), '-f', 'tap'],
+        env: {'ESLINT_USE_FLAT_CONFIG': 'false'},
+        args: ['-f', 'tap'] + files(all_js_sources),
         workdir: meson.source_root(),
         protocol: 'tap')
 endif
@@ -87,6 +108,7 @@ summary({
     'Extension UUID': uuid,
     'Gettext domain': gettext_domain,
     'ESLint': eslint.found(),
+    'GJS': gjs.found(),
     },
     section: 'Configuration')
 

@@ -35,6 +35,16 @@ import * as DBusMenu from './dbusMenu.js';
 
 export const DEFAULT_ICON_SIZE = Panel.PANEL_ICON_SIZE || 16;
 
+function getClutterSettings() {
+    // When we will depend on GNOME 47 we can just use Clutter.Actor.get_context()
+    try {
+        const clutterContext = global.stage.context;
+        return clutterContext.get_settings();
+    } catch {
+        return Clutter.Settings.get_default();
+    }
+}
+
 export function addIconToPanel(statusIcon) {
     if (!(statusIcon instanceof BaseStatusIcon))
         throw TypeError(`Unexpected icon type: ${statusIcon}`);
@@ -329,8 +339,9 @@ class IndicatorStatusIcon extends BaseStatusIcon {
             this._updateStatus();
             this._updateLabel();
         });
-        Util.connectSmart(this._indicator, 'accessible-name', this, () =>
-            this.set_accessible_name(this._indicator.accessibleName));
+        Util.connectSmart(this._indicator, 'accessible-name', this, () => {
+            this.accessibleName = this._indicator.accessibleName;
+        });
         Util.connectSmart(this._indicator, 'destroy', this, () => this.destroy());
 
         this.connect('notify::visible', () => this._updateMenu());
@@ -510,8 +521,7 @@ class IndicatorStatusIcon extends BaseStatusIcon {
     _updateClickCount(event) {
         const [x, y] = event.get_coords();
         const time = event.get_time();
-        const {doubleClickDistance, doubleClickTime} =
-            Clutter.Settings.get_default();
+        const {doubleClickDistance, doubleClickTime} = getClutterSettings();
 
         if (time > (this._lastClickTime + doubleClickTime) ||
             (Math.abs(x - this._lastClickX) > doubleClickDistance) ||
@@ -527,6 +537,7 @@ class IndicatorStatusIcon extends BaseStatusIcon {
         return this._clickCount;
     }
 
+    // FIXME: Add a double click gesture handle when we can depend on GNOME 49.
     _maybeHandleDoubleClick(event) {
         if (this._indicator.supportsActivation === false)
             return Clutter.EVENT_PROPAGATE;
@@ -543,7 +554,7 @@ class IndicatorStatusIcon extends BaseStatusIcon {
     }
 
     async _waitForDoubleClick() {
-        const {doubleClickTime} = Clutter.Settings.get_default();
+        const {doubleClickTime} = getClutterSettings();
         this._waitDoubleClickPromise = new PromiseUtils.TimeoutPromise(
             doubleClickTime);
 
