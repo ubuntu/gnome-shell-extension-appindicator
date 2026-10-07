@@ -57,7 +57,7 @@ class IndicatorOverflowButton extends PanelMenu.Button {
 
         this._menuClients = [];
 
-        this._menuClients = [];
+        DBusMenu.trackOpenedSubMenu(this.menu);
 
         const box = new St.BoxLayout({
             style_class: 'panel-status-indicators-box',
