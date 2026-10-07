@@ -26,33 +26,35 @@ const _appCache = new WeakMap();
 const GENERIC_DIRS = ['/bin', '/sbin', '/usr/bin', '/usr/sbin', '/usr/local/bin', '/opt'];
 
 /**
- * Toggle windows for an indicator: activate if not focused,
- * minimize if focused, or fall through if no windows found.
+ * Toggle windows for an indicator, like a taskbar entry: minimize if the app
+ * is focused, activate its windows otherwise. An app without windows (closed
+ * to tray) is launched again when its running instance is known to take the
+ * launch and bring its window back.
  *
  * @param {AppIndicator} indicator - the SNI indicator
+ * @param {number} timestamp - event time
  * @returns {boolean} true if handled, false to fall through
  */
-export function toggleWindows(indicator) {
-    const app = findDesktopApp(indicator);
-    if (!app)
+export function toggleWindows(indicator, timestamp) {
+    return _toggleWindowsOf(findDesktopApp(indicator), timestamp,
+        () => indicator.executable);
+}
+
+function _toggleWindowsOf(app, timestamp, getExecutable) {
+    if (!app || (!app.get_windows().length && !_reopensWindow(app, getExecutable)))
         return false;
 
-    const windows = app.get_windows();
-    if (!windows.length)
-        return false;
+    return _toggleAppWindows(app, timestamp);
+}
 
-    const focusedApp = WindowTracker.focusApp;
-    if (focusedApp && focusedApp.get_id() === app.get_id()) {
-        for (const win of windows)
-            win.minimize();
-        return true;
-    }
-
-    for (const win of windows) {
-        win.unminimize();
-        app.activate_window(win, global.get_current_time());
-    }
-    return true;
+// An app that is closed to the tray has no window to raise. A second launch
+// reaches the running instance in two cases: a D-Bus activatable app is
+// activated over the bus instead of being started, and Electron hands the
+// launch over through its single instance lock. The executable is only read
+// when the desktop file does not answer the question.
+function _reopensWindow(app, getExecutable) {
+    return app.appInfo?.get_boolean('DBusActivatable') ||
+        _isElectron(getExecutable());
 }
 
 /**
@@ -78,6 +80,29 @@ export function findDesktopApp(indicator) {
     // The command line is read asynchronously, resolve again once it is set
     return _cachedLookup(indicator, indicator._commandLine, () =>
         _lookupApp(indicator.executable, [indicator.id, indicator.title]));
+}
+
+function _toggleAppWindows(app, timestamp) {
+    const windows = app.get_windows();
+    if (!windows.length) {
+        app.open_new_window(-1);
+        return true;
+    }
+
+    const focusedApp = WindowTracker.focusApp;
+    if (focusedApp && focusedApp.get_id() === app.get_id()) {
+        windows.forEach(win => win.minimize());
+        return true;
+    }
+
+    const workspace = global.workspace_manager.get_active_workspace();
+    for (const win of windows) {
+        if (!win.is_on_all_workspaces())
+            win.change_workspace(workspace);
+        win.unminimize();
+        app.activate_window(win, timestamp);
+    }
+    return true;
 }
 
 function _cachedLookup(key, cacheTag, lookup) {
@@ -153,4 +178,23 @@ function _lookupApp(exe, names) {
     }
 
     return best;
+}
+
+const _electronPaths = new Map();
+
+function _isElectron(exe) {
+    if (!exe || !GLib.path_is_absolute(exe))
+        return false;
+
+    const dir = GLib.path_get_dirname(exe);
+    let isElectron = _electronPaths.get(dir);
+
+    if (isElectron === undefined) {
+        isElectron =
+            GLib.file_test(`${dir}/chrome_crashpad_handler`, GLib.FileTest.EXISTS) ||
+            GLib.file_test(`${dir}/resources/app.asar`, GLib.FileTest.EXISTS);
+        _electronPaths.set(dir, isElectron);
+    }
+
+    return isElectron;
 }

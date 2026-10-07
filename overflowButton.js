@@ -102,7 +102,7 @@ class IndicatorOverflowButton extends PanelMenu.Button {
             // Left click on the row = activate/toggle window + close overflow
             subMenu.connect('button-press-event', (_actor, event) => {
                 if (event.get_button() === Clutter.BUTTON_PRIMARY) {
-                    if (!WindowManager.toggleWindows(indicator))
+                    if (!WindowManager.toggleWindows(indicator, event.get_time()))
                         indicator.open(
                             ...event.get_coords(), event.get_time());
                     this.menu.close();

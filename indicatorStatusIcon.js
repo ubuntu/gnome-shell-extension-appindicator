@@ -27,6 +27,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import * as AppIndicator from './appIndicator.js';
 import * as OverflowManager from './overflowManager.js';
+import * as WindowManager from './windowManager.js';
 import * as PromiseUtils from './promiseUtils.js';
 import * as SettingsManager from './settingsManager.js';
 import * as Util from './util.js';
@@ -518,6 +519,11 @@ class IndicatorStatusIcon extends BaseStatusIcon {
             this.menu.toggle();
             return Clutter.EVENT_PROPAGATE;
         }
+
+        // Left click raises or minimizes the app windows, like a taskbar entry
+        if (event.get_button() === Clutter.BUTTON_PRIMARY &&
+            WindowManager.toggleWindows(this._indicator, event.get_time()))
+            return Clutter.EVENT_STOP;
 
         const doubleClickHandled = this._maybeHandleDoubleClick(event);
         if (doubleClickHandled === Clutter.EVENT_PROPAGATE &&
