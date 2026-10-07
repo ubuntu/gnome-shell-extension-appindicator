@@ -14,9 +14,16 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+import GLib from 'gi://GLib';
 import Shell from 'gi://Shell';
 
 const WindowTracker = Shell.WindowTracker.get_default();
+
+// Resolved apps, keyed by indicator and by tray icon
+const _appCache = new WeakMap();
+
+// Directories shared by many apps, too generic to match an app by
+const GENERIC_DIRS = ['/bin', '/sbin', '/usr/bin', '/usr/sbin', '/usr/local/bin', '/opt'];
 
 /**
  * Toggle windows for an indicator: activate if not focused,
@@ -26,7 +33,7 @@ const WindowTracker = Shell.WindowTracker.get_default();
  * @returns {boolean} true if handled, false to fall through
  */
 export function toggleWindows(indicator) {
-    const app = _findApp(indicator);
+    const app = findDesktopApp(indicator);
     if (!app)
         return false;
 
@@ -43,60 +50,107 @@ export function toggleWindows(indicator) {
 
     for (const win of windows) {
         win.unminimize();
-        app.activate_window(
-            win, global.get_current_time());
+        app.activate_window(win, global.get_current_time());
     }
     return true;
 }
 
-function _findApp(indicator) {
+/**
+ * Find the app an indicator belongs to, whether it has windows or not. The
+ * indicator resolves the app of its process itself; the lookup by executable
+ * is only needed for the apps it could not identify.
+ *
+ * @param {AppIndicator} indicator - the SNI indicator
+ * @returns {Shell.App|null} the app, if any
+ */
+export function findDesktopApp(indicator) {
     if (!indicator?.id)
         return null;
 
     const appSystem = Shell.AppSystem.get_default();
-    const id = indicator.id.toLowerCase();
-    const title = indicator.title?.toLowerCase();
-    const cmdLine = indicator._commandLine?.toLowerCase();
-
-    // Try direct desktop-file lookup
-    for (const suffix of ['', '.desktop']) {
-        const app = appSystem.lookup_app(indicator.id + suffix);
-        if (app?.get_windows().length)
+    const appId = indicator._appInfo?.get_id();
+    if (appId) {
+        const app = appSystem.lookup_app(appId);
+        if (app)
             return app;
     }
 
-    // Match by command line first (reliable for Electron apps sharing same SNI ID)
-    if (cmdLine) {
-        for (const app of appSystem.get_running()) {
-            if (!app.get_windows().length)
-                continue;
+    // The command line is read asynchronously, resolve again once it is set
+    return _cachedLookup(indicator, indicator._commandLine, () =>
+        _lookupApp(indicator.executable, [indicator.id, indicator.title]));
+}
 
-            const appId = app.get_id()?.toLowerCase().replace('.desktop', '');
-            if (appId && cmdLine.includes(appId))
-                return app;
+function _cachedLookup(key, cacheTag, lookup) {
+    const cached = _appCache.get(key);
+    if (cached && cached.tag === cacheTag)
+        return cached.app;
+
+    const app = lookup();
+    _appCache.set(key, {tag: cacheTag, app});
+    return app;
+}
+
+// The shell keeps indexes of the installed desktop files, which answer the
+// same question without walking them all
+function _lookupByName(name) {
+    if (!name)
+        return null;
+
+    const appSystem = Shell.AppSystem.get_default();
+    return appSystem.lookup_startup_wmclass(name) ??
+        appSystem.lookup_desktop_wmclass(name) ?? null;
+}
+
+// Scores installed apps: same executable, then StartupWMClass or desktop id
+// equal to one of the names, then an app specific install directory
+function _lookupApp(exe, names) {
+    const appSystem = Shell.AppSystem.get_default();
+    const exeBasename = exe ? GLib.path_get_basename(exe) : null;
+
+    for (const name of [...names, exeBasename]) {
+        const app = _lookupByName(name);
+        if (app)
+            return app;
+    }
+
+    if (exeBasename) {
+        const app = appSystem.lookup_heuristic_basename(exeBasename);
+        if (app)
+            return app;
+    }
+
+    const lowerNames = [exeBasename, ...names]
+        .filter(n => n).map(n => n.toLowerCase());
+    const exeDir = exe ? GLib.path_get_dirname(exe) : null;
+    const matchDir = exeDir && !GENERIC_DIRS.includes(exeDir);
+
+    let best = null;
+    let bestScore = 0;
+    for (const info of appSystem.get_installed()) {
+        const commandLine = info.get_commandline() || '';
+        const wmClass = info.get_startup_wm_class()?.toLowerCase();
+        const desktopId = info.get_id()?.toLowerCase().replace(/\.desktop$/, '');
+        let score = 0;
+
+        if (exe && commandLine.split(/\s+/).includes(exe))
+            score = 3;
+        else if ((wmClass && lowerNames.includes(wmClass)) ||
+                 (desktopId && lowerNames.includes(desktopId)))
+            score = 2;
+        else if (matchDir && commandLine.includes(`${exeDir}/`))
+            score = 1;
+
+        if (score > bestScore) {
+            const app = appSystem.lookup_app(info.get_id());
+            if (app) {
+                best = app;
+                bestScore = score;
+
+                if (bestScore === 3)
+                    break;
+            }
         }
     }
 
-    // Match by wm_class among running apps
-    for (const app of appSystem.get_running()) {
-        const windows = app.get_windows();
-        if (!windows.length)
-            continue;
-
-        const wmClass = windows[0].get_wm_class()?.toLowerCase();
-        const appId = app.get_id()?.toLowerCase();
-
-        if (wmClass && id && (wmClass.includes(id) || id.includes(wmClass)))
-            return app;
-        if (wmClass && title && (wmClass.includes(title) || title.includes(wmClass)))
-            return app;
-        if (appId && id && appId.includes(id))
-            return app;
-
-        // Match command line against wm_class
-        if (wmClass && cmdLine && cmdLine.includes(wmClass))
-            return app;
-    }
-
-    return null;
+    return best;
 }
