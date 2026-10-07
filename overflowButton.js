@@ -29,6 +29,13 @@ import * as SettingsManager from './settingsManager.js';
 import * as Util from './util.js';
 import * as WindowManager from './windowManager.js';
 
+// The name an entry carries, which may only be known after it was built
+function indicatorTitle(statusIcon) {
+    const indicator = statusIcon._indicator;
+
+    return indicator?.title || indicator?.appId || '';
+}
+
 // Whether an event happened on the expander of a submenu item. The expander
 // is reactive, so it is the actor the stage delivers its events to. A button
 // event carries no source to ask instead
@@ -79,6 +86,16 @@ class IndicatorOverflowButton extends PanelMenu.Button {
     }
 
     updateMenu(overflowedIcons) {
+        // Rebuilding tears down the icon actors and the attached menus of
+        // every entry, so it only happens when the set really changed. The
+        // name counts as well: the app behind an indicator may only be known
+        // after its entry was built, once its command line has been read
+        const entryIds = overflowedIcons.map(icon =>
+            `${icon.uniqueId}:${indicatorTitle(icon)}`).join();
+        if (entryIds === this._entryIds)
+            return;
+
+        this._entryIds = entryIds;
         this._destroyMenuClients();
         this.menu.removeAll();
 
@@ -154,60 +171,64 @@ class IndicatorOverflowButton extends PanelMenu.Button {
                     activate(event);
             };
 
-            this._attachIndicatorMenu(
-                subMenu, indicator);
+            // The DBus menu gets its own section: the client adds items
+            // asynchronously (and removeAll()s its root menu on attach), so
+            // this keeps the management items always at the bottom
+            const dbusMenuSection = new PopupMenu.PopupMenuSection();
+            subMenu.menu.addMenuItem(dbusMenuSection);
+            this._addManagementItems(subMenu, appId);
 
             this.menu.addMenuItem(subMenu);
+
+            // Attach the DBus menu on first use: asking every app for its menu
+            // on each rebuild is needless traffic, and some of them log errors
+            // for an AboutToShow of a menu that is not shown
+            const openId = subMenu.menu.connect('open-state-changed',
+                (_menu, isOpen) => {
+                    if (!isOpen)
+                        return;
+
+                    subMenu.menu.disconnect(openId);
+                    this._attachIndicatorMenu(dbusMenuSection, indicator);
+                });
         }
 
         this.visible = overflowedIcons.length > 0;
     }
 
-    _attachIndicatorMenu(subMenu, indicator) {
-        if (!indicator.menuPath) {
-            // No DBus menu — just add management items
-            this._addManagementItems(subMenu, indicator);
+    _attachIndicatorMenu(section, indicator) {
+        if (!indicator.menuPath)
             return;
-        }
 
-        const client = new DBusMenu.Client(
-            indicator.busName,
-            indicator.menuPath,
-            indicator
-        );
+        const client = new DBusMenu.Client(indicator.busName,
+            indicator.menuPath, indicator);
 
+        // Attach only once: attachToMenu() connects its handlers every time
+        let attached = false;
         const attach = () => {
-            client.attachToMenu(subMenu.menu);
-            // Add "Show on Panel" AFTER DBus menu items
-            // (attachToMenu calls removeAll, so we must add after)
-            this._addManagementItems(subMenu, indicator);
+            if (attached || !client.isReady)
+                return;
+
+            attached = true;
+            client.attachToMenu(section);
         };
 
-        if (client.isReady)
-            attach();
-
-        const readyId = client.connect('ready-changed', () => {
-            if (client.isReady)
-                attach();
-        });
+        const readyId = client.connect('ready-changed', attach);
         this._menuClients.push({client, readyId});
+        attach();
     }
 
-    _addManagementItems(subMenu, indicator) {
-        const manager =
-            OverflowManagerModule.OverflowManager.getDefault();
-        if (!manager || !indicator.appId)
+    _addManagementItems(subMenu, appId) {
+        const manager = OverflowManagerModule.OverflowManager.getDefault();
+        if (!manager || !appId)
             return;
 
-        const separator =
-            new PopupMenu.PopupSeparatorMenuItem();
+        const separator = new PopupMenu.PopupSeparatorMenuItem();
         subMenu.menu.addMenuItem(separator);
 
-        const showItem = new PopupMenu.PopupMenuItem(
-            'Show on Panel'
-        );
+        const showItem = new PopupMenu.PopupMenuItem('Show on Panel');
         showItem.connect('activate', () => {
-            manager.unhideIcon(indicator.appId);
+            manager.unhideIcon(appId);
         });
         subMenu.menu.addMenuItem(showItem);
     }
