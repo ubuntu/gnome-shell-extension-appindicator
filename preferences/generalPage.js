@@ -50,6 +50,20 @@ class AppIndicatorGeneralPage extends Adw.PreferencesPage {
 
         this.group.add(compactModeSwitch);
 
+        const spacingRow = this._createSpinRow({
+            title: _('Icon Spacing in Compact Mode'),
+            settingsKey: this._settingsKey.ICON_SPACING,
+            from: 0,
+            to: 24,
+            step: 1,
+            round: true,
+        });
+
+        spacingRow.sensitive = compactModeSwitch.active;
+        compactModeSwitch.connect('notify::active', widget => {
+            spacingRow.sensitive = widget.get_active();
+        });
+
         this._createSpinRow({
             title: _('Opacity'),
             settingsKey: this._settingsKey.ICON_OPACITY,
@@ -166,6 +180,8 @@ class AppIndicatorGeneralPage extends Adw.PreferencesPage {
         });
 
         this.group.add(spin);
+
+        return spin;
     }
 });
 

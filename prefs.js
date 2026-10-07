@@ -16,6 +16,7 @@ import {
 const SettingsKey = {
     LEGACY_TRAY_ENABLED: 'legacy-tray-enabled',
     COMPACT_MODE_ENABLED: 'compact-mode-enabled',
+    ICON_SPACING: 'icon-spacing',
     ICON_SIZE: 'icon-size',
     ICON_OPACITY: 'icon-opacity',
     ICON_SATURATION: 'icon-saturation',

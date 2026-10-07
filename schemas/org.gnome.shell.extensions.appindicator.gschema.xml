@@ -30,6 +30,12 @@
       <summary>Compact Mode</summary>
       <description>Reduces the Spacing Between Indicators</description>
     </key>
+    <key name="icon-spacing" type="i">
+      <default>10</default>
+      <range min="0" max="24"/>
+      <summary>Icon Spacing in Compact Mode</summary>
+      <description>Horizontal padding of each indicator, in pixels</description>
+    </key>
     <key name="tray-pos" type="s">
       <default>"right"</default>
       <summary>Position in tray</summary>
