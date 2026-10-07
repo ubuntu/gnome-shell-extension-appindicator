@@ -108,8 +108,8 @@ class AppIndicatorGeneralPage extends Adw.PreferencesPage {
 
         const pinModeSwitch = new Adw.SwitchRow({
             title: _('Pin Mode'),
-            subtitle: _('Right-click indicators to hide them '
-                + 'into the overflow menu'),
+            subtitle: _('Right-click indicators to hide them ' +
+                'into the overflow menu'),
             active: this._settings.get_boolean(
                 this._settingsKey.PIN_MODE_ENABLED),
         });

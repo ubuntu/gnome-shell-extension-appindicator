@@ -6,7 +6,7 @@ import Gtk from 'gi://Gtk';
 import GObject from 'gi://GObject';
 import GLib from 'gi://GLib';
 import {
-    gettext as _,
+    gettext as _
 } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 const IndicatorData = GObject.registerClass({
@@ -83,8 +83,8 @@ class AppIndicatorIndicatorPage extends Adw.PreferencesPage {
         const group = new Adw.PreferencesGroup({
             title: _('Indicator Management'),
             description: _(
-                'Hide indicators from the panel when Pin Mode is enabled. '
-                + 'Hidden indicators go to the overflow menu.'
+                'Hide indicators from the panel when Pin Mode is enabled. ' +
+                'Hidden indicators go to the overflow menu.'
             ),
         });
 

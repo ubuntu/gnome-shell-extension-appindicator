@@ -481,7 +481,7 @@ class IndicatorStatusIcon extends BaseStatusIcon {
 
         this._destroyManagementMenuItems();
 
-        const appId = this._indicator.appId;
+        const {appId} = this._indicator;
         const isHidden = manager.isHidden(appId);
 
         this._mgmtSeparator =
