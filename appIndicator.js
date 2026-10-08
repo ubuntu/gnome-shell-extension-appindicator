@@ -440,7 +440,6 @@ export class AppIndicator extends Signals.EventEmitter {
         this._cancellable = new Gio.Cancellable();
         this._proxy = new AppIndicatorProxy(busName, object);
         this._invalidatedPixmapsIcons = new Set();
-        this._isWine = false;
 
         this._setupProxy().catch(logError);
         Util.connectSmart(this._proxy, 'g-properties-changed', this, this._onPropertiesChanged);
@@ -495,7 +494,6 @@ export class AppIndicator extends Signals.EventEmitter {
 
         if (!this.hasNameOwner) {
             delete this._appInfo;
-            this._isWine = false;
             return;
         } else if (this._appInfo) {
             return;
@@ -504,16 +502,6 @@ export class AppIndicator extends Signals.EventEmitter {
         let commandLine;
         try {
             const pid = await DBusUtils.getProcessId(this.busName, cancellable);
-            // The SNI Id is application-defined and differs between Wine builds.
-            // Identify the bus owner's Wine executable instead.
-            try {
-                const executable = GLib.file_read_link(`/proc/${pid}/exe`);
-                this._isWine = /(?:^|\/)wine(?:64)?(?:-preloader)?$/.test(executable);
-            } catch (e) {
-                this._isWine = false;
-                Util.Logger.debug(`${this.uniqueId}, failed getting executable: ${e.message}`);
-            }
-
             this._appInfo =
                 Shell.WindowTracker.get_default().get_app_from_pid(pid)?.appInfo;
 
@@ -655,10 +643,6 @@ export class AppIndicator extends Signals.EventEmitter {
             return null;
 
         return this._proxy.Menu;
-    }
-
-    get isWineWithoutDBusMenu() {
-        return this._isWine && this.menuPath === null;
     }
 
     get attentionIcon() {
@@ -899,13 +883,8 @@ export class AppIndicator extends Signals.EventEmitter {
         }
     }
 
-    async contextMenu(x, y) {
-        try {
-            await this._proxy.ContextMenuAsync(x, y, this._cancellable);
-        } catch (e) {
-            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                Util.Logger.warn(`${this.id}, failed to show context menu: ${e.message}`);
-        }
+    contextMenu(x, y) {
+        return this._proxy.ContextMenuAsync(x, y, this._cancellable);
     }
 
     async secondaryActivate(timestamp, x, y) {
