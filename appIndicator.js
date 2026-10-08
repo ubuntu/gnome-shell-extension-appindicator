@@ -294,8 +294,6 @@ class AppIndicatorProxy extends DBusProxy {
             const [valuesVariant] = (await this.getProperties(
                 cancellable)).deep_unpack();
 
-            this._cancellables.delete(cancellableName);
-
             await Promise.all(
                 Object.entries(valuesVariant).map(([propertyName, valueVariant]) =>
                     this._queuePropertyUpdate(propertyName, valueVariant, {
@@ -310,9 +308,10 @@ class AppIndicatorProxy extends DBusProxy {
                 this.get_cached_property_names().forEach(propertyName =>
                     this.set_cached_property(propertyName, null));
 
-                this._cancellables.delete(cancellableName);
                 throw e;
             }
+        } finally {
+            this._finishRefreshProperties(cancellableName, cancellable);
         }
     }
 
@@ -330,7 +329,6 @@ class AppIndicatorProxy extends DBusProxy {
             const [valueVariant] = (await this.getProperty(
                 propertyName, cancellable)).deep_unpack();
 
-            this._cancellables.delete(propertyName);
             await this._queuePropertyUpdate(propertyName, valueVariant,
                 Object.assign(params, {cancellable}));
         } catch (e) {
@@ -342,10 +340,11 @@ class AppIndicatorProxy extends DBusProxy {
                     `while refreshing property ${propertyName}: ${e}\n` +
                     `${e.stack}`);
                 this.set_cached_property(propertyName, null);
-                this._cancellables.delete(propertyName);
                 delete this._changedProperties[propertyName];
                 throw e;
             }
+        } finally {
+            this._finishRefreshProperties(propertyName, cancellable);
         }
     }
 
@@ -369,22 +368,35 @@ class AppIndicatorProxy extends DBusProxy {
         this._changedProperties[propertyName] = value;
 
         if (!this._propertiesEmitTimeout || !this._propertiesEmitTimeout.pending()) {
+            const ownsCancellable = !params.cancellable;
             if (!params.cancellable) {
                 params.cancellable = this._cancelRefreshProperties({
                     propertyName,
                     addNew: true,
                 });
             }
-            this._propertiesEmitTimeout = new PromiseUtils.TimeoutPromise(
-                MAX_UPDATE_FREQUENCY * 2, GLib.PRIORITY_DEFAULT_IDLE, params.cancellable);
-            await this._propertiesEmitTimeout;
+            try {
+                this._propertiesEmitTimeout = new PromiseUtils.TimeoutPromise(
+                    MAX_UPDATE_FREQUENCY * 2, GLib.PRIORITY_DEFAULT_IDLE, params.cancellable);
+                await this._propertiesEmitTimeout;
 
-            if (Object.keys(this._changedProperties).length) {
-                this.emit('g-properties-changed', GLib.Variant.new('a{sv}',
-                    this._changedProperties), []);
-                this._changedProperties = Object.create(null);
+                if (Object.keys(this._changedProperties).length) {
+                    this.emit('g-properties-changed', GLib.Variant.new('a{sv}',
+                        this._changedProperties), []);
+                    this._changedProperties = Object.create(null);
+                }
+            } finally {
+                if (ownsCancellable)
+                    this._finishRefreshProperties(propertyName, params.cancellable);
             }
         }
+    }
+
+    _finishRefreshProperties(propertyName, cancellable) {
+        cancellable.release();
+        // A newer request may already own this property's cancellation slot.
+        if (this._cancellables.get(propertyName) === cancellable)
+            this._cancellables.delete(propertyName);
     }
 
     _cancelRefreshProperties(params) {
@@ -1137,8 +1149,9 @@ class AppIndicatorsIconActor extends St.Icon {
         return cancellable;
     }
 
-    _cleanupIconLoadingCancellable(iconType, loadingId) {
-        if (this._loadingIcons)
+    _cleanupIconLoadingCancellable(iconType, loadingId, cancellable) {
+        cancellable.release();
+        if (this._loadingIcons?.[iconType].get(loadingId) === cancellable)
             this._loadingIcons[iconType].delete(loadingId);
     }
 
@@ -1163,14 +1176,12 @@ class AppIndicatorsIconActor extends St.Icon {
         }
 
         const iconData = this._getIconData(iconName, themePath, iconSize, iconScaling);
-        const loadingId = iconData.file ? iconData.file.get_path() : id;
-
         const cancellable = await this._getIconLoadingCancellable(iconType, id);
         try {
             gicon = await this._createIconByIconData(iconData, iconSize,
                 iconScaling, cancellable);
         } finally {
-            this._cleanupIconLoadingCancellable(iconType, loadingId);
+            this._cleanupIconLoadingCancellable(iconType, id, cancellable);
         }
         if (gicon)
             gicon = this._iconCache.add(id, gicon);
@@ -1429,7 +1440,7 @@ class AppIndicatorsIconActor extends St.Icon {
                 Util.Logger.warn(`${this.debugId}, Impossible to create image from data: ${e}`);
             throw e;
         } finally {
-            this._cleanupIconLoadingCancellable(iconType, id);
+            this._cleanupIconLoadingCancellable(iconType, id, cancellable);
         }
     }
 

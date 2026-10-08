@@ -15,13 +15,14 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import Gio from 'gi://Gio';
-import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
+
+export {CancellableChild} from './cancellable.js';
 
 import {Logger} from './logger.js';
 import {BaseStatusIcon} from './indicatorStatusIcon.js';
@@ -216,60 +217,3 @@ export function removeActor(obj, actor) {
     else
         obj.remove_child(actor);
 }
-
-export const CancellableChild = GObject.registerClass({
-    Properties: {
-        'parent': GObject.ParamSpec.object(
-            'parent', 'parent', 'parent',
-            GObject.ParamFlags.READWRITE | GObject.ParamFlags.CONSTRUCT_ONLY,
-            Gio.Cancellable.$gtype),
-    },
-},
-class CancellableChild extends Gio.Cancellable {
-    _init(parent) {
-        if (parent && !(parent instanceof Gio.Cancellable))
-            throw TypeError('Not a valid cancellable');
-
-        super._init({parent});
-
-        if (parent) {
-            if (parent.is_cancelled()) {
-                this.cancel();
-                return;
-            }
-
-            this._connectToParent();
-        }
-    }
-
-    _connectToParent() {
-        this._connectId = this.parent.connect(() => {
-            this._realCancel();
-
-            if (this._disconnectIdle)
-                return;
-
-            this._disconnectIdle = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
-                delete this._disconnectIdle;
-                this._disconnectFromParent();
-                return GLib.SOURCE_REMOVE;
-            });
-        });
-    }
-
-    _disconnectFromParent() {
-        if (this._connectId && !this._disconnectIdle) {
-            this.parent.disconnect(this._connectId);
-            delete this._connectId;
-        }
-    }
-
-    _realCancel() {
-        Gio.Cancellable.prototype.cancel.call(this);
-    }
-
-    cancel() {
-        this._disconnectFromParent();
-        this._realCancel();
-    }
-});
