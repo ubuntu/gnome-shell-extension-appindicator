@@ -50,11 +50,17 @@ export const DBusProxy = GObject.registerClass({
     }
 
     async initAsync(cancellable) {
-        this._cancellable = new CancellableChild(cancellable);
-        await this.init_async(GLib.PRIORITY_DEFAULT, this._cancellable);
+        const child = new CancellableChild(cancellable);
+        this._cancellable = child;
+        try {
+            await this.init_async(GLib.PRIORITY_DEFAULT, child);
 
-        this.gInterfaceInfo.methods.map(m => m.name).forEach(method =>
-            this._ensureAsyncMethod(method));
+            this.gInterfaceInfo.methods.map(m => m.name).forEach(method =>
+                this._ensureAsyncMethod(method));
+        } catch (e) {
+            child.cancel();
+            throw e;
+        }
     }
 
     destroy() {

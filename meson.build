@@ -69,6 +69,11 @@ subdir('locale')
 
 gjs = find_program('gjs', required: false)
 if gjs.found()
+    test('cancellable',
+        gjs,
+        args: ['-m', files('tests/testCancellable.js')],
+        protocol: 'tap')
+
     test('menu-utils',
         gjs,
         args: ['-m', files('tests/testMenuUtils.js')],

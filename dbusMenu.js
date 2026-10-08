@@ -350,13 +350,14 @@ export const DBusClient = GObject.registerClass({
             this._layoutUpdateCancellable.cancel();
 
         this._layoutUpdateCancellable = cancellable;
+        const propertyRequests = [];
 
         try {
             const [revision_, root] = await this.GetLayoutAsync(0, -1,
                 ['type', 'children-display'], cancellable);
 
             this._updateLayoutState(true);
-            this._doLayoutUpdate(root, cancellable);
+            this._doLayoutUpdate(root, cancellable, propertyRequests);
             this._gcItems();
             this._flagLayoutUpdateRequired = false;
             this._flagItemsUpdateRequired = false;
@@ -365,6 +366,10 @@ export const DBusClient = GObject.registerClass({
                 this._updateLayoutState(false);
             throw e;
         } finally {
+            // The layout can spawn asynchronous property fetches. Keep parent
+            // cancellation connected until all of them settle, even on error.
+            await Promise.allSettled(propertyRequests);
+            cancellable.release();
             if (this._layoutUpdateCancellable === cancellable)
                 this._layoutUpdateCancellable = null;
         }
@@ -377,14 +382,15 @@ export const DBusClient = GObject.registerClass({
             this.emit('ready-changed');
     }
 
-    _doLayoutUpdate(item, cancellable) {
+    _doLayoutUpdate(item, cancellable, propertyRequests) {
         const [id, properties, children] = item;
 
         const childrenUnpacked = children.map(c => c.deep_unpack());
         const childrenIds = childrenUnpacked.map(([c]) => c);
 
         // make sure all our children exist
-        childrenUnpacked.forEach(c => this._doLayoutUpdate(c, cancellable));
+        childrenUnpacked.forEach(c =>
+            this._doLayoutUpdate(c, cancellable, propertyRequests));
 
         // make sure we exist
         const menuItem = this._items.get(id);
@@ -430,10 +436,10 @@ export const DBusClient = GObject.registerClass({
             this._items.set(id, newMenuItem);
         }
 
-        this._requestProperties(id, cancellable).catch(e => {
+        propertyRequests.push(this._requestProperties(id, cancellable).catch(e => {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 Util.Logger.warn(`Could not get menu properties menu proxy: ${e}`);
-        });
+        }));
 
         return id;
     }
@@ -443,15 +449,16 @@ export const DBusClient = GObject.registerClass({
             this._propertiesUpdateCancellable.cancel();
 
         this._propertiesUpdateCancellable = cancellable;
+        const requests = [];
 
         try {
-            const requests = [];
-
             this._items.forEach((_, id) =>
                 requests.push(this._requestProperties(id, cancellable)));
 
             await Promise.all(requests);
         } finally {
+            await Promise.allSettled(requests);
+            cancellable.release();
             if (this._propertiesUpdateCancellable === cancellable)
                 this._propertiesUpdateCancellable = null;
         }
