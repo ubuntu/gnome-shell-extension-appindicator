@@ -442,7 +442,7 @@ class IndicatorStatusIcon extends BaseStatusIcon {
     }
 
     async _checkIsWine(cancellable) {
-        const pid = await DBusUtils.getProcessId(this._indicator.busName, cancellable);
+        const pid = await DBusUtils.getProcessId(this._indicator.nameOwner, cancellable);
         const file = Gio.File.new_for_path(`/proc/${pid}/exe`);
         const info = await file.query_info_async(Gio.FILE_ATTRIBUTE_STANDARD_SYMLINK_TARGET,
             Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, GLib.PRIORITY_DEFAULT, cancellable);
@@ -500,13 +500,14 @@ class IndicatorStatusIcon extends BaseStatusIcon {
 
         if (isWine && this._indicator.menuPath === null) {
             if (event.get_button() === Clutter.BUTTON_PRIMARY) {
-                Main.panel.menuManager.activeMenu?.close();
-                this._indicator.open(...event.get_coords(), event.get_time());
+                if (this._indicator.supportsActivation !== false) {
+                    Main.panel.menuManager.activeMenu?.close();
+                    this._indicator.open(...event.get_coords(), event.get_time());
+                    return;
+                }
+            } else if (await this._maybeOpenContextMenu(event, cancellable)) {
                 return;
             }
-
-            if (await this._maybeOpenContextMenu(event, cancellable))
-                return;
         }
 
         if (!cancellable.is_cancelled())
@@ -516,7 +517,8 @@ class IndicatorStatusIcon extends BaseStatusIcon {
     vfunc_button_press_event(event) {
         const button = event.get_button();
         if (this._indicator.menuPath === null && this._isWine !== false &&
-            (button === Clutter.BUTTON_PRIMARY || button === Clutter.BUTTON_SECONDARY)) {
+            (button === Clutter.BUTTON_SECONDARY ||
+                (button === Clutter.BUTTON_PRIMARY && this._indicator.supportsActivation !== false))) {
             this._waitDoubleClickPromise?.cancel();
             this._wineCancellable ??= new Gio.Cancellable();
             this._handleWineClick(event.copy(), this._wineCancellable).catch(logError);
