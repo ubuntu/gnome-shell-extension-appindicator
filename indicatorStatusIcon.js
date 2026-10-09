@@ -16,6 +16,7 @@
 
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 
@@ -29,6 +30,9 @@ import * as PromiseUtils from './promiseUtils.js';
 import * as SettingsManager from './settingsManager.js';
 import * as Util from './util.js';
 import * as DBusMenu from './dbusMenu.js';
+import * as DBusUtils from './dbusUtils.js';
+
+Gio._promisify(Gio.File.prototype, 'query_info_async');
 
 const DEFAULT_ICON_SIZE = Panel.PANEL_ICON_SIZE || 16;
 
@@ -270,6 +274,7 @@ class IndicatorStatusIcon extends BaseStatusIcon {
 
         Util.connectSmart(this._indicator, 'ready', this, this._showIfReady);
         Util.connectSmart(this._indicator, 'menu', this, this._updateMenu);
+        Util.connectSmart(this._indicator, 'name-owner-changed', this, this._resetWineState);
         Util.connectSmart(this._indicator, 'label', this, this._updateLabel);
         Util.connectSmart(this._indicator, 'status', this, this._updateStatus);
         Util.connectSmart(this._indicator, 'reset', this, () => {
@@ -287,6 +292,8 @@ class IndicatorStatusIcon extends BaseStatusIcon {
     }
 
     _onDestroy() {
+        this._resetWineState();
+
         if (this._menuClient) {
             this._menuClient.disconnect(this._menuReadyId);
             this._menuClient.destroy();
@@ -426,7 +433,102 @@ class IndicatorStatusIcon extends BaseStatusIcon {
         return Clutter.EVENT_PROPAGATE;
     }
 
+    _resetWineState() {
+        this._wineCancellable?.cancel();
+        delete this._wineCancellable;
+        delete this._wineCheckPromise;
+        delete this._isWine;
+        delete this._hasContextMenu;
+    }
+
+    async _checkIsWine(cancellable) {
+        const pid = await DBusUtils.getProcessId(this._indicator.nameOwner, cancellable);
+        const file = Gio.File.new_for_path(`/proc/${pid}/exe`);
+        const info = await file.query_info_async(Gio.FILE_ATTRIBUTE_STANDARD_SYMLINK_TARGET,
+            Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, GLib.PRIORITY_DEFAULT, cancellable);
+        const isWine = /(?:^|\/)wine(?:64)?(?:-preloader)?$/.test(info.get_symlink_target() ?? '');
+
+        if (!cancellable.is_cancelled())
+            this._isWine = isWine;
+
+        return isWine;
+    }
+
+    async _maybeOpenContextMenu(event, cancellable) {
+        if (this._hasContextMenu === false)
+            return false;
+
+        try {
+            Main.panel.menuManager.activeMenu?.close();
+            await this._indicator.contextMenu(...event.get_coords());
+            if (!cancellable.is_cancelled())
+                this._hasContextMenu = true;
+            return true;
+        } catch (e) {
+            if (cancellable.is_cancelled() ||
+                e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                return true;
+
+            if (e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD))
+                this._hasContextMenu = false;
+            else
+                Util.Logger.warn(`${this.uniqueId}, failed to show context menu: ${e.message}`);
+            return false;
+        }
+    }
+
+    async _handleWineClick(event, cancellable) {
+        let isWine = this._isWine;
+        try {
+            if (isWine === undefined) {
+                this._wineCheckPromise ??= this._checkIsWine(cancellable).finally(() => {
+                    if (!cancellable.is_cancelled())
+                        delete this._wineCheckPromise;
+                });
+                isWine = await this._wineCheckPromise;
+            }
+        } catch (e) {
+            if (cancellable.is_cancelled() ||
+                e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                return;
+
+            Util.Logger.debug(`${this.uniqueId}, failed checking Wine executable: ${e.message}`);
+        }
+
+        if (cancellable.is_cancelled() || !this._indicator.hasNameOwner)
+            return;
+
+        if (isWine && this._indicator.menuPath === null) {
+            if (event.get_button() === Clutter.BUTTON_PRIMARY) {
+                if (this._indicator.supportsActivation !== false) {
+                    Main.panel.menuManager.activeMenu?.close();
+                    this._indicator.open(...event.get_coords(), event.get_time());
+                    return;
+                }
+            } else if (await this._maybeOpenContextMenu(event, cancellable)) {
+                return;
+            }
+        }
+
+        if (!cancellable.is_cancelled())
+            this._handleButtonPress(event);
+    }
+
     vfunc_button_press_event(event) {
+        const button = event.get_button();
+        if (this._indicator.menuPath === null && this._isWine !== false &&
+            (button === Clutter.BUTTON_SECONDARY ||
+                (button === Clutter.BUTTON_PRIMARY && this._indicator.supportsActivation !== false))) {
+            this._waitDoubleClickPromise?.cancel();
+            this._wineCancellable ??= new Gio.Cancellable();
+            this._handleWineClick(event.copy(), this._wineCancellable).catch(logError);
+            return Clutter.EVENT_STOP;
+        }
+
+        return this._handleButtonPress(event);
+    }
+
+    _handleButtonPress(event) {
         if (this._waitDoubleClickPromise)
             this._waitDoubleClickPromise.cancel();
 

@@ -530,7 +530,8 @@ export class AppIndicator extends Signals.EventEmitter {
         const wasReady = this.isReady;
         let isReady = false;
 
-        if (this.hasNameOwner && this.id && this.menuPath)
+        // An explicit /NO_DBUSMENU is a received property, too.
+        if (this.hasNameOwner && this.id && this._proxy.Menu)
             isReady = true;
 
         this.isReady = isReady;
@@ -549,7 +550,7 @@ export class AppIndicator extends Signals.EventEmitter {
     }
 
     async _checkNeededProperties(cancellable) {
-        if (this.id && this.menuPath)
+        if (this.id && this._proxy.Menu)
             return true;
 
         const MAX_RETRIES = 3;
@@ -573,15 +574,17 @@ export class AppIndicator extends Signals.EventEmitter {
                 throw e;
             }
 
-            if (this.id && this.menuPath)
+            if (this.id && this._proxy.Menu)
                 break;
         }
 
-        return this.id && this.menuPath;
+        return this.id && this._proxy.Menu;
     }
 
     async _nameOwnerChanged() {
         const cancellable = this._cancellable;
+
+        this.emit('name-owner-changed');
 
         if (!this.hasNameOwner) {
             this._checkIfReady();
@@ -601,8 +604,6 @@ export class AppIndicator extends Signals.EventEmitter {
             return;
 
         this._updateAppInfo(cancellable).catch(logError);
-
-        this.emit('name-owner-changed');
     }
 
     // public property getters
@@ -676,7 +677,11 @@ export class AppIndicator extends Signals.EventEmitter {
     }
 
     get hasNameOwner() {
-        return !!this._proxy?.g_name_owner;
+        return !!this.nameOwner;
+    }
+
+    get nameOwner() {
+        return this._proxy?.g_name_owner;
     }
 
     get cancellable() {
@@ -881,6 +886,10 @@ export class AppIndicator extends Signals.EventEmitter {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 Util.Logger.critical(`${this.id}, failed to activate: ${e.message}`);
         }
+    }
+
+    contextMenu(x, y) {
+        return this._proxy.ContextMenuAsync(x, y, this._cancellable);
     }
 
     async secondaryActivate(timestamp, x, y) {
