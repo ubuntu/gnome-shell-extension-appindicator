@@ -1485,7 +1485,11 @@ class AppIndicatorsIconActor extends St.Icon {
         }
 
         const {theme, name, pixmap} = icon;
-        const commonArgs = [theme, iconType, iconSize];
+        const commonArgs = [
+            this._customIcons.size ? null : theme,
+            iconType,
+            iconSize,
+        ];
 
         if (this._customIcons.size) {
             let customIcon = this._customIcons.get(iconType);
