@@ -384,6 +384,9 @@ class AppIndicatorProxy extends DBusProxy {
                     this._changedProperties), []);
                 this._changedProperties = Object.create(null);
             }
+
+            if (this._cancellables.get(propertyName) === params.cancellable)
+                this._cancellables.delete(propertyName);
         }
     }
 
@@ -406,17 +409,40 @@ class AppIndicatorProxy extends DBusProxy {
             }
 
             if (params.addNew) {
-                cancellable = new Util.CancellableChild(this._cancellable);
+                cancellable = new Util.CancellableChild(
+                    this._renewRefreshCancellable());
                 this._cancellables.set(params.propertyName, cancellable);
                 return cancellable;
             }
         } else {
             this._cancellables.forEach(c => c.cancel());
             this._cancellables.clear();
+            this._refreshCancellable?.cancel();
+            delete this._refreshCancellable;
             this._changedProperties = Object.create(null);
         }
 
         return null;
+    }
+
+    _renewRefreshCancellable() {
+        // Completed children stay connected to their parent until it is
+        // cancelled, so renew the parent whenever no refresh is pending.
+        // It's also cancelled with the proxy cancellable, which is replaced
+        // when the name owner goes away.
+        const idle = !this._cancellables.size &&
+            !this._propertiesEmitTimeout?.pending();
+
+        if (this._refreshCancellable &&
+            (idle || this._refreshCancellable.is_cancelled())) {
+            this._refreshCancellable.cancel();
+            delete this._refreshCancellable;
+        }
+
+        if (!this._refreshCancellable)
+            this._refreshCancellable = new Util.CancellableChild(this._cancellable);
+
+        return this._refreshCancellable;
     }
 });
 
