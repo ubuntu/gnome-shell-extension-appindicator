@@ -850,6 +850,16 @@ export class AppIndicator extends Signals.EventEmitter {
             await this._proxy.ProvideXdgActivationTokenAsync(activationToken,
                 this._cancellable);
             this._hasProvideXdgActivationToken = true;
+
+            // On Shell < 49 get_startup_notify_id() registers an X11 startup
+            // sequence, and Mutter never sets a WM class on it. Tray
+            // activations are not cold launches: they may never map a window,
+            // and apps that ignore DESKTOP_STARTUP_ID (e.g. Qt 6) can never
+            // complete the sequence. Mutter then keeps the global busy cursor
+            // until the startup-notification timeout (issue #443). The token
+            // has already been delivered, so drop the sequence explicitly.
+            if (!Util.versionCheck(49))
+                launchContext.launch_failed(activationToken);
         } catch (e) {
             launchContext.launch_failed(activationToken);
 
