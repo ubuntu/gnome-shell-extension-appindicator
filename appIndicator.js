@@ -261,6 +261,10 @@ class AppIndicatorProxy extends DBusProxy {
         if (this._signalsAccumulator)
             return;
 
+        await this._refreshAccumulatedProperties(cancellable);
+    }
+
+    async _refreshAccumulatedProperties(cancellable) {
         this._signalsAccumulator = new PromiseUtils.TimeoutPromise(
             MAX_UPDATE_FREQUENCY, GLib.PRIORITY_DEFAULT_IDLE, cancellable);
         try {
@@ -273,9 +277,17 @@ class AppIndicatorProxy extends DBusProxy {
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 throw e;
+            return;
         } finally {
             delete this._signalsAccumulator;
         }
+
+        // Signals arriving while the properties were being refreshed have only
+        // been accumulated, so refresh again: otherwise the last change of a
+        // quick series (an app updating its icon twice within ~100ms) is never
+        // fetched and the indicator keeps showing the previous icon.
+        if (this._accumulatedProperties.size)
+            await this._refreshAccumulatedProperties(cancellable);
     }
 
     _resetNeededProperties() {
