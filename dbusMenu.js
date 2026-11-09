@@ -126,9 +126,16 @@ export class DbusMenuItem extends Signals.EventEmitter {
     }
 
     propertySet(prop, value) {
+        const oldValue = this.propertyGetVariant(prop);
         this._propStore.set(prop, value);
+        const newValue = this.propertyGetVariant(prop);
 
-        this.emit('property-changed', prop, this.propertyGetVariant(prop));
+        // Every layout update sets 'type' and 'children-display' again; only
+        // notify real changes, or each update would rebuild the whole menu
+        if (oldValue === newValue || (oldValue && newValue && oldValue.equal(newValue)))
+            return;
+
+        this.emit('property-changed', prop, newValue);
     }
 
     resetProperties() {
@@ -794,6 +801,10 @@ const MenuItemFactory = {
     },
 
     _replaceSelf(newSelf) {
+        // a late signal can hit an item that was already replaced or removed
+        if (!this._parent)
+            return;
+
         // create our new self if needed
         if (!newSelf)
             newSelf = MenuItemFactory.createItem(this._dbusClient, this._dbusItem);
@@ -806,8 +817,10 @@ const MenuItemFactory = {
                 pos = i;
         }
 
+        // Already detached by a concurrent layout update. Throwing here does
+        // not stop further signals, so it used to flood the log and freeze the shell
         if (pos < 0)
-            throw new Error("DBusMenu: can't replace non existing menu item");
+            return;
 
 
         // add our new self while we're still alive
