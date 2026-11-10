@@ -176,7 +176,14 @@ export class StatusNotifierWatcher {
 
             try {
                 const {services, name, path} = JSON.parse(textDecoder.decode(line));
-                const ids = [null, ...services].map(s => Util.indicatorId(s, name, path));
+                // The item may already be registered under any of the id forms
+                // Util.indicatorId() can produce for this connection: a standard
+                // SNI registration is keyed '<service>@<path>', the other
+                // registration variants use the unique bus name or the bare
+                // well-known name. Check them all, or the same indicator is
+                // added twice.
+                const ids = [name, ...services].flatMap(busName =>
+                    [null, ...services].map(s => Util.indicatorId(s, busName, path)));
 
                 if (ids.every(id => !this._items.has(id))) {
                     const service = services.find(s =>
