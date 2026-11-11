@@ -1,138 +1,143 @@
 # French translation for AppIndicatorExtension.
-# Copyright (C) 2017-2022 AppIndicatorExtension translators
+# Copyright (C) 2017-2026 AppIndicatorExtension translators
 # This file is distributed under the same license as the AppIndicatorExtension package.
 # Jean-Christophe Baptiste <jc.baptiste@sysdream.com>, 2017.
 # roxfr <roxfr@outlook.fr>, 2022.
+# mj42584 <113925125+mj42584@users.noreply.github.com>, 2026.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-09-27 20:43+0200\n"
-"PO-Revision-Date: 2022-05-26 22:59+0200\n"
-"Last-Translator: roxfr <roxfr@outlook.fr>\n"
+"POT-Creation-Date: 2026-11-11 14:31+0100\n"
+"PO-Revision-Date: 2026-11-11 15:00+0100\n"
+"Last-Translator: mj42584 <113925125+mj42584@users.noreply.github.com>\n"
 "Language-Team: Jimmy Scionti <jimmy.scionti@gmail.com>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"X-Generator: Poedit 3.0.1\n"
 
-#: prefs.js:67
-msgid "Opacity (min: 0, max: 255)"
-msgstr "Opacité (min : 0 ; max : 255)"
+#: preferences/generalPage.js:13
+msgid "General"
+msgstr "Général"
 
-#: prefs.js:95
-msgid "Desaturation (min: 0.0, max: 1.0)"
-msgstr "Désaturation (min : 0,0 ; max : 1,0)"
+#: preferences/generalPage.js:24
+msgid "Enable Legacy Tray Icons support"
+msgstr "Activer la prise en charge des anciennes icônes de la barre d'état"
 
-#: prefs.js:123
-msgid "Brightness (min: -1.0, max: 1.0)"
-msgstr "Luminosité (min : -1,0 ; max : 1,0)"
+#: preferences/generalPage.js:25
+msgid "Add X11 legacy tray icons to the panel area"
+msgstr ""
+"Ajouter les anciennes icônes X11 de la barre d'état à la zone du panneau"
 
-#: prefs.js:151
-msgid "Contrast (min: -1.0, max: 1.0)"
-msgstr "Contraste (min : -1,0 ; max : 1,0)"
+#: preferences/generalPage.js:39
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:30
+msgid "Compact Mode"
+msgstr "Mode compact"
 
-#: prefs.js:179
-msgid "Icon size (min: 0, max: 96)"
-msgstr "Taille des icônes (min : 0 ; max : 96)"
+#: preferences/generalPage.js:40
+msgid "Puts tray indicators closer together"
+msgstr "Rapproche les indicateurs de la barre d'état"
 
-#: prefs.js:207
-msgid "Tray horizontal alignment"
-msgstr "Alignement horizontal de la boîte"
-
-#: prefs.js:212
-msgid "Center"
-msgstr "Centre"
-
-#: prefs.js:213
-msgid "Left"
-msgstr "Gauche"
-
-#: prefs.js:214
-msgid "Right"
-msgstr "Droite"
-
-#: prefs.js:259
-msgid "Indicator ID"
-msgstr "ID de l'indicateur"
-
-#: prefs.js:260
-msgid "Icon Name"
-msgstr "Nom de l'icône"
-
-#: prefs.js:261
-msgid "Attention Icon Name"
-msgstr "Nom de l'icône Attention"
-
-#: prefs.js:336
-msgid "Preferences"
-msgstr "Préférences"
-
-#: prefs.js:338
-msgid "Custom Icons"
-msgstr "Icônes personnalisées"
-
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
-msgid "Saturation"
-msgstr "Saturation"
-
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
-msgid "Brightness"
-msgstr "Luminosité"
-
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
-msgid "Contrast"
-msgstr "Contraste"
-
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
+#: preferences/generalPage.js:54
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
 msgid "Opacity"
 msgstr "Opacité"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:21
+#: preferences/generalPage.js:63
+msgid "Desaturation"
+msgstr "Désaturation"
+
+#: preferences/generalPage.js:71
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:13
+msgid "Brightness"
+msgstr "Luminosité"
+
+#: preferences/generalPage.js:79
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:17
+msgid "Contrast"
+msgstr "Contraste"
+
+#: preferences/generalPage.js:87
+msgid "Icon Size"
+msgstr "Taille des icônes"
+
+#: preferences/generalPage.js:97
+msgid "Center"
+msgstr "Centre"
+
+#: preferences/generalPage.js:98
+msgid "Left"
+msgstr "Gauche"
+
+#: preferences/generalPage.js:99
+msgid "Right"
+msgstr "Droite"
+
+#: preferences/generalPage.js:105
+msgid "Tray Horizontal Alignment"
+msgstr "Alignement horizontal de la barre"
+
+#: preferences/customIconPage.js:88
+msgid "Custom Icons"
+msgstr "Icônes personnalisées"
+
+#: preferences/customIconPage.js:130
+msgid "Indicator ID"
+msgstr "ID de l'indicateur"
+
+#: preferences/customIconPage.js:131
+msgid "Icon Name"
+msgstr "Nom de l'icône"
+
+#: preferences/customIconPage.js:132
+msgid "Attention Icon Name"
+msgstr "Nom de l'icône Attention"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:5
+msgid "Enable legacy tray icons support"
+msgstr "Activer la prise en charge des anciennes icônes de la barre d'état"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:9
+msgid "Saturation"
+msgstr "Saturation"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:25
 msgid "Icon size"
 msgstr "Taille des icônes"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:22
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
 msgid "Icon size in pixel"
 msgstr "Taille des icônes en pixels"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:26
-msgid "Icon spacing"
-msgstr "Espacement des icônes"
-
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:27
-msgid "Icon spacing within the tray"
-msgstr "Espacement des icônes dans la barre"
-
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:31
+msgid "Reduces the Spacing Between Indicators"
+msgstr "Réduit l'espacement entre les indicateurs"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:35
 msgid "Position in tray"
 msgstr "Position dans la barre"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:32
-msgid "Set where the Icon tray should appear in Gnome tray"
-msgstr "Définir où la barre d'icônes doit apparaître dans la barre d'état de Gnome"
-
 #: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:36
-msgid "Order in tray"
-msgstr "Commande dans la barre"
+msgid "Set where the Icon tray should appear in Gnome tray"
+msgstr ""
+"Définir où la barre d'icônes doit apparaître dans la barre d'état de Gnome"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:37
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:40
+msgid "Order in tray"
+msgstr "Ordre dans la barre"
+
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
 msgid "Set where the Icon tray should appear among other trays"
 msgstr "Définir où la barre d'icônes doit apparaître parmi les autres barres"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:41
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:45
 msgid "Custom icons"
 msgstr "Icônes personnalisées"
 
-#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:42
+#: schemas/org.gnome.shell.extensions.appindicator.gschema.xml:46
 msgid "Replace any icons with custom icons from themes"
-msgstr "Remplacer toutes les icônes par des icônes personnalisées à partir des thèmes"
-
-#~ msgid "Spacing between icons (min: 0, max: 20)"
-#~ msgstr "Espacement entre les icônes (min : 0 ; max : 20)"
-
-#~ msgid "Tray offset"
-#~ msgstr "Décalage de la boîte"
+msgstr ""
+"Remplacer toutes les icônes par des icônes personnalisées à partir des thèmes"
