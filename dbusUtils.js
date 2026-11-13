@@ -109,6 +109,14 @@ export async function* introspectBusObject(bus, name, cancellable,
 
     for (const subNodeInfo of nodeInfo.nodes) {
         const subPath = `${path}/${subNodeInfo.path}`;
+
+        // Some peers list child nodes whose names are not valid object path
+        // elements (for example "com.bambulab"). GDBus rejects such a path
+        // with a critical warning and never calls the callback, so the call
+        // promise would never settle. Skip these nodes.
+        if (!GLib.Variant.is_object_path(subPath))
+            continue;
+
         yield* introspectBusObject(bus, name, cancellable, interfaces, subPath);
     }
 }
