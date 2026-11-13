@@ -25,6 +25,7 @@ import * as Panel from 'resource:///org/gnome/shell/ui/panel.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 
 import * as AppIndicator from './appIndicator.js';
+import * as PanelUtils from './panelUtils.js';
 import * as PromiseUtils from './promiseUtils.js';
 import * as SettingsManager from './settingsManager.js';
 import * as Util from './util.js';
@@ -47,21 +48,7 @@ export function addIconToPanel(statusIcon) {
         throw TypeError(`Unexpected icon type: ${statusIcon}`);
 
     const settings = SettingsManager.getDefaultGSettings();
-    const indicatorId = `appindicator-${statusIcon.uniqueId}`;
-
-    const currentIcon = Main.panel.statusArea[indicatorId];
-    if (currentIcon) {
-        if (currentIcon !== statusIcon)
-            currentIcon.destroy();
-
-        Main.panel.statusArea[indicatorId] = null;
-    }
-
-    Main.panel.addToStatusArea(indicatorId, statusIcon, 1,
-        settings.get_string('tray-pos'));
-
-    Util.connectSmart(settings, 'changed::tray-pos', statusIcon, () =>
-        addIconToPanel(statusIcon));
+    PanelUtils.addIconToPanel(Main.panel, settings, statusIcon, Util.connectSmart);
 }
 
 export function getTrayIcons() {
