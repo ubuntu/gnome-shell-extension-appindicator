@@ -73,6 +73,10 @@ if gjs.found()
         gjs,
         args: ['-m', files('tests/testMenuUtils.js')],
         protocol: 'tap')
+    test('panel-utils',
+        gjs,
+        args: ['-m', files('tests/testPanelUtils.js')],
+        protocol: 'tap')
 endif
 
 eslint = find_program('eslint', required: false)
